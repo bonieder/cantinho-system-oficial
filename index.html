@@ -31,6 +31,72 @@
   .scroll-shadow { box-shadow: inset 0 -10px 10px -10px rgba(0,0,0,.05); }
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+  /* === MOBILE — sidebar retrátil + ajustes de layout === */
+  #mobile-menu-btn { display: none; }
+  #mobile-overlay { display: none; }
+
+  @media (max-width: 768px) {
+    /* Botão hambúrguer visível no mobile */
+    #mobile-menu-btn { display: flex; }
+
+    /* Sidebar vira gaveta (off-canvas) */
+    aside.sidebar-mobile {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 60;
+      width: 260px;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.3);
+    }
+    aside.sidebar-mobile.open { transform: translateX(0); }
+
+    /* Overlay escuro quando sidebar aberta */
+    #mobile-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 55;
+    }
+    #mobile-overlay.open { display: block; }
+
+    /* Main ocupa 100% sem sidebar visível */
+    main { margin-left: 0 !important; width: 100% !important; }
+
+    /* Padding menor no mobile */
+    .module.p-8 { padding: 1rem !important; }
+    header.px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+    /* Grids 4 colunas viram 2 em mobile */
+    .grid.grid-cols-4, .grid.grid-cols-3, .grid.grid-cols-5 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 0.5rem !important;
+    }
+    .grid.grid-cols-2 { gap: 0.5rem !important; }
+    .col-span-2 { grid-column: span 2 / span 2 !important; }
+
+    /* Modais ocupam quase toda a tela */
+    .max-w-2xl, .max-w-3xl, .max-w-5xl {
+      max-width: calc(100vw - 1rem) !important;
+    }
+
+    /* Tabelas: scroll horizontal automático */
+    .module table { min-width: 100%; }
+
+    /* Botões de ação em flex-wrap */
+    .flex.flex-wrap.gap-2, .flex.gap-2.flex-wrap { gap: 0.4rem !important; }
+  }
+
+  /* Tablet: 2 colunas pra grids de 4, sidebar visível mas mais estreita */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .grid.grid-cols-4 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    aside { width: 14rem !important; }
+  }
 </style>
 </head>
 <body class="bg-ink-50 text-ink-900">
@@ -66,7 +132,8 @@
 <div class="flex h-screen overflow-hidden">
 
   <!-- SIDEBAR -->
-  <aside class="w-64 bg-ink-900 text-ink-100 flex flex-col">
+  <div id="mobile-overlay" onclick="closeSidebar()"></div>
+  <aside class="sidebar-mobile w-64 bg-ink-900 text-ink-100 flex flex-col">
     <div class="px-5 py-5 border-b border-ink-800">
       <div class="flex items-center gap-2">
         <div class="w-9 h-9 bg-brand-600 rounded-lg flex items-center justify-center font-bold text-lg">B</div>
@@ -159,9 +226,14 @@
   <!-- MAIN -->
   <main class="flex-1 overflow-y-auto">
     <header class="bg-white border-b border-ink-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-      <div>
-        <h1 id="page-title" class="text-xl font-semibold">Dashboard</h1>
-        <p id="page-subtitle" class="text-sm text-ink-600">Visão geral em tempo real do estabelecimento</p>
+      <div class="flex items-center gap-3">
+        <button id="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Abrir menu" class="w-10 h-10 items-center justify-center rounded-md hover:bg-ink-100 text-ink-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <div>
+          <h1 id="page-title" class="text-xl font-semibold">Dashboard</h1>
+          <p id="page-subtitle" class="text-sm text-ink-600">Visão geral em tempo real do estabelecimento</p>
+        </div>
       </div>
       <div class="flex items-center gap-3">
         <div class="text-xs flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">
@@ -1862,8 +1934,22 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     document.getElementById('page-title').textContent = titles[target][0];
     document.getElementById('page-subtitle').textContent = titles[target][1];
     window.scrollTo(0, 0);
+    // Em mobile, fecha o menu lateral ao clicar em um item
+    closeSidebar();
   });
 });
+
+// === Sidebar mobile (toggle gaveta) ===
+function toggleSidebar(){
+  document.querySelector('aside.sidebar-mobile')?.classList.toggle('open');
+  document.getElementById('mobile-overlay')?.classList.toggle('open');
+}
+function closeSidebar(){
+  document.querySelector('aside.sidebar-mobile')?.classList.remove('open');
+  document.getElementById('mobile-overlay')?.classList.remove('open');
+}
+// ESC fecha sidebar
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeSidebar(); });
 
 // Charts do CMV (revenueChart e topProductsChart agora são gerenciados pelo renderDashboard)
 new Chart(document.getElementById('cmvChart'), {
