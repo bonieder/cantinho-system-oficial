@@ -9326,6 +9326,10 @@ function applyUserPermissions(){
     MODULOS_SISTEMA.forEach(m => allowed.add(m.id));
     allowed.add('setup');
   }
+  // Gerente: garante acesso a módulos novos (dp, etc) caso o perfil esteja desatualizado
+  if(user.perfil === 'Gerente'){
+    (PERMS_DEFAULT.Gerente || []).forEach(m => allowed.add(m));
+  }
   document.querySelectorAll('.nav-item[data-target]').forEach(btn => {
     const target = btn.dataset.target;
     if(target && !allowed.has(target)){
@@ -9687,13 +9691,14 @@ const MODULOS_SISTEMA = [
   { id:'whatsapp', label:'WhatsApp Bot', icon:'💬' },
   { id:'cadastros', label:'Cadastros', icon:'📋' },
   { id:'freelancers', label:'Freelancers', icon:'👤' },
+  { id:'dp', label:'Departamento Pessoal', icon:'⏱' },
   { id:'usuarios', label:'Usuários e Acesso', icon:'🔐' }
 ];
 
 // Permissões padrão por perfil
 const PERMS_DEFAULT = {
   Admin:      MODULOS_SISTEMA.map(m => m.id),
-  Gerente:    ['dashboard','caixa','financeiro','estoque','etiquetas','cmv','dre','checklist','compras','notas','almoxarifado','banco','whatsapp','cadastros','freelancers'],
+  Gerente:    ['dashboard','caixa','financeiro','estoque','etiquetas','cmv','dre','checklist','compras','notas','almoxarifado','banco','whatsapp','cadastros','freelancers','dp'],
   Operador:   ['dashboard','checklist','compras','etiquetas','estoque'],
   Estoquista: ['dashboard','estoque','almoxarifado','etiquetas','compras'],
   Caixa:      ['dashboard','caixa','etiquetas']
