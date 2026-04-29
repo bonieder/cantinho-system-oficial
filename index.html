@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="seed-produtos.js"></script>
 <script>
   tailwind.config = {
@@ -200,6 +201,10 @@
       <button data-target="reservas" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-ink-800">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         Reservas
+      </button>
+      <button data-target="vendas" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-ink-800">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h18v4H3zM5 7h14l-1 14H6zM10 11v6M14 11v6"/></svg>
+        Vendas (PDV)
       </button>
       <button data-target="cadastros" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-ink-800">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
@@ -701,6 +706,28 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Dashboard de vencimento -->
+      <div class="bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">⏰ Acompanhamento de validade</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Etiquetas produzidas — alimentos por status de vencimento</p>
+          </div>
+          <button onclick="notificarVencimentos()" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md">📱 Notificar destinatários</button>
+        </div>
+        <div class="p-5 grid lg:grid-cols-2 gap-5">
+          <div>
+            <div id="et-venc-kpis" class="grid grid-cols-2 gap-2"></div>
+            <h4 class="text-xs font-semibold text-ink-600 mt-4 mb-2 uppercase">Próximos a vencer (7 dias)</h4>
+            <div id="et-venc-lista" class="space-y-1 max-h-60 overflow-y-auto"></div>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold text-ink-600 mb-2 uppercase">Distribuição por categoria</h4>
+            <canvas id="et-venc-chart" height="180"></canvas>
+          </div>
+        </div>
       </div>
 
       <!-- Histórico de impressões -->
@@ -1223,56 +1250,88 @@
 
     <!-- WHATSAPP -->
     <section id="whatsapp" class="module p-8 space-y-6">
-      <div class="grid grid-cols-2 gap-4">
-        <div class="bg-white p-5 rounded-xl border border-ink-200">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white">💬</div>
+      <!-- Modo de envio -->
+      <div class="bg-white p-5 rounded-xl border border-ink-200">
+        <h3 class="font-semibold mb-3">📲 Modo de envio</h3>
+        <div class="grid md:grid-cols-2 gap-3">
+          <label class="border-2 border-ink-200 hover:border-emerald-400 rounded-lg p-4 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+            <input type="radio" name="wa-modo" value="wame" id="wa-modo-wame" onchange="onWAModoChange()" class="hidden">
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">📱</div>
+              <div class="flex-1">
+                <div class="font-medium text-sm">Manual (wa.me) — <span class="text-emerald-700">Recomendado</span></div>
+                <div class="text-xs text-ink-600 mt-1">Clica em "Notificar" → abre o WhatsApp já com a mensagem pronta. <strong>Grátis, sem servidor, sem aprovação.</strong></div>
+              </div>
+            </div>
+          </label>
+          <label class="border-2 border-ink-200 hover:border-emerald-400 rounded-lg p-4 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+            <input type="radio" name="wa-modo" value="zapi" id="wa-modo-zapi" onchange="onWAModoChange()" class="hidden">
+            <div class="flex items-start gap-3">
+              <div class="text-2xl">🤖</div>
+              <div class="flex-1">
+                <div class="font-medium text-sm">Automático (Z-API / Evolution / Meta)</div>
+                <div class="text-xs text-ink-600 mt-1">Envio totalmente automático. Requer servidor + API paga (R$ 100+/mês) ou self-hosted Evolution.</div>
+              </div>
+            </div>
+          </label>
+        </div>
+        <div id="wa-api-config" class="hidden mt-4 space-y-3 border-t border-ink-200 pt-4">
+          <div class="grid grid-cols-2 gap-3">
             <div>
-              <h3 class="font-semibold">Evolution API conectada</h3>
-              <p class="text-xs text-ink-600">+55 11 99999-1234 • Cantinho do Boni</p>
+              <label class="text-xs font-medium text-ink-600">URL da API <span class="text-rose-500">*</span></label>
+              <input type="url" id="wa-api-url" placeholder="https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Client Token / Bearer</label>
+              <input type="password" id="wa-api-token" placeholder="Token de autenticação" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
             </div>
           </div>
-          <div class="text-xs space-y-2">
-            <div class="flex justify-between"><span class="text-ink-600">Mensagens enviadas (mês)</span><strong>1.842</strong></div>
-            <div class="flex justify-between"><span class="text-ink-600">Mensagens recebidas (mês)</span><strong>967</strong></div>
-            <div class="flex justify-between"><span class="text-ink-600">Checklists respondidos via bot</span><strong>241</strong></div>
-            <div class="flex justify-between"><span class="text-ink-600">Aprovações via WhatsApp</span><strong>89</strong></div>
-          </div>
-        </div>
-
-        <div class="bg-white p-5 rounded-xl border border-ink-200">
-          <h3 class="font-semibold mb-3">Notificações agendadas</h3>
-          <ul class="text-sm divide-y divide-ink-100">
-            <li class="py-2 flex justify-between"><span>06:00 — Relatório diário aos gerentes</span><span class="text-xs text-emerald-600">ativo</span></li>
-            <li class="py-2 flex justify-between"><span>08:00 — Disparo checklists abertura</span><span class="text-xs text-emerald-600">ativo</span></li>
-            <li class="py-2 flex justify-between"><span>14:00 — Resumo do almoço</span><span class="text-xs text-emerald-600">ativo</span></li>
-            <li class="py-2 flex justify-between"><span>22:00 — Fechamento do dia</span><span class="text-xs text-emerald-600">ativo</span></li>
-            <li class="py-2 flex justify-between"><span>Tempo real — Alertas de estoque</span><span class="text-xs text-emerald-600">ativo</span></li>
-          </ul>
+          <button onclick="testarAPIWhatsApp()" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md">🧪 Testar conexão</button>
         </div>
       </div>
 
+      <!-- Saudação e assinatura -->
       <div class="bg-white p-5 rounded-xl border border-ink-200">
-        <h3 class="font-semibold mb-4">Conversa de checklist (exemplo)</h3>
-        <div class="bg-ink-50 rounded-lg p-4 space-y-3 max-w-md">
-          <div class="bg-white rounded-lg p-3 text-sm shadow-sm">
-            🤖 Bom dia João! Seu checklist <strong>Cozinha — Abertura</strong> está disponível. Vamos começar?
+        <h3 class="font-semibold mb-3">✏ Personalização das mensagens</h3>
+        <div class="grid md:grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Saudação padrão</label>
+            <input type="text" id="wa-saudacao" placeholder="Olá!" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
           </div>
-          <div class="bg-emerald-100 rounded-lg p-3 text-sm shadow-sm ml-8">Sim, pode mandar</div>
-          <div class="bg-white rounded-lg p-3 text-sm shadow-sm">
-            🤖 1/6 — Geladeiras estão limpas?<br>
-            <button class="mt-2 mr-1 text-xs bg-ink-100 px-3 py-1 rounded">✅ Sim</button>
-            <button class="mt-2 mr-1 text-xs bg-ink-100 px-3 py-1 rounded">❌ Não</button>
-          </div>
-          <div class="bg-emerald-100 rounded-lg p-3 text-sm shadow-sm ml-8">Sim ✅</div>
-          <div class="bg-white rounded-lg p-3 text-sm shadow-sm">
-            🤖 2/6 — Qual a temperatura da câmara fria? (em °C)
-          </div>
-          <div class="bg-emerald-100 rounded-lg p-3 text-sm shadow-sm ml-8">12</div>
-          <div class="bg-rose-50 border-l-4 border-rose-500 rounded-lg p-3 text-sm">
-            ⚠ <strong>Atenção:</strong> 12°C está fora do padrão (0–4°C). Confirma o valor ou houve erro de leitura?
+          <div>
+            <label class="text-xs font-medium text-ink-600">Assinatura padrão</label>
+            <input type="text" id="wa-assinatura" placeholder="— Cantinho do Boni" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
           </div>
         </div>
+      </div>
+
+      <!-- Destinatários por evento -->
+      <div class="bg-white p-5 rounded-xl border border-ink-200">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="font-semibold">📥 Destinatários por evento</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Marque quem deve ser notificado em cada situação. Apenas funcionários com telefone cadastrado aparecem.</p>
+          </div>
+        </div>
+        <div id="wa-destinatarios" class="space-y-3"></div>
+      </div>
+
+      <div class="flex justify-end">
+        <button onclick="salvarWAConfig()" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-md">💾 Salvar configurações</button>
+      </div>
+
+      <!-- Teste rápido -->
+      <div class="bg-white p-5 rounded-xl border border-ink-200">
+        <h3 class="font-semibold mb-3">🧪 Enviar teste</h3>
+        <div class="grid md:grid-cols-3 gap-3">
+          <input type="tel" id="wa-test-tel" placeholder="62 99999-1234" class="text-sm border border-ink-200 rounded-md px-3 py-2">
+          <input type="text" id="wa-test-msg" placeholder="Mensagem de teste" class="text-sm border border-ink-200 rounded-md px-3 py-2 col-span-2">
+        </div>
+        <button onclick="enviarTesteWhatsApp()" class="mt-3 text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md">📲 Enviar</button>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900">
+        <strong>ℹ Como funciona o modo manual (wa.me):</strong> ao clicar nos botões "📱 Notificar" espalhados pelo sistema, o navegador abre o WhatsApp Web ou o app com a mensagem já digitada — você só confirma e envia. Não há automação, mas funciona em qualquer celular ou computador, sem custos.
       </div>
     </section>
 
@@ -1911,7 +1970,9 @@ app.cantinhodoboni.com.br {
       <!-- Tabs -->
       <div class="flex border-b border-ink-200 -mt-2 overflow-x-auto">
         <button onclick="setDPTab('fechamento')" id="dp-tab-fechamento" class="px-5 py-3 text-sm font-medium border-b-2 border-brand-600 text-brand-700 whitespace-nowrap">📊 Fechamento do mês</button>
-        <button onclick="setDPTab('apontamento')" id="dp-tab-apontamento" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⏱ Apontamento de ponto</button>
+        <button onclick="setDPTab('apontamento')" id="dp-tab-apontamento" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⏱ Apontamento</button>
+        <button onclick="setDPTab('folha')" id="dp-tab-folha" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">💰 Folha de pagamento</button>
+        <button onclick="setDPTab('rescisao')" id="dp-tab-rescisao" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">📤 Rescisões</button>
         <button onclick="setDPTab('premissas')" id="dp-tab-premissas" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⚙ Premissas</button>
         <button onclick="setDPTab('feriados')" id="dp-tab-feriados" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">📅 Feriados</button>
       </div>
@@ -2009,6 +2070,72 @@ app.cantinhodoboni.com.br {
         <div class="px-5 py-3 border-t border-ink-200 text-[11px] text-ink-500">
           💡 Dica: digite o horário sem os dois pontos (ex: <strong>1600</strong> = 16:00) e a planilha completa automaticamente. Para falta digite <strong>F</strong>, atestado <strong>A</strong>, folga <strong>FL</strong>.
         </div>
+      </div>
+
+      <!-- Tab: Folha de pagamento -->
+      <div id="dp-content-folha" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">💰 Folha de pagamento mensal</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Cálculo de proventos e descontos com base no apontamento + tabelas INSS/IRRF 2026</p>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="recalcularFolha()" class="text-xs border border-ink-200 hover:bg-ink-50 px-3 py-1.5 rounded-md">↻ Recalcular</button>
+            <button onclick="exportarFolhaCSV()" class="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-md">📥 Exportar CSV</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+              <tr>
+                <th class="text-left px-3 py-3">Colaborador</th>
+                <th class="text-right px-3 py-3">Salário base</th>
+                <th class="text-right px-3 py-3">H.E. + Adic.</th>
+                <th class="text-right px-3 py-3">DSR + 1/3</th>
+                <th class="text-right px-3 py-3">Bruto</th>
+                <th class="text-right px-3 py-3">INSS</th>
+                <th class="text-right px-3 py-3">IRRF</th>
+                <th class="text-right px-3 py-3">Faltas</th>
+                <th class="text-right px-3 py-3">Adiant.</th>
+                <th class="text-right px-3 py-3">Líquido</th>
+                <th class="text-right px-3 py-3">FGTS</th>
+                <th class="text-center px-3 py-3">Holerite</th>
+              </tr>
+            </thead>
+            <tbody id="dp-folha-list" class="divide-y divide-ink-100"></tbody>
+            <tfoot class="bg-ink-50 text-xs font-semibold border-t-2 border-ink-200">
+              <tr id="dp-folha-totais"></tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="bg-blue-50 border-t border-blue-200 p-3 text-xs text-blue-900">
+          <strong>ℹ Validação:</strong> usa tabela INSS 2026 (até 7,5%-14% por faixa, teto R$ 8.157,41) e IRRF 2026 (deduções por dependente R$ 189,59). Valores de referência — confirme com o contador antes de pagar.
+        </div>
+      </div>
+
+      <!-- Tab: Rescisões -->
+      <div id="dp-content-rescisao" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">📤 Rescisões e prazos legais</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Cálculo de TRCT — Termo de Rescisão. Prazo legal: 10 dias corridos da data da rescisão (CLT 477)</p>
+          </div>
+          <button onclick="abrirNovaRescisaoModal()" class="text-sm bg-rose-600 hover:bg-rose-700 text-white px-4 py-1.5 rounded-md">+ Nova rescisão</button>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+            <tr>
+              <th class="text-left px-5 py-3">Colaborador</th>
+              <th class="text-left px-5 py-3">Tipo</th>
+              <th class="text-left px-5 py-3">Demissão</th>
+              <th class="text-left px-5 py-3">Pagar até</th>
+              <th class="text-right px-5 py-3">Valor</th>
+              <th class="text-center px-5 py-3">Status</th>
+              <th class="text-center px-5 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="dp-rescisao-list" class="divide-y divide-ink-100"></tbody>
+        </table>
       </div>
 
       <!-- Tab: Premissas -->
@@ -2111,6 +2238,162 @@ app.cantinhodoboni.com.br {
 
     </section>
 
+    <!-- VENDAS (PDV) -->
+    <section id="vendas" class="module p-8 space-y-6">
+      <!-- Filtros -->
+      <div class="bg-white rounded-xl border border-ink-200 p-4 flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <label class="text-sm">Período:
+            <select id="vendas-periodo" onchange="onVendasPeriodoChange()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5 ml-2">
+              <option value="hoje">Hoje</option>
+              <option value="ontem">Ontem</option>
+              <option value="7">Últimos 7 dias</option>
+              <option value="30" selected>Últimos 30 dias</option>
+              <option value="mes">Este mês</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </label>
+          <div id="vendas-custom-range" class="hidden flex items-center gap-2">
+            <input type="date" id="vendas-data-ini" onchange="renderVendas()" class="text-sm border border-ink-200 rounded-md px-2 py-1.5">
+            <span class="text-xs text-ink-500">a</span>
+            <input type="date" id="vendas-data-fim" onchange="renderVendas()" class="text-sm border border-ink-200 rounded-md px-2 py-1.5">
+          </div>
+          <select id="vendas-grupo-filtro" onchange="renderVendas()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5">
+            <option value="">Todos os grupos</option>
+          </select>
+          <select id="vendas-atendente-filtro" onchange="renderVendas()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5">
+            <option value="">Todos os atendentes</option>
+          </select>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <label for="vendas-import-input" class="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-md cursor-pointer">📥 Importar relatório (XLSX/CSV)</label>
+          <input type="file" id="vendas-import-input" accept=".xlsx,.xls,.csv" onchange="handleVendasImport(this.files[0])" class="hidden">
+          <button onclick="exportarVendasCSV()" class="text-sm border border-ink-200 hover:bg-ink-50 px-3 py-1.5 rounded-md">📤 Exportar CSV</button>
+          <button onclick="confirmLimparVendas()" class="text-sm border border-rose-300 hover:bg-rose-50 text-rose-700 px-3 py-1.5 rounded-md">🗑 Limpar tudo</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div id="vendas-kpis" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div>
+
+      <!-- Abas -->
+      <div class="flex border-b border-ink-200 overflow-x-auto">
+        <button onclick="setVendasTab('overview')" id="vendas-tab-overview" class="px-5 py-3 text-sm font-medium border-b-2 border-brand-600 text-brand-700 whitespace-nowrap">📊 Visão geral</button>
+        <button onclick="setVendasTab('atendentes')" id="vendas-tab-atendentes" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">👥 Atendentes</button>
+        <button onclick="setVendasTab('produtos')" id="vendas-tab-produtos" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">🍽 Produtos</button>
+        <button onclick="setVendasTab('grupos')" id="vendas-tab-grupos" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">🗂 Grupos</button>
+        <button onclick="setVendasTab('temporal')" id="vendas-tab-temporal" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">📈 Temporal</button>
+      </div>
+
+      <!-- Tab: Visão geral -->
+      <div id="vendas-content-overview" class="space-y-4">
+        <div class="grid lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-xl border border-ink-200 p-4">
+            <h3 class="font-semibold text-sm mb-3">Faturamento por dia</h3>
+            <canvas id="vendas-chart-dia" height="200"></canvas>
+          </div>
+          <div class="bg-white rounded-xl border border-ink-200 p-4">
+            <h3 class="font-semibold text-sm mb-3">Top 10 produtos (R$)</h3>
+            <canvas id="vendas-chart-top-prod" height="200"></canvas>
+          </div>
+        </div>
+        <div class="grid lg:grid-cols-2 gap-4">
+          <div class="bg-white rounded-xl border border-ink-200 p-4">
+            <h3 class="font-semibold text-sm mb-3">Faturamento por grupo</h3>
+            <canvas id="vendas-chart-grupo" height="200"></canvas>
+          </div>
+          <div class="bg-white rounded-xl border border-ink-200 p-4">
+            <h3 class="font-semibold text-sm mb-3">Top 10 atendentes (R$)</h3>
+            <canvas id="vendas-chart-atendentes" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Atendentes -->
+      <div id="vendas-content-atendentes" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">Ranking de atendentes</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Performance por garçom no período</p>
+          </div>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+            <tr>
+              <th class="text-left px-5 py-3">Pos</th>
+              <th class="text-left px-5 py-3">Atendente</th>
+              <th class="text-right px-5 py-3">Itens</th>
+              <th class="text-right px-5 py-3">Tickets</th>
+              <th class="text-right px-5 py-3">Ticket médio</th>
+              <th class="text-right px-5 py-3">Total (R$)</th>
+              <th class="text-right px-5 py-3">% do total</th>
+              <th class="text-center px-5 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="vendas-atendentes-list" class="divide-y divide-ink-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Tab: Produtos -->
+      <div id="vendas-content-produtos" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">Produtos vendidos</h3>
+            <p class="text-xs text-ink-600 mt-0.5" id="vendas-prod-info">—</p>
+          </div>
+          <input type="search" id="vendas-prod-search" oninput="renderVendas()" placeholder="🔍 Buscar produto" class="text-sm border border-ink-200 rounded-md px-3 py-1.5 w-64">
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+            <tr>
+              <th class="text-left px-5 py-3">Produto</th>
+              <th class="text-left px-5 py-3">Grupo</th>
+              <th class="text-right px-5 py-3">Qtd vendida</th>
+              <th class="text-right px-5 py-3">Faturamento</th>
+              <th class="text-right px-5 py-3">Ticket médio</th>
+              <th class="text-right px-5 py-3">% Faturamento</th>
+            </tr>
+          </thead>
+          <tbody id="vendas-produtos-list" class="divide-y divide-ink-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Tab: Grupos -->
+      <div id="vendas-content-grupos" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200">
+          <h3 class="font-semibold">Faturamento por grupo</h3>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+            <tr>
+              <th class="text-left px-5 py-3">Grupo</th>
+              <th class="text-right px-5 py-3">Itens</th>
+              <th class="text-right px-5 py-3">Qtd</th>
+              <th class="text-right px-5 py-3">Faturamento</th>
+              <th class="text-right px-5 py-3">% do total</th>
+            </tr>
+          </thead>
+          <tbody id="vendas-grupos-list" class="divide-y divide-ink-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Tab: Temporal -->
+      <div id="vendas-content-temporal" class="hidden space-y-4">
+        <div class="bg-white rounded-xl border border-ink-200 p-4">
+          <h3 class="font-semibold text-sm mb-3">Faturamento por dia da semana</h3>
+          <canvas id="vendas-chart-dow" height="180"></canvas>
+        </div>
+        <div class="bg-white rounded-xl border border-ink-200 p-4">
+          <h3 class="font-semibold text-sm mb-3">Comparativo semana atual vs anterior</h3>
+          <div id="vendas-comp-semanal" class="text-xs"></div>
+        </div>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900">
+        <strong>ℹ Como importar:</strong> No Colibri, exporte o relatório de vendas (Pivot) em <strong>XLSX</strong> com as colunas <em>Data, Atendente, Grupo, Item, Qtde, Valor</em>. Importações sucessivas <strong>não duplicam</strong> linhas — cada combinação <em>data + atendente + item</em> é única e atualizada.
+      </div>
+    </section>
+
     <!-- USUÁRIOS -->
     <section id="usuarios" class="module p-8 space-y-6">
 
@@ -2170,6 +2453,7 @@ const titles = {
   banco: ['Integração Itaú Unibanco', 'Open Finance + conciliação automática'],
   whatsapp: ['WhatsApp Bot', 'Evolution API local — Baileys'],
   reservas: ['Reservas', 'Aniversários, eventos, despedidas e ocasiões especiais'],
+  vendas: ['Vendas (PDV)', 'Análise de vendas — garçons, produtos, grupos. Importação incremental do Colibri'],
   cadastros: ['Cadastros', 'Funcionários, fornecedores, clientes e prestadores'],
   setup: ['Setup & Instalação', 'Como rodar o sistema em servidor próprio — soberania de dados'],
   freelancers: ['Freelancers', 'Cadastro de prestadores autônomos e pagamentos em espécie'],
@@ -5911,6 +6195,7 @@ function renderInventarioModal(){
             </select>
           </div>
           <div class="flex items-center gap-2">
+            <button type="button" onclick="imprimirInventarioBranco()" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1 rounded">🖨 Imprimir folha em branco</button>
             <button type="button" onclick="copiarEsperadoPraContado()" class="text-xs border border-ink-200 px-3 py-1 rounded hover:bg-white">Copiar esperado → contado (igualar)</button>
             <button type="button" onclick="zerarContagem()" class="text-xs border border-ink-200 px-3 py-1 rounded hover:bg-white">Zerar tudo</button>
           </div>
@@ -5989,6 +6274,108 @@ function copiarEsperadoPraContado(){
 function zerarContagem(){
   _inventarioState.forEach(it => { it.counted = ''; it.reason = ''; });
   renderInventarioModal();
+}
+
+function imprimirInventarioBranco(){
+  if(!_inventarioState || !_inventarioState.length){ showToast('Sem itens no inventário', 'warn'); return; }
+  const items = _inventarioState;
+  const escopo = _inventarioLocalFiltro ? getLocalById(_inventarioLocalFiltro) : null;
+  const escopoLabel = escopo ? `${escopo.icon} ${escopo.nome}` : 'Todos os locais';
+  // Agrupar por local para facilitar contagem física
+  const grupos = {};
+  items.forEach(it => {
+    const k = it.local || 'sem-local';
+    if(!grupos[k]) grupos[k] = { local: getLocalById(it.local), items: [] };
+    grupos[k].items.push(it);
+  });
+  const data = new Date().toLocaleDateString('pt-BR');
+  const ordem = Object.keys(grupos).sort((a,b) => (grupos[a].local?.nome||'').localeCompare(grupos[b].local?.nome||''));
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Inventário - ${data}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:Arial,sans-serif;margin:0;padding:14mm;color:#111;font-size:11pt}
+  h1{font-size:14pt;margin:0 0 4px 0}
+  .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px}
+  .head .info{font-size:9pt;color:#444}
+  .meta{display:flex;gap:20px;font-size:10pt;margin:8px 0}
+  .meta .field{flex:1;border-bottom:1px solid #999;padding:4px 0}
+  .meta .field strong{display:block;font-size:8pt;color:#666;text-transform:uppercase}
+  .grupo{page-break-inside:avoid;margin-top:14px}
+  .grupo h2{font-size:11pt;background:#222;color:#fff;padding:5px 8px;margin:0 0 0 0}
+  table{width:100%;border-collapse:collapse;font-size:9.5pt}
+  th{background:#eee;text-align:left;padding:5px 6px;border:1px solid #aaa;font-size:8pt;text-transform:uppercase;color:#444}
+  td{padding:7px 6px;border:1px solid #aaa;vertical-align:middle;height:22px}
+  td.qty{text-align:right;font-family:monospace;font-size:9pt;background:#f5f5f5;color:#777}
+  td.count{width:18%;background:#fff}
+  td.obs{width:22%;background:#fff}
+  .obs-line{border-bottom:1px solid #999;height:14px}
+  .footer{margin-top:14px;display:flex;gap:24px;font-size:9pt}
+  .sig{flex:1;border-top:1px solid #000;padding-top:4px;text-align:center}
+  @page{size:A4;margin:8mm}
+  @media print{ .no-print{display:none} }
+</style></head>
+<body>
+<div class="head">
+  <div>
+    <h1>📋 Inventário Físico — Cantinho do Boni</h1>
+    <div class="info">Folha de contagem em branco · Para preencher à mão e digitar depois no sistema</div>
+  </div>
+  <div style="text-align:right;font-size:9pt">
+    <div><strong>Data:</strong> ${data}</div>
+    <div><strong>Escopo:</strong> ${escopoLabel}</div>
+    <div><strong>${items.length}</strong> itens</div>
+  </div>
+</div>
+<div class="meta">
+  <div class="field"><strong>Conferente</strong>&nbsp;</div>
+  <div class="field"><strong>Hora início</strong>&nbsp;</div>
+  <div class="field"><strong>Hora fim</strong>&nbsp;</div>
+</div>
+${ordem.map(k => {
+  const g = grupos[k];
+  const localNome = g.local ? `${g.local.icon} ${g.local.nome}` : 'Sem local';
+  return `
+  <div class="grupo">
+    <h2>${localNome} (${g.items.length} itens)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:50%">Produto</th>
+          <th style="width:10%">SKU</th>
+          <th style="width:14%;text-align:right">Esperado</th>
+          <th style="width:18%">Contado</th>
+          <th style="width:22%">Observação</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${g.items.map(it => `
+          <tr>
+            <td>${it.name}</td>
+            <td style="font-family:monospace;font-size:8pt">${it.sku||''}</td>
+            <td class="qty">${fmtQty(it.expected, it.unit)}</td>
+            <td class="count"></td>
+            <td class="obs"><div class="obs-line"></div></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}).join('')}
+<div class="footer">
+  <div class="sig">Assinatura do conferente</div>
+  <div class="sig">Assinatura do gerente</div>
+</div>
+<div class="no-print" style="margin-top:20px;text-align:center">
+  <button onclick="window.print()" style="padding:10px 20px;background:#10b981;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px">🖨 Imprimir agora</button>
+  <button onclick="window.close()" style="padding:10px 20px;background:#ddd;border:0;border-radius:6px;cursor:pointer;font-size:14px;margin-left:8px">Fechar</button>
+</div>
+<script>setTimeout(()=>window.print(),300);<\/script>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if(!w){ showToast('Bloqueio de pop-up — libere para imprimir', 'error'); return; }
+  w.document.write(html);
+  w.document.close();
 }
 
 function salvarInventario(){
@@ -6711,6 +7098,127 @@ function renderEtiquetas(){
   populaResponsaveisDatalist();
   renderEtiquetaPreview();
   renderEtiquetasHistorico();
+  renderEtiquetasVencimentoChart();
+}
+
+// === Gráfico de acompanhamento de vencimento ===
+let _etVencChart = null;
+function renderEtiquetasVencimentoChart(){
+  const $kpis = document.getElementById('et-venc-kpis');
+  const $lista = document.getElementById('et-venc-lista');
+  const $canvas = document.getElementById('et-venc-chart');
+  if(!$kpis || !$lista) return;
+
+  const hist = getEtiquetasHistorico();
+  const now = Date.now();
+  // Considera só etiquetas produzidas nos últimos 30 dias (a maioria já consumida) — mas mantém todas que ainda não venceram
+  const items = [];
+  hist.forEach(h => {
+    const qtd = h.quantidade || 1;
+    const validade = new Date(h.validade).getTime();
+    if(isNaN(validade)) return;
+    items.push({
+      nome: h.nome,
+      categoria: h.categoria,
+      validade,
+      qtd,
+      diasRestantes: Math.ceil((validade - now) / 86400000),
+      responsavel: h.responsavel
+    });
+  });
+
+  let totalAtivas = 0, vencidas = 0, hoje = 0, em3dias = 0, em7dias = 0;
+  items.forEach(i => {
+    if(i.diasRestantes < 0) vencidas += i.qtd;
+    else {
+      totalAtivas += i.qtd;
+      if(i.diasRestantes === 0) hoje += i.qtd;
+      else if(i.diasRestantes <= 3) em3dias += i.qtd;
+      else if(i.diasRestantes <= 7) em7dias += i.qtd;
+    }
+  });
+
+  $kpis.innerHTML = `
+    <div class="bg-rose-50 border border-rose-200 rounded-md p-2 text-center">
+      <div class="text-[10px] text-rose-700 uppercase font-semibold">Vencidas</div>
+      <div class="text-2xl font-bold text-rose-700">${vencidas}</div>
+    </div>
+    <div class="bg-orange-50 border border-orange-200 rounded-md p-2 text-center">
+      <div class="text-[10px] text-orange-700 uppercase font-semibold">Vencem hoje</div>
+      <div class="text-2xl font-bold text-orange-700">${hoje}</div>
+    </div>
+    <div class="bg-amber-50 border border-amber-200 rounded-md p-2 text-center">
+      <div class="text-[10px] text-amber-700 uppercase font-semibold">Em 1–3 dias</div>
+      <div class="text-2xl font-bold text-amber-700">${em3dias}</div>
+    </div>
+    <div class="bg-emerald-50 border border-emerald-200 rounded-md p-2 text-center">
+      <div class="text-[10px] text-emerald-700 uppercase font-semibold">Em 4–7 dias</div>
+      <div class="text-2xl font-bold text-emerald-700">${em7dias}</div>
+    </div>
+  `;
+
+  // Lista próximos a vencer (não-vencidos, ordenados por validade)
+  const proximos = items.filter(i => i.diasRestantes >= 0 && i.diasRestantes <= 7).sort((a,b) => a.validade - b.validade);
+  if(!proximos.length){
+    $lista.innerHTML = '<div class="text-xs text-ink-400 text-center py-4">Nenhuma etiqueta vencendo nos próximos 7 dias</div>';
+  } else {
+    $lista.innerHTML = proximos.slice(0, 30).map(i => {
+      const corBorda = i.diasRestantes === 0 ? 'border-orange-400 bg-orange-50' :
+                       i.diasRestantes <= 3 ? 'border-amber-300 bg-amber-50' :
+                       'border-emerald-300 bg-emerald-50';
+      const dataFmt = new Date(i.validade).toLocaleDateString('pt-BR') + ' ' + new Date(i.validade).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      return `
+        <div class="flex items-center justify-between gap-2 border-l-4 ${corBorda} rounded px-3 py-2 text-xs">
+          <div>
+            <strong>${i.nome}</strong>
+            <div class="text-[10px] text-ink-500">${i.categoria||''} · ${i.qtd}x · ${i.responsavel||''}</div>
+          </div>
+          <div class="text-right whitespace-nowrap">
+            <div class="font-semibold">${i.diasRestantes === 0 ? 'HOJE' : i.diasRestantes + ' dia(s)'}</div>
+            <div class="text-[10px] text-ink-500">${dataFmt}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Gráfico de barras por categoria
+  if(window.Chart && $canvas){
+    const porCat = {};
+    items.forEach(i => {
+      if(i.diasRestantes < 0) return;
+      porCat[i.categoria||'Sem categoria'] = (porCat[i.categoria||'Sem categoria'] || 0) + i.qtd;
+    });
+    const labels = Object.keys(porCat);
+    const data = Object.values(porCat);
+    if(_etVencChart){ try { _etVencChart.destroy(); } catch{} }
+    if(labels.length){
+      _etVencChart = new Chart($canvas, {
+        type:'bar',
+        data:{ labels, datasets:[{ label:'Etiquetas ativas', data, backgroundColor:'#10b981' }] },
+        options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+      });
+    }
+  }
+}
+
+function notificarVencimentos(){
+  const hist = getEtiquetasHistorico();
+  const now = Date.now();
+  const proximos = hist.filter(h => {
+    const v = new Date(h.validade).getTime();
+    if(isNaN(v)) return false;
+    const dias = Math.ceil((v - now) / 86400000);
+    return dias >= 0 && dias <= 3;
+  });
+  if(!proximos.length){ showToast('Nenhuma etiqueta vencendo em até 3 dias', 'info'); return; }
+  const linhas = proximos.slice(0,15).map(p => {
+    const v = new Date(p.validade);
+    const dias = Math.ceil((v.getTime() - now) / 86400000);
+    return `• ${p.nome} (${p.quantidade||1}x) — ${dias === 0 ? 'HOJE' : dias + ' dia(s)'}`;
+  }).join('\n');
+  const msg = `*⏰ Etiquetas vencendo - Cantinho do Boni*\n\n${linhas}${proximos.length > 15 ? '\n... e mais ' + (proximos.length-15) + ' itens' : ''}\n\nConferir e descartar/utilizar antes do vencimento.`;
+  notificarEvento('etiquetas_vencimento', msg);
 }
 
 // =====================================================
@@ -8416,7 +8924,7 @@ function calcularMesColab(colabId, mesYM){
 let _dpTab = 'fechamento';
 function setDPTab(tab){
   _dpTab = tab;
-  ['fechamento','apontamento','premissas','feriados'].forEach(t => {
+  ['fechamento','apontamento','folha','rescisao','premissas','feriados'].forEach(t => {
     const $tab = document.getElementById('dp-tab-'+t);
     const $cnt = document.getElementById('dp-content-'+t);
     if($tab) $tab.className = t === tab
@@ -8460,6 +8968,8 @@ function renderDP(){
 
   if(_dpTab === 'fechamento') renderFechamentoMensal(mesYM);
   if(_dpTab === 'apontamento') renderApontamentoTab(mesYM);
+  if(_dpTab === 'folha') renderFolhaTab(mesYM);
+  if(_dpTab === 'rescisao') renderRescisaoTab();
   if(_dpTab === 'premissas') renderPremissasTab();
   if(_dpTab === 'feriados') renderFeriadosTab();
 }
@@ -8808,6 +9318,664 @@ function exportarFechamentoCSV(){
   showToast('<strong>✓</strong> Fechamento exportado');
 }
 
+// === FOLHA DE PAGAMENTO ===
+
+// Tabela INSS 2026 (faixas progressivas)
+const INSS_2026 = [
+  { ate: 1518.00, aliq: 0.075 },
+  { ate: 2793.88, aliq: 0.09 },
+  { ate: 4190.83, aliq: 0.12 },
+  { ate: 8157.41, aliq: 0.14 }
+];
+const INSS_TETO = 951.62; // contribuição máxima 2026 aprox
+
+function calcularINSS(salarioBruto){
+  if(salarioBruto <= 0) return 0;
+  let inss = 0;
+  let baseAnt = 0;
+  for(const f of INSS_2026){
+    if(salarioBruto <= f.ate){
+      inss += (salarioBruto - baseAnt) * f.aliq;
+      return Math.min(inss, INSS_TETO);
+    } else {
+      inss += (f.ate - baseAnt) * f.aliq;
+      baseAnt = f.ate;
+    }
+  }
+  return Math.min(inss, INSS_TETO);
+}
+
+// Tabela IRRF 2026 — mensal
+const IRRF_2026 = [
+  { ate: 2428.80, aliq: 0,    deduzir: 0 },
+  { ate: 2826.65, aliq: 0.075, deduzir: 182.16 },
+  { ate: 3751.05, aliq: 0.15,  deduzir: 394.16 },
+  { ate: 4664.68, aliq: 0.225, deduzir: 675.49 },
+  { ate: Infinity, aliq: 0.275, deduzir: 908.73 }
+];
+const IRRF_DEDUCAO_DEPENDENTE = 189.59;
+
+function calcularIRRF(baseCalc, dependentes = 0){
+  const base = baseCalc - (dependentes * IRRF_DEDUCAO_DEPENDENTE);
+  if(base <= 0) return 0;
+  for(const f of IRRF_2026){
+    if(base <= f.ate){
+      const ir = base * f.aliq - f.deduzir;
+      return Math.max(0, ir);
+    }
+  }
+  return 0;
+}
+
+// Cálculo da folha de um colaborador
+function calcularFolhaColab(colab, mesYM){
+  const m = calcularMesColab(colab.id, mesYM);
+  const premissas = getPremissasDP();
+  const salarioBase = parseFloat(colab.salario) || 0;
+  // Valor-hora baseado em jornada de 220h
+  const valorHora = salarioBase / 220;
+  const valorMin = valorHora / 60;
+
+  const valorHE50 = m.totalHE50 * valorMin * 1.5;
+  const valorHE100 = m.totalHE100 * valorMin * 2.0;
+  const valorAdicNot = m.totalNoturno * valorMin * (1 + (premissas.noturnoPct||20)/100) - m.totalNoturno * valorMin;
+  // valorAdicNot é apenas o adicional sobre as horas noturnas (% extra)
+
+  const totalHEAdic = valorHE50 + valorHE100 + valorAdicNot;
+
+  // DSR sobre HE/Adic Noturno (1/6 aproximado para semana 6 dias)
+  const valorDSR = totalHEAdic / 6;
+
+  const proventosVariaveis = totalHEAdic + valorDSR;
+  const comissao = m.comissao || 0;
+  const bruto = salarioBase + proventosVariaveis + comissao;
+
+  // Faltas: descontar dia de salário por falta + DSR proporcional
+  const cargaDia = (premissas.cargaDiariaPadrao || 8);
+  const valorDia = (salarioBase / 30);
+  const descFaltas = m.qtdFaltas * valorDia;
+  // DSR descontado também
+  const descDSRfaltas = (m.qtdFaltas / 6) * valorDia;
+
+  const baseINSS = bruto - descFaltas - descDSRfaltas;
+  const inss = calcularINSS(baseINSS);
+  const baseIRRF = baseINSS - inss;
+  const dependentes = parseInt(colab.dependentes) || 0;
+  const irrf = calcularIRRF(baseIRRF, dependentes);
+
+  const adiantamento = m.adiantamento || 0;
+  const liquido = baseINSS - inss - irrf - adiantamento;
+
+  // FGTS 8% sobre o bruto (não sobre faltas)
+  const fgts = (bruto - descFaltas - descDSRfaltas) * 0.08;
+
+  return {
+    colab,
+    mesYM,
+    totalMin: m,
+    salarioBase,
+    valorHora,
+    valorHE50, valorHE100, valorAdicNot,
+    totalHEAdic,
+    valorDSR,
+    proventosVariaveis,
+    comissao,
+    bruto,
+    descFaltas, descDSRfaltas,
+    baseINSS,
+    inss,
+    baseIRRF,
+    irrf,
+    adiantamento,
+    liquido,
+    fgts
+  };
+}
+
+function renderFolhaTab(mesYM){
+  const $list = document.getElementById('dp-folha-list');
+  const $tot = document.getElementById('dp-folha-totais');
+  if(!$list) return;
+  const colabs = getCadastros('funcionario');
+  if(!colabs.length){
+    $list.innerHTML = '<tr><td colspan="12" class="text-center py-12 text-ink-400 text-sm">Nenhum colaborador cadastrado</td></tr>';
+    $tot.innerHTML = '';
+    return;
+  }
+  let totSal = 0, totHE = 0, totDSR = 0, totBruto = 0, totINSS = 0, totIRRF = 0, totFaltas = 0, totAdiant = 0, totLiq = 0, totFGTS = 0;
+  $list.innerHTML = colabs.map(c => {
+    const f = calcularFolhaColab(c, mesYM);
+    totSal += f.salarioBase;
+    totHE += f.totalHEAdic;
+    totDSR += f.valorDSR;
+    totBruto += f.bruto;
+    totINSS += f.inss;
+    totIRRF += f.irrf;
+    totFaltas += f.descFaltas + f.descDSRfaltas;
+    totAdiant += f.adiantamento;
+    totLiq += f.liquido;
+    totFGTS += f.fgts;
+    const fmt = v => v ? 'R$ ' + (Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    return `
+      <tr class="hover:bg-ink-50">
+        <td class="px-3 py-2 text-xs"><strong>${c.nome}</strong><div class="text-[10px] text-ink-500">${c.cargo||''}</div></td>
+        <td class="px-3 py-2 text-right text-xs">${fmt(f.salarioBase)}</td>
+        <td class="px-3 py-2 text-right text-xs ${f.totalHEAdic?'text-emerald-700':''}">${fmt(f.totalHEAdic)}</td>
+        <td class="px-3 py-2 text-right text-xs">${fmt(f.valorDSR + f.comissao)}</td>
+        <td class="px-3 py-2 text-right text-xs font-semibold">${fmt(f.bruto)}</td>
+        <td class="px-3 py-2 text-right text-xs text-rose-600">${fmt(f.inss)}</td>
+        <td class="px-3 py-2 text-right text-xs text-rose-600">${fmt(f.irrf)}</td>
+        <td class="px-3 py-2 text-right text-xs ${f.descFaltas>0?'text-rose-600':''}">${fmt(f.descFaltas + f.descDSRfaltas)}</td>
+        <td class="px-3 py-2 text-right text-xs">${fmt(f.adiantamento)}</td>
+        <td class="px-3 py-2 text-right text-xs font-bold ${f.liquido>0?'text-emerald-700':'text-rose-700'}">${fmt(f.liquido)}</td>
+        <td class="px-3 py-2 text-right text-xs text-blue-700">${fmt(f.fgts)}</td>
+        <td class="px-3 py-2 text-center">
+          <button onclick="imprimirHolerite('${c.id}','${mesYM}')" class="text-brand-600 hover:underline text-xs" title="Imprimir holerite">🖨</button>
+          ${(c.telefone||c.whatsapp) ? `<button onclick="notificarHolerite('${c.id}','${mesYM}')" class="text-emerald-600 hover:underline text-xs ml-1" title="WhatsApp">📱</button>`:''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+  const fmt2 = v => 'R$ ' + (Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  $tot.innerHTML = `
+    <td class="px-3 py-2.5">TOTAIS (${colabs.length})</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totSal)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totHE)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totDSR)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totBruto)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totINSS)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totIRRF)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totFaltas)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totAdiant)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totLiq)}</td>
+    <td class="px-3 py-2.5 text-right">${fmt2(totFGTS)}</td>
+    <td></td>
+  `;
+}
+
+function recalcularFolha(){ renderDP(); showToast('<strong>✓</strong> Folha recalculada'); }
+
+function exportarFolhaCSV(){
+  const mesYM = document.getElementById('dp-mes').value;
+  const colabs = getCadastros('funcionario');
+  const sep = ';';
+  const headers = ['Nome','Cargo','Salario','HE+Adic','DSR','Comissao','Bruto','INSS','IRRF','Faltas','Adiantamento','Liquido','FGTS','Faltas (qtd)'];
+  const rows = colabs.map(c => {
+    const f = calcularFolhaColab(c, mesYM);
+    return [
+      `"${c.nome.replace(/"/g,'""')}"`,
+      `"${(c.cargo||'').replace(/"/g,'""')}"`,
+      f.salarioBase.toFixed(2).replace('.',','),
+      f.totalHEAdic.toFixed(2).replace('.',','),
+      f.valorDSR.toFixed(2).replace('.',','),
+      f.comissao.toFixed(2).replace('.',','),
+      f.bruto.toFixed(2).replace('.',','),
+      f.inss.toFixed(2).replace('.',','),
+      f.irrf.toFixed(2).replace('.',','),
+      (f.descFaltas + f.descDSRfaltas).toFixed(2).replace('.',','),
+      f.adiantamento.toFixed(2).replace('.',','),
+      f.liquido.toFixed(2).replace('.',','),
+      f.fgts.toFixed(2).replace('.',','),
+      f.totalMin.qtdFaltas
+    ].join(sep);
+  });
+  const csv = '﻿' + headers.join(sep) + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `folha-${mesYM}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('<strong>✓</strong> Folha exportada');
+}
+
+function imprimirHolerite(colabId, mesYM){
+  const c = getCadastros('funcionario').find(x => x.id === colabId);
+  if(!c) return;
+  const f = calcularFolhaColab(c, mesYM);
+  const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const mesNome = new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Holerite - ${c.nome} - ${mesYM}</title>
+<style>body{font-family:Arial,sans-serif;padding:20mm;max-width:800px;margin:0 auto;font-size:11pt}
+h1{font-size:14pt;border-bottom:2px solid #000;padding-bottom:6px}
+table{width:100%;border-collapse:collapse;margin:10px 0}
+th,td{border:1px solid #ccc;padding:6px}
+th{background:#eee;text-align:left}
+td.r{text-align:right;font-family:monospace}
+.totais{background:#f5f5f5;font-weight:bold}
+.assinatura{margin-top:40px;border-top:1px solid #000;padding-top:6px;text-align:center;width:300px;margin-left:auto;margin-right:auto}
+@media print{button{display:none}}
+</style></head><body>
+<h1>RECIBO DE PAGAMENTO DE SALÁRIO</h1>
+<div style="display:flex;justify-content:space-between;font-size:10pt;margin-bottom:10px">
+  <div><strong>Empresa:</strong> Cantinho do Boni Colorado LTDA</div>
+  <div><strong>Mês:</strong> ${mesNome}</div>
+</div>
+<div style="margin-bottom:10px">
+  <strong>Colaborador:</strong> ${c.nome}<br>
+  <strong>Cargo:</strong> ${c.cargo||'—'} | <strong>CPF:</strong> ${c.cpf||'—'} | <strong>Admissão:</strong> ${c.admissao||'—'}
+</div>
+<table>
+  <thead><tr><th>Cód</th><th>Descrição</th><th>Referência</th><th class="r">Vencimentos</th><th class="r">Descontos</th></tr></thead>
+  <tbody>
+    <tr><td>001</td><td>Salário base</td><td>30 dias</td><td class="r">${fmt(f.salarioBase)}</td><td></td></tr>
+    ${f.valorHE50 > 0 ? `<tr><td>002</td><td>Hora extra 50%</td><td>${fmtMinutes(f.totalMin.totalHE50)}</td><td class="r">${fmt(f.valorHE50)}</td><td></td></tr>`:''}
+    ${f.valorHE100 > 0 ? `<tr><td>003</td><td>Hora extra 100%</td><td>${fmtMinutes(f.totalMin.totalHE100)}</td><td class="r">${fmt(f.valorHE100)}</td><td></td></tr>`:''}
+    ${f.valorAdicNot > 0 ? `<tr><td>004</td><td>Adicional noturno</td><td>${fmtMinutes(f.totalMin.totalNoturno)}</td><td class="r">${fmt(f.valorAdicNot)}</td><td></td></tr>`:''}
+    ${f.valorDSR > 0 ? `<tr><td>005</td><td>DSR sobre HE/Adic.</td><td>—</td><td class="r">${fmt(f.valorDSR)}</td><td></td></tr>`:''}
+    ${f.comissao > 0 ? `<tr><td>006</td><td>Comissão</td><td>—</td><td class="r">${fmt(f.comissao)}</td><td></td></tr>`:''}
+    ${f.descFaltas > 0 ? `<tr><td>007</td><td>Faltas</td><td>${f.totalMin.qtdFaltas} dia(s)</td><td></td><td class="r">${fmt(f.descFaltas)}</td></tr>`:''}
+    ${f.descDSRfaltas > 0 ? `<tr><td>008</td><td>DSR sobre faltas</td><td>—</td><td></td><td class="r">${fmt(f.descDSRfaltas)}</td></tr>`:''}
+    ${f.inss > 0 ? `<tr><td>901</td><td>INSS</td><td>${(f.inss/f.baseINSS*100).toFixed(2)}% s/${fmt(f.baseINSS)}</td><td></td><td class="r">${fmt(f.inss)}</td></tr>`:''}
+    ${f.irrf > 0 ? `<tr><td>902</td><td>IRRF</td><td>s/${fmt(f.baseIRRF)}</td><td></td><td class="r">${fmt(f.irrf)}</td></tr>`:''}
+    ${f.adiantamento > 0 ? `<tr><td>903</td><td>Adiantamento</td><td>—</td><td></td><td class="r">${fmt(f.adiantamento)}</td></tr>`:''}
+  </tbody>
+  <tfoot>
+    <tr class="totais"><td colspan="3">Totais</td><td class="r">${fmt(f.bruto)}</td><td class="r">${fmt(f.bruto - f.liquido)}</td></tr>
+    <tr class="totais"><td colspan="4" style="text-align:right">LÍQUIDO A RECEBER</td><td class="r" style="font-size:13pt">${fmt(f.liquido)}</td></tr>
+  </tfoot>
+</table>
+<div style="font-size:9pt;color:#666;margin-top:10px">
+  <strong>Base FGTS:</strong> ${fmt(f.bruto - f.descFaltas - f.descDSRfaltas)} · <strong>FGTS 8%:</strong> ${fmt(f.fgts)} (recolhido pela empresa, não desconta do colaborador)
+</div>
+<div class="assinatura">Assinatura do colaborador</div>
+<div style="margin-top:20px;text-align:center">
+  <button onclick="window.print()" style="padding:10px 20px;background:#10b981;color:#fff;border:0;border-radius:6px;cursor:pointer">🖨 Imprimir</button>
+</div>
+<script>setTimeout(()=>window.print(),300);<\/script>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if(!w){ showToast('Bloqueio de pop-up', 'error'); return; }
+  w.document.write(html); w.document.close();
+}
+
+function notificarHolerite(colabId, mesYM){
+  const c = getCadastros('funcionario').find(x => x.id === colabId);
+  if(!c) return;
+  const tel = c.telefone || c.whatsapp;
+  if(!tel){ showToast('Sem telefone cadastrado', 'warn'); return; }
+  const f = calcularFolhaColab(c, mesYM);
+  const mesNome = new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const msg = `*💰 Holerite - ${mesNome}*\n\n` +
+    `Olá ${c.nome.split(' ')[0]}!\n\n` +
+    `Sua folha de ${mesNome}:\n` +
+    `• Salário base: ${fmt(f.salarioBase)}\n` +
+    (f.totalHEAdic > 0 ? `• HE + Adic: ${fmt(f.totalHEAdic)}\n` : '') +
+    (f.comissao > 0 ? `• Comissão: ${fmt(f.comissao)}\n` : '') +
+    `• Bruto: ${fmt(f.bruto)}\n` +
+    `• Descontos: ${fmt(f.bruto - f.liquido)}\n` +
+    `• *Líquido: ${fmt(f.liquido)}*\n\n` +
+    `O holerite detalhado pode ser solicitado.\n— Cantinho do Boni`;
+  abrirWhatsAppNotify(tel, msg);
+}
+
+// === RESCISÕES ===
+
+function getRescisoes(){ return Store.get('dp.rescisoes', []); }
+function saveRescisoes(list){ Store.set('dp.rescisoes', list); }
+
+const RESCISAO_TIPOS = {
+  'sem_justa': { label:'Dispensa sem justa causa', avisoEmpresa:true, multa40:true, recebeAvisoProp:false, sacaFGTS:true, seguroDesemp:true, prazoDias:10 },
+  'pedido': { label:'Pedido de demissão', avisoEmpresa:false, multa40:false, recebeAvisoProp:false, sacaFGTS:false, seguroDesemp:false, prazoDias:10 },
+  'comum_acordo': { label:'Comum acordo', avisoEmpresa:true, avisoMetade:true, multa40:true, multaMetade:true, recebeAvisoProp:false, sacaFGTS:true, sacaFGTSMetade:true, seguroDesemp:false, prazoDias:10 },
+  'justa_causa': { label:'Justa causa', avisoEmpresa:false, multa40:false, sacaFGTS:false, seguroDesemp:false, prazoDias:10 },
+  'experiencia': { label:'Fim do contrato de experiência', avisoEmpresa:false, multa40:false, sacaFGTS:true, seguroDesemp:false, prazoDias:10 }
+};
+
+function calcularRescisao(input){
+  // input: { colabId, tipo, dataDemissao, salarioAtual, mesesEmpresa, feriasVencidas, fgtsAcumulado, dependentes }
+  const t = RESCISAO_TIPOS[input.tipo];
+  if(!t) return null;
+  const sal = parseFloat(input.salarioAtual) || 0;
+  const meses = parseInt(input.mesesEmpresa) || 0;
+  const anos = Math.floor(meses / 12);
+  const mesesAtual = meses % 12;
+  const dataDem = new Date(input.dataDemissao + 'T12:00');
+  const ultimoDiaMes = new Date(dataDem.getFullYear(), dataDem.getMonth()+1, 0).getDate();
+  const dia = dataDem.getDate();
+  const valorDia = sal / 30;
+
+  // Saldo de salário
+  const saldoSal = valorDia * dia;
+
+  // Aviso prévio
+  let aviso = 0;
+  let diasAviso = 0;
+  if(t.avisoEmpresa){
+    diasAviso = 30 + Math.min(60, anos * 3); // até 90 dias
+    if(t.avisoMetade) diasAviso = Math.round(diasAviso / 2);
+    aviso = valorDia * diasAviso;
+  }
+
+  // 13º proporcional (avos do ano)
+  let mesesAno = (input.mesesAnoAtual !== undefined) ? parseInt(input.mesesAnoAtual) : (dataDem.getMonth() + (dia >= 15 ? 1 : 0));
+  const decimoTerceiro = (sal / 12) * mesesAno;
+
+  // Férias vencidas + 1/3
+  const feriasVenc = parseFloat(input.feriasVencidas) || 0; // dias vencidos
+  const valorFeriasVenc = (sal / 30) * feriasVenc;
+  const tercoFeriasVenc = valorFeriasVenc / 3;
+
+  // Férias proporcionais + 1/3 (avos do período aquisitivo)
+  let avosFerias = mesesAtual + (dia >= 15 ? 1 : 0);
+  if(avosFerias > 12) avosFerias = 12;
+  const valorFeriasProp = (sal / 12) * avosFerias;
+  const tercoFeriasProp = valorFeriasProp / 3;
+
+  // Multa 40% FGTS
+  const fgtsAcum = parseFloat(input.fgtsAcumulado) || 0;
+  let multaFGTS = 0;
+  if(t.multa40){
+    multaFGTS = fgtsAcum * 0.40;
+    if(t.multaMetade) multaFGTS = multaFGTS / 2;
+  }
+
+  const proventos = saldoSal + aviso + decimoTerceiro + valorFeriasVenc + tercoFeriasVenc + valorFeriasProp + tercoFeriasProp + multaFGTS;
+
+  // Descontos: INSS sobre saldo + 13º + adiantamentos. IRRF sobre saldo + 13º. Aviso indenizado e férias não tributam.
+  const baseINSSrescisao = saldoSal + decimoTerceiro;
+  const inss = calcularINSS(baseINSSrescisao);
+  const baseIRRF = baseINSSrescisao - inss;
+  const dependentes = parseInt(input.dependentes) || 0;
+  const irrf = calcularIRRF(baseIRRF, dependentes);
+
+  const liquido = proventos - inss - irrf;
+
+  // Prazo de pagamento (CLT 477): 10 dias corridos
+  const dataLimite = new Date(dataDem); dataLimite.setDate(dataLimite.getDate() + (t.prazoDias || 10));
+
+  return {
+    tipo: t,
+    saldoSal,
+    aviso, diasAviso,
+    decimoTerceiro, mesesAno,
+    valorFeriasVenc, tercoFeriasVenc, feriasVenc,
+    valorFeriasProp, tercoFeriasProp, avosFerias,
+    multaFGTS,
+    proventos,
+    inss, baseINSSrescisao,
+    irrf, baseIRRF,
+    liquido,
+    dataLimite: dataLimite.toISOString().slice(0,10),
+    sacaFGTS: t.sacaFGTS,
+    seguroDesemp: t.seguroDesemp
+  };
+}
+
+function abrirNovaRescisaoModal(rescId){
+  const colabs = getCadastros('funcionario');
+  if(!colabs.length){ showToast('Cadastre colaboradores antes', 'warn'); return; }
+  const existing = rescId ? getRescisoes().find(r => r.id === rescId) : null;
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold text-lg">📤 ${existing ? 'Editar' : 'Nova'} Rescisão</h2>
+            <p class="text-xs text-ink-600 mt-0.5">Cálculo TRCT — Termo de Rescisão</p>
+          </div>
+          <button onclick="closeModal()" class="text-ink-400 hover:text-ink-800 text-2xl leading-none">×</button>
+        </div>
+        <form id="resc-form" onsubmit="submitRescisao(event,'${rescId||''}')" class="p-6 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">Colaborador <span class="text-rose-500">*</span></label>
+              <select name="colabId" required class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+                ${colabs.map(c => `<option value="${c.id}" ${existing?.colabId===c.id?'selected':''}>${c.nome}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Tipo <span class="text-rose-500">*</span></label>
+              <select name="tipo" required class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+                ${Object.entries(RESCISAO_TIPOS).map(([k,v]) => `<option value="${k}" ${existing?.tipo===k?'selected':''}>${v.label}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">Data da demissão <span class="text-rose-500">*</span></label>
+              <input type="date" name="dataDemissao" required value="${existing?.dataDemissao||new Date().toISOString().slice(0,10)}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Salário atual (R$) <span class="text-rose-500">*</span></label>
+              <input type="number" name="salarioAtual" required step="0.01" value="${existing?.salarioAtual||''}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">Meses de empresa</label>
+              <input type="number" name="mesesEmpresa" value="${existing?.mesesEmpresa||0}" min="0" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Avos 13º (meses ano atual)</label>
+              <input type="number" name="mesesAnoAtual" value="${existing?.mesesAnoAtual||''}" min="0" max="12" placeholder="auto" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Dependentes IRRF</label>
+              <input type="number" name="dependentes" value="${existing?.dependentes||0}" min="0" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">Férias vencidas (dias)</label>
+              <input type="number" name="feriasVencidas" value="${existing?.feriasVencidas||0}" min="0" max="60" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <p class="text-[10px] text-ink-500 mt-1">Saldo de férias não gozadas até a demissão.</p>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">FGTS acumulado (R$)</label>
+              <input type="number" name="fgtsAcumulado" step="0.01" value="${existing?.fgtsAcumulado||''}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <p class="text-[10px] text-ink-500 mt-1">Para cálculo da multa de 40%. Consulte o extrato CAIXA.</p>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Observações</label>
+            <textarea name="observacao" rows="2" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">${existing?.observacao||''}</textarea>
+          </div>
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('resc-form').requestSubmit()" type="button" class="text-sm bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-md">${existing?'Salvar':'Calcular Rescisão'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function submitRescisao(e, id){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  const r = calcularRescisao(data);
+  const list = getRescisoes();
+  const item = {
+    id: id || 'RESC-' + Date.now(),
+    ...data,
+    calc: r,
+    status: 'pendente',
+    createdAt: new Date().toISOString()
+  };
+  if(id){
+    const idx = list.findIndex(x => x.id === id);
+    if(idx >= 0) list[idx] = item;
+  } else {
+    list.unshift(item);
+  }
+  saveRescisoes(list);
+  closeModal();
+  setDPTab('rescisao');
+  showToast(`<strong>✓</strong> Rescisão calculada: líquido R$ ${r.liquido.toLocaleString('pt-BR',{minimumFractionDigits:2})}`);
+}
+
+function renderRescisaoTab(){
+  const $list = document.getElementById('dp-rescisao-list');
+  if(!$list) return;
+  const list = getRescisoes();
+  if(!list.length){
+    $list.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-ink-400 text-sm">Nenhuma rescisão registrada. Clique em "+ Nova rescisão"</td></tr>';
+    return;
+  }
+  const colabs = getCadastros('funcionario');
+  $list.innerHTML = list.map(r => {
+    const c = colabs.find(x => x.id === r.colabId) || { nome:'(removido)' };
+    const dataDem = new Date(r.dataDemissao+'T12:00').toLocaleDateString('pt-BR');
+    const dataLim = new Date(r.calc.dataLimite+'T12:00').toLocaleDateString('pt-BR');
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const limite = new Date(r.calc.dataLimite+'T12:00');
+    const diasAteLimite = Math.ceil((limite - hoje) / 86400000);
+    let prazoBadge;
+    if(r.status === 'pago'){
+      prazoBadge = '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">✓ Pago</span>';
+    } else if(diasAteLimite < 0){
+      prazoBadge = `<span class="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded">⚠ Atrasado ${Math.abs(diasAteLimite)}d</span>`;
+    } else if(diasAteLimite <= 3){
+      prazoBadge = `<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">⏰ ${diasAteLimite}d restantes</span>`;
+    } else {
+      prazoBadge = `<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">${diasAteLimite}d restantes</span>`;
+    }
+    return `
+      <tr>
+        <td class="px-5 py-2.5 text-xs"><strong>${c.nome}</strong></td>
+        <td class="px-5 py-2.5 text-xs">${r.calc.tipo.label}</td>
+        <td class="px-5 py-2.5 text-xs">${dataDem}</td>
+        <td class="px-5 py-2.5 text-xs">${dataLim}</td>
+        <td class="px-5 py-2.5 text-right text-xs font-semibold">R$ ${r.calc.liquido.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-center">${prazoBadge}</td>
+        <td class="px-5 py-2.5 text-center text-xs whitespace-nowrap">
+          <button onclick="verRescisao('${r.id}')" class="text-brand-600 hover:underline" title="Detalhes">👁</button>
+          <button onclick="imprimirTRCT('${r.id}')" class="text-violet-600 hover:underline ml-1" title="Imprimir TRCT">🖨</button>
+          ${r.status !== 'pago' ? `<button onclick="marcarRescisaoPaga('${r.id}')" class="text-emerald-600 hover:underline ml-1" title="Marcar como paga">✓</button>`:''}
+          <button onclick="abrirNovaRescisaoModal('${r.id}')" class="text-amber-600 hover:underline ml-1" title="Editar">✎</button>
+          <button onclick="excluirRescisao('${r.id}')" class="text-rose-500 hover:text-rose-700 ml-1" title="Excluir">🗑</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function marcarRescisaoPaga(id){
+  if(!confirm('Marcar esta rescisão como paga?')) return;
+  const list = getRescisoes();
+  const r = list.find(x => x.id === id);
+  if(!r) return;
+  r.status = 'pago';
+  r.pagoEm = new Date().toISOString();
+  saveRescisoes(list);
+  renderDP();
+  showToast('<strong>✓</strong> Rescisão marcada como paga');
+}
+
+function excluirRescisao(id){
+  if(!confirm('Excluir esta rescisão?')) return;
+  saveRescisoes(getRescisoes().filter(r => r.id !== id));
+  renderDP();
+  showToast('<strong>✓</strong> Rescisão excluída');
+}
+
+function verRescisao(id){
+  const r = getRescisoes().find(x => x.id === id);
+  if(!r) return;
+  const c = getCadastros('funcionario').find(x => x.id === r.colabId) || { nome:'(removido)' };
+  const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200">
+          <h2 class="font-semibold text-lg">${c.nome}</h2>
+          <p class="text-xs text-ink-600 mt-0.5">${r.calc.tipo.label} · Demissão: ${new Date(r.dataDemissao+'T12:00').toLocaleDateString('pt-BR')}</p>
+        </div>
+        <div class="p-6 space-y-2 text-sm">
+          <h3 class="font-semibold text-emerald-700 mt-2">Vencimentos</h3>
+          <div class="flex justify-between"><span>Saldo de salário</span><span class="font-mono">${fmt(r.calc.saldoSal)}</span></div>
+          ${r.calc.aviso > 0 ? `<div class="flex justify-between"><span>Aviso prévio (${r.calc.diasAviso} dias)</span><span class="font-mono">${fmt(r.calc.aviso)}</span></div>`:''}
+          <div class="flex justify-between"><span>13º proporcional (${r.calc.mesesAno}/12)</span><span class="font-mono">${fmt(r.calc.decimoTerceiro)}</span></div>
+          ${r.calc.feriasVenc > 0 ? `<div class="flex justify-between"><span>Férias vencidas (${r.calc.feriasVenc}d)</span><span class="font-mono">${fmt(r.calc.valorFeriasVenc)}</span></div>`:''}
+          ${r.calc.tercoFeriasVenc > 0 ? `<div class="flex justify-between"><span>1/3 férias vencidas</span><span class="font-mono">${fmt(r.calc.tercoFeriasVenc)}</span></div>`:''}
+          <div class="flex justify-between"><span>Férias proporcionais (${r.calc.avosFerias}/12)</span><span class="font-mono">${fmt(r.calc.valorFeriasProp)}</span></div>
+          <div class="flex justify-between"><span>1/3 férias proporcionais</span><span class="font-mono">${fmt(r.calc.tercoFeriasProp)}</span></div>
+          ${r.calc.multaFGTS > 0 ? `<div class="flex justify-between"><span>Multa 40% FGTS</span><span class="font-mono">${fmt(r.calc.multaFGTS)}</span></div>`:''}
+          <div class="flex justify-between border-t pt-1 font-semibold"><span>Total proventos</span><span class="font-mono">${fmt(r.calc.proventos)}</span></div>
+
+          <h3 class="font-semibold text-rose-700 mt-3">Descontos</h3>
+          <div class="flex justify-between"><span>INSS</span><span class="font-mono">${fmt(r.calc.inss)}</span></div>
+          <div class="flex justify-between"><span>IRRF</span><span class="font-mono">${fmt(r.calc.irrf)}</span></div>
+
+          <div class="border-t pt-3 mt-3 bg-emerald-50 rounded p-3 flex justify-between text-base font-bold">
+            <span>LÍQUIDO A PAGAR</span><span>${fmt(r.calc.liquido)}</span>
+          </div>
+
+          <div class="bg-amber-50 border border-amber-200 rounded p-3 text-xs mt-3">
+            <strong>📅 Prazo legal de pagamento:</strong> ${new Date(r.calc.dataLimite+'T12:00').toLocaleDateString('pt-BR')} (10 dias corridos da demissão — CLT art. 477 §6º).<br>
+            ${r.calc.sacaFGTS ? '<strong>✓</strong> Saca FGTS · ' : ''}${r.calc.seguroDesemp ? '<strong>✓</strong> Tem direito a seguro-desemprego' : ''}
+          </div>
+
+          ${r.observacao ? `<div class="bg-ink-50 rounded p-3 text-xs"><strong>Obs:</strong> ${r.observacao}</div>`:''}
+        </div>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-between bg-ink-50">
+          <button onclick="imprimirTRCT('${r.id}')" class="text-sm border border-ink-200 bg-white px-4 py-2 rounded-md">🖨 Imprimir TRCT</button>
+          <button onclick="closeModal()" class="text-sm bg-ink-800 text-white px-4 py-2 rounded-md">Fechar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function imprimirTRCT(id){
+  const r = getRescisoes().find(x => x.id === id);
+  if(!r) return;
+  const c = getCadastros('funcionario').find(x => x.id === r.colabId) || { nome:'(removido)' };
+  const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>TRCT - ${c.nome}</title>
+<style>body{font-family:Arial,sans-serif;padding:20mm;max-width:800px;margin:0 auto;font-size:11pt}
+h1{font-size:14pt;border-bottom:2px solid #000;padding-bottom:6px}
+table{width:100%;border-collapse:collapse;margin:10px 0}
+th,td{border:1px solid #ccc;padding:6px}
+th{background:#eee;text-align:left}
+td.r{text-align:right;font-family:monospace}
+.totais{background:#f5f5f5;font-weight:bold}
+.assinatura{margin-top:40px;display:flex;gap:20px}
+.assinatura .sig{flex:1;border-top:1px solid #000;padding-top:6px;text-align:center}
+@media print{button{display:none}}
+</style></head><body>
+<h1>TRCT — Termo de Rescisão do Contrato de Trabalho</h1>
+<div style="margin-bottom:10px">
+  <div><strong>Empresa:</strong> Cantinho do Boni Colorado LTDA</div>
+  <div><strong>Colaborador:</strong> ${c.nome} | <strong>CPF:</strong> ${c.cpf||'—'} | <strong>Cargo:</strong> ${c.cargo||'—'}</div>
+  <div><strong>Admissão:</strong> ${c.admissao||'—'} | <strong>Demissão:</strong> ${new Date(r.dataDemissao+'T12:00').toLocaleDateString('pt-BR')}</div>
+  <div><strong>Tipo:</strong> ${r.calc.tipo.label}</div>
+</div>
+<table>
+  <thead><tr><th>Verba</th><th class="r">Vencimento</th><th class="r">Desconto</th></tr></thead>
+  <tbody>
+    <tr><td>Saldo de salário</td><td class="r">${fmt(r.calc.saldoSal)}</td><td></td></tr>
+    ${r.calc.aviso > 0 ? `<tr><td>Aviso prévio indenizado (${r.calc.diasAviso}d)</td><td class="r">${fmt(r.calc.aviso)}</td><td></td></tr>`:''}
+    <tr><td>13º salário proporcional (${r.calc.mesesAno}/12)</td><td class="r">${fmt(r.calc.decimoTerceiro)}</td><td></td></tr>
+    ${r.calc.valorFeriasVenc > 0 ? `<tr><td>Férias vencidas + 1/3</td><td class="r">${fmt(r.calc.valorFeriasVenc + r.calc.tercoFeriasVenc)}</td><td></td></tr>`:''}
+    <tr><td>Férias proporcionais (${r.calc.avosFerias}/12) + 1/3</td><td class="r">${fmt(r.calc.valorFeriasProp + r.calc.tercoFeriasProp)}</td><td></td></tr>
+    ${r.calc.multaFGTS > 0 ? `<tr><td>Multa 40% FGTS</td><td class="r">${fmt(r.calc.multaFGTS)}</td><td></td></tr>`:''}
+    <tr><td>INSS</td><td></td><td class="r">${fmt(r.calc.inss)}</td></tr>
+    <tr><td>IRRF</td><td></td><td class="r">${fmt(r.calc.irrf)}</td></tr>
+  </tbody>
+  <tfoot>
+    <tr class="totais"><td>Total</td><td class="r">${fmt(r.calc.proventos)}</td><td class="r">${fmt(r.calc.inss + r.calc.irrf)}</td></tr>
+    <tr class="totais"><td colspan="2" style="text-align:right">LÍQUIDO A PAGAR</td><td class="r" style="font-size:13pt">${fmt(r.calc.liquido)}</td></tr>
+  </tfoot>
+</table>
+<div style="background:#fef3c7;border:1px solid #fbbf24;padding:8px;border-radius:4px;font-size:9pt;margin:10px 0">
+  <strong>Prazo legal de pagamento:</strong> ${new Date(r.calc.dataLimite+'T12:00').toLocaleDateString('pt-BR')} — 10 dias corridos da rescisão (CLT art. 477 §6º). O atraso gera multa de 1 salário ao colaborador.
+</div>
+<div class="assinatura">
+  <div class="sig">${c.nome}<br><small>Colaborador</small></div>
+  <div class="sig">Cantinho do Boni Colorado LTDA<br><small>Empregador</small></div>
+</div>
+<div style="margin-top:20px;text-align:center">
+  <button onclick="window.print()" style="padding:10px 20px;background:#dc2626;color:#fff;border:0;border-radius:6px;cursor:pointer">🖨 Imprimir TRCT</button>
+</div>
+<script>setTimeout(()=>window.print(),300);<\/script>
+</body></html>`;
+  const w = window.open('', '_blank');
+  if(!w){ showToast('Bloqueio de pop-up', 'error'); return; }
+  w.document.write(html); w.document.close();
+}
+
 // === Premissas ===
 function renderPremissasTab(){
   const p = getPremissasDP();
@@ -8915,6 +10083,678 @@ function excluirFeriado(dataStr){
   saveFeriados(getFeriados().filter(f => f.data !== dataStr));
   renderDP();
   showToast('<strong>✓</strong> Feriado removido');
+}
+
+// =====================================================
+// WHATSAPP — notificações via wa.me (sem servidor) ou API integrada
+// =====================================================
+
+function getWAConfig(){
+  return Store.get('whatsapp.config', {
+    modo: 'wame',          // 'wame' = abre WhatsApp manualmente | 'zapi' = automático via Z-API (futuro)
+    apiUrl: '',
+    apiToken: '',
+    apiInstance: '',
+    destinatarios: {       // por evento, lista de IDs de funcionário
+      vendas_ranking: [],
+      caixa_fechamento: [],
+      etiquetas_vencimento: [],
+      compras_aprovacao: [],
+      checklist_pendente: [],
+      reservas_hoje: []
+    },
+    saudacao: 'Olá!',
+    assinatura: '— Cantinho do Boni'
+  });
+}
+function saveWAConfig(c){ Store.set('whatsapp.config', c); }
+
+// Limpa telefone para wa.me: somente dígitos com DDI
+function waPhoneClean(t){
+  if(!t) return '';
+  let n = String(t).replace(/\D+/g,'');
+  if(n.length === 10 || n.length === 11) n = '55' + n;  // adiciona DDI Brasil
+  return n;
+}
+
+// Abre WhatsApp com mensagem pronta. Modo wame = abre app/web. API = futuro.
+function abrirWhatsAppNotify(telefone, mensagem){
+  const cfg = getWAConfig();
+  const tel = waPhoneClean(telefone);
+  if(!tel){ showToast('Telefone inválido', 'error'); return; }
+  if(cfg.modo === 'wame'){
+    const url = `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, '_blank');
+  } else {
+    enviarViaAPI(tel, mensagem).catch(e => {
+      showToast('<strong>!</strong> API falhou — abrindo wa.me como fallback', 'warn');
+      window.open(`https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`, '_blank');
+    });
+  }
+}
+
+async function enviarViaAPI(tel, msg){
+  const cfg = getWAConfig();
+  if(!cfg.apiUrl || !cfg.apiToken){ throw new Error('API não configurada'); }
+  const resp = await fetch(`${cfg.apiUrl}/send-text`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Client-Token': cfg.apiToken},
+    body: JSON.stringify({ phone: tel, message: msg })
+  });
+  if(!resp.ok) throw new Error('HTTP ' + resp.status);
+  return resp.json();
+}
+
+const WA_EVENTOS = [
+  { id:'vendas_ranking', label:'🏆 Ranking de vendas', desc:'Notificar atendentes da posição no ranking' },
+  { id:'caixa_fechamento', label:'💵 Fechamento de caixa', desc:'Resumo diário com diferença' },
+  { id:'etiquetas_vencimento', label:'⏰ Etiquetas vencendo', desc:'Aviso quando alimento está perto do vencimento' },
+  { id:'compras_aprovacao', label:'🛒 Compras pendentes', desc:'Aprovações pendentes de pedido de compra' },
+  { id:'checklist_pendente', label:'☑ Checklist pendente', desc:'Avisar colaboradores de checklist do dia não preenchido' },
+  { id:'reservas_hoje', label:'📅 Reservas do dia', desc:'Resumo das reservas do dia' }
+];
+
+function renderWhatsAppConfig(){
+  const cfg = getWAConfig();
+  const $modo = document.getElementById('wa-modo-' + cfg.modo);
+  if($modo) $modo.checked = true;
+  document.getElementById('wa-api-url').value = cfg.apiUrl || '';
+  document.getElementById('wa-api-token').value = cfg.apiToken || '';
+  document.getElementById('wa-saudacao').value = cfg.saudacao || '';
+  document.getElementById('wa-assinatura').value = cfg.assinatura || '';
+  document.getElementById('wa-api-config').classList.toggle('hidden', cfg.modo !== 'zapi');
+
+  const $dest = document.getElementById('wa-destinatarios');
+  if(!$dest) return;
+  const funcs = (typeof getCadastros === 'function' ? getCadastros('funcionario') : []);
+  const usuarios = (typeof getUsuarios === 'function' ? getUsuarios() : []);
+  const todos = [];
+  funcs.forEach(f => { if(f.telefone || f.whatsapp) todos.push({ id:f.id, nome:f.nome + ' (' + (f.cargo||f.setor||'Func') + ')', tel:f.telefone||f.whatsapp }); });
+  usuarios.forEach(u => { if((u.whatsapp||u.telefone) && !todos.some(t => t.id === u.id)) todos.push({ id:u.id, nome:u.nome + ' (' + u.perfil + ')', tel:u.whatsapp||u.telefone }); });
+  if(!todos.length){
+    $dest.innerHTML = '<div class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-3">Nenhum funcionário ou usuário com telefone cadastrado. Vá em <strong>Cadastros → Funcionários</strong> ou <strong>Usuários e Acesso</strong> para preencher os telefones.</div>';
+    return;
+  }
+  $dest.innerHTML = WA_EVENTOS.map(ev => {
+    const sel = new Set(cfg.destinatarios[ev.id] || []);
+    const opts = todos.map(t => `
+      <label class="flex items-center gap-2 text-xs border border-ink-200 rounded px-2 py-1 cursor-pointer hover:bg-ink-50 ${sel.has(t.id)?'bg-emerald-50 border-emerald-300':''}">
+        <input type="checkbox" data-evento="${ev.id}" data-id="${t.id}" ${sel.has(t.id)?'checked':''} class="wa-dest-cb">
+        <span>${t.nome}</span>
+        <span class="text-[10px] text-ink-500">${t.tel}</span>
+      </label>
+    `).join('');
+    return `
+      <div class="border border-ink-200 rounded-lg p-3">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <strong class="text-sm">${ev.label}</strong>
+            <div class="text-[11px] text-ink-500">${ev.desc}</div>
+          </div>
+          <span class="text-xs text-ink-500">${sel.size} selecionado(s)</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">${opts}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function onWAModoChange(){
+  const v = document.querySelector('input[name=wa-modo]:checked')?.value || 'wame';
+  document.getElementById('wa-api-config').classList.toggle('hidden', v !== 'zapi');
+}
+
+function salvarWAConfig(){
+  const cfg = getWAConfig();
+  cfg.modo = document.querySelector('input[name=wa-modo]:checked')?.value || 'wame';
+  cfg.apiUrl = document.getElementById('wa-api-url').value.trim();
+  cfg.apiToken = document.getElementById('wa-api-token').value.trim();
+  cfg.saudacao = document.getElementById('wa-saudacao').value.trim() || 'Olá!';
+  cfg.assinatura = document.getElementById('wa-assinatura').value.trim() || '— Cantinho do Boni';
+  cfg.destinatarios = cfg.destinatarios || {};
+  WA_EVENTOS.forEach(ev => { cfg.destinatarios[ev.id] = []; });
+  document.querySelectorAll('.wa-dest-cb:checked').forEach(cb => {
+    cfg.destinatarios[cb.dataset.evento].push(cb.dataset.id);
+  });
+  saveWAConfig(cfg);
+  showToast('<strong>✓</strong> Configurações de WhatsApp salvas');
+  renderWhatsAppConfig();
+}
+
+async function testarAPIWhatsApp(){
+  const url = document.getElementById('wa-api-url').value.trim();
+  if(!url){ showToast('Preencha a URL da API', 'error'); return; }
+  try {
+    const resp = await fetch(url + '/status', { headers:{ 'Client-Token': document.getElementById('wa-api-token').value }});
+    if(resp.ok) showToast('<strong>✓</strong> API conectada com sucesso');
+    else showToast('<strong>!</strong> API retornou ' + resp.status, 'error');
+  } catch(e){
+    showToast('<strong>!</strong> Erro: ' + e.message, 'error');
+  }
+}
+
+function enviarTesteWhatsApp(){
+  const tel = document.getElementById('wa-test-tel').value.trim();
+  const msg = document.getElementById('wa-test-msg').value.trim() || 'Teste de notificação do Cantinho System';
+  if(!tel){ showToast('Informe o telefone', 'error'); return; }
+  abrirWhatsAppNotify(tel, msg);
+}
+
+// Dispara para todos os destinatários cadastrados num evento
+function notificarEvento(evento, mensagem){
+  const cfg = getWAConfig();
+  const ids = cfg.destinatarios[evento] || [];
+  if(!ids.length){ showToast(`Nenhum destinatário configurado para "${evento}". Vá em WhatsApp Bot → Configurar.`, 'warn'); return; }
+  const funcs = (typeof getCadastros === 'function' ? getCadastros('funcionario') : []);
+  const usuarios = (typeof getUsuarios === 'function' ? getUsuarios() : []);
+  let count = 0;
+  ids.forEach(id => {
+    const f = funcs.find(x => x.id === id) || usuarios.find(x => x.id === id);
+    const tel = f?.telefone || f?.whatsapp;
+    if(tel){
+      abrirWhatsAppNotify(tel, mensagem);
+      count++;
+    }
+  });
+  if(!count) showToast('Nenhum destinatário tem telefone cadastrado', 'warn');
+}
+
+// =====================================================
+// VENDAS (PDV) — Importa relatório do Colibri (XLSX/CSV) com dedupe
+// =====================================================
+
+function getVendas(){ return Store.get('vendas.lancamentos', []); }
+function saveVendas(list){ Store.set('vendas.lancamentos', list); }
+
+// Chave única: data|atendente|grupo|item — re-importação atualiza qtd/valor
+function vendaKey(v){ return `${v.data}|${(v.atendente||'').trim().toUpperCase()}|${(v.grupo||'').trim().toUpperCase()}|${(v.item||'').trim().toUpperCase()}`; }
+
+// Parse data BR "01/04/2026" → "2026-04-01"
+function parseDataBR(s){
+  if(!s) return '';
+  if(s instanceof Date) return s.toISOString().slice(0,10);
+  s = String(s).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(m){
+    const dd = m[1].padStart(2,'0'), mm = m[2].padStart(2,'0');
+    let yy = m[3];
+    if(yy.length === 2) yy = (parseInt(yy) > 50 ? '19' : '20') + yy;
+    return `${yy}-${mm}-${dd}`;
+  }
+  return s.slice(0,10);
+}
+
+function parseValorBR(v){
+  if(typeof v === 'number') return v;
+  if(!v) return 0;
+  // "1.234,56" → 1234.56
+  const s = String(v).trim().replace(/[^\d,.\-]/g, '');
+  if(s.includes(',')){
+    return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+  }
+  return parseFloat(s) || 0;
+}
+
+async function handleVendasImport(file){
+  if(!file) return;
+  document.getElementById('vendas-import-input').value = '';
+  if(typeof XLSX === 'undefined'){
+    showToast('<strong>!</strong> Biblioteca XLSX não carregou. Recarregue a página.', 'error');
+    return;
+  }
+  let rows;
+  try {
+    if(file.name.toLowerCase().endsWith('.csv')){
+      const text = await file.text();
+      const wb = XLSX.read(text, { type:'string' });
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+    } else {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type:'array', cellDates:true });
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+    }
+  } catch(e){
+    showToast('<strong>!</strong> Erro ao ler arquivo: ' + e.message, 'error');
+    return;
+  }
+  if(!rows.length){ showToast('Arquivo vazio', 'warn'); return; }
+
+  // Mapear colunas (case insensitive, normalizado)
+  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const sample = rows[0];
+  const colMap = {};
+  Object.keys(sample).forEach(k => {
+    const n = norm(k);
+    if(n === 'data') colMap.data = k;
+    else if(n === 'atendente' || n === 'garcom' || n === 'vendedor') colMap.atendente = k;
+    else if(n === 'grupo' || n === 'categoria' || n === 'familia') colMap.grupo = k;
+    else if(n === 'item' || n === 'produto' || n === 'descricao') colMap.item = k;
+    else if(n === 'qtde' || n === 'qtd' || n === 'quantidade') colMap.qtde = k;
+    else if(n.startsWith('valor') || n === 'total' || n === 'r$') colMap.valor = k;
+  });
+  if(!colMap.data || !colMap.item || !colMap.valor){
+    showToast(`<strong>!</strong> Colunas obrigatórias faltando. Esperado: Data, Atendente, Grupo, Item, Qtde, Valor. Encontrado: ${Object.keys(sample).join(', ')}`, 'error');
+    return;
+  }
+
+  const list = getVendas();
+  const map = new Map(list.map(v => [vendaKey(v), v]));
+  let novos = 0, atualizados = 0, ignorados = 0;
+  for(const row of rows){
+    const data = parseDataBR(row[colMap.data]);
+    const atendente = String(row[colMap.atendente] || '').trim();
+    const grupo = String(row[colMap.grupo] || '').trim();
+    const item = String(row[colMap.item] || '').trim();
+    const qtde = parseValorBR(row[colMap.qtde]);
+    const valor = parseValorBR(row[colMap.valor]);
+    if(!data || !item){ ignorados++; continue; }
+    const v = { data, atendente, grupo, item, qtde, valor };
+    const k = vendaKey(v);
+    if(map.has(k)){
+      const old = map.get(k);
+      if(old.qtde !== qtde || Math.abs(old.valor - valor) > 0.01){
+        old.qtde = qtde; old.valor = valor; atualizados++;
+      }
+    } else {
+      map.set(k, v); novos++;
+    }
+  }
+  const newList = Array.from(map.values()).sort((a,b) => a.data.localeCompare(b.data));
+  saveVendas(newList);
+  renderVendas();
+  showToast(`<strong>✓</strong> ${novos} novo(s) · ${atualizados} atualizado(s) · ${ignorados} ignorado(s) · Total: ${newList.length} lançamento(s)`);
+}
+
+function confirmLimparVendas(){
+  if(!confirm('Apagar TODOS os lançamentos de vendas?\n\nEsta ação é irreversível. Considere exportar em CSV antes.')) return;
+  saveVendas([]);
+  renderVendas();
+  showToast('<strong>✓</strong> Vendas apagadas');
+}
+
+function exportarVendasCSV(){
+  const list = getVendas();
+  if(!list.length){ showToast('Nada para exportar', 'warn'); return; }
+  const sep = ';';
+  const headers = ['Data','Atendente','Grupo','Item','Qtde','Valor'];
+  const rows = list.map(v => [
+    v.data,
+    `"${(v.atendente||'').replace(/"/g,'""')}"`,
+    `"${(v.grupo||'').replace(/"/g,'""')}"`,
+    `"${(v.item||'').replace(/"/g,'""')}"`,
+    (v.qtde||0).toString().replace('.',','),
+    (v.valor||0).toFixed(2).replace('.',',')
+  ].join(sep));
+  const csv = '﻿' + headers.join(sep) + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `vendas-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// === Período / filtros ===
+function onVendasPeriodoChange(){
+  const sel = document.getElementById('vendas-periodo')?.value;
+  const $custom = document.getElementById('vendas-custom-range');
+  $custom?.classList.toggle('hidden', sel !== 'custom');
+  if(sel === 'custom'){
+    const $i = document.getElementById('vendas-data-ini');
+    const $f = document.getElementById('vendas-data-fim');
+    if(!$i.value){ const d=new Date(); d.setDate(1); $i.value = d.toISOString().slice(0,10); }
+    if(!$f.value){ $f.value = new Date().toISOString().slice(0,10); }
+  }
+  renderVendas();
+}
+
+function getVendasPeriod(){
+  const sel = document.getElementById('vendas-periodo')?.value || '30';
+  const today = new Date(); today.setHours(0,0,0,0);
+  let ini, fim;
+  if(sel === 'hoje'){ ini = today; fim = new Date(today); fim.setDate(fim.getDate()+1); }
+  else if(sel === 'ontem'){ ini = new Date(today); ini.setDate(ini.getDate()-1); fim = new Date(today); }
+  else if(sel === '7'){ ini = new Date(today); ini.setDate(ini.getDate()-6); fim = new Date(today); fim.setDate(fim.getDate()+1); }
+  else if(sel === '30'){ ini = new Date(today); ini.setDate(ini.getDate()-29); fim = new Date(today); fim.setDate(fim.getDate()+1); }
+  else if(sel === 'mes'){ ini = new Date(today.getFullYear(), today.getMonth(), 1); fim = new Date(today.getFullYear(), today.getMonth()+1, 1); }
+  else if(sel === 'custom'){
+    const i = document.getElementById('vendas-data-ini')?.value;
+    const f = document.getElementById('vendas-data-fim')?.value;
+    if(i) ini = new Date(i + 'T00:00');
+    if(f){ fim = new Date(f + 'T00:00'); fim.setDate(fim.getDate()+1); }
+  }
+  if(!ini){ ini = new Date(today); ini.setDate(ini.getDate()-29); }
+  if(!fim){ fim = new Date(today); fim.setDate(fim.getDate()+1); }
+  return { ini, fim };
+}
+
+function getVendasFiltradas(){
+  const { ini, fim } = getVendasPeriod();
+  const fGrupo = document.getElementById('vendas-grupo-filtro')?.value || '';
+  const fAt = document.getElementById('vendas-atendente-filtro')?.value || '';
+  return getVendas().filter(v => {
+    const d = new Date(v.data + 'T12:00');
+    if(d < ini || d >= fim) return false;
+    if(fGrupo && v.grupo !== fGrupo) return false;
+    if(fAt && v.atendente !== fAt) return false;
+    return true;
+  });
+}
+
+// === Tabs ===
+let _vendasTab = 'overview';
+function setVendasTab(t){
+  _vendasTab = t;
+  ['overview','atendentes','produtos','grupos','temporal'].forEach(x => {
+    const $tab = document.getElementById('vendas-tab-'+x);
+    const $cnt = document.getElementById('vendas-content-'+x);
+    if($tab) $tab.className = x === t
+      ? 'px-5 py-3 text-sm font-medium border-b-2 border-brand-600 text-brand-700 whitespace-nowrap'
+      : 'px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap';
+    if($cnt) $cnt.classList.toggle('hidden', x !== t);
+  });
+  renderVendas();
+}
+
+// === Render principal ===
+let _vendasCharts = {};
+function destroyVendasCharts(){
+  Object.values(_vendasCharts).forEach(c => { try { c.destroy(); } catch{} });
+  _vendasCharts = {};
+}
+
+function renderVendas(){
+  const all = getVendas();
+  const filtered = getVendasFiltradas();
+
+  // Popular filtros
+  const $gFilter = document.getElementById('vendas-grupo-filtro');
+  const $aFilter = document.getElementById('vendas-atendente-filtro');
+  if($gFilter){
+    const grupos = [...new Set(all.map(v => v.grupo).filter(Boolean))].sort();
+    const cur = $gFilter.value;
+    $gFilter.innerHTML = '<option value="">Todos os grupos</option>' + grupos.map(g => `<option value="${g}" ${g===cur?'selected':''}>${g}</option>`).join('');
+  }
+  if($aFilter){
+    const ats = [...new Set(all.map(v => v.atendente).filter(Boolean))].sort();
+    const cur = $aFilter.value;
+    $aFilter.innerHTML = '<option value="">Todos os atendentes</option>' + ats.map(a => `<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
+  }
+
+  // KPIs
+  const $kpis = document.getElementById('vendas-kpis');
+  const totalFat = filtered.reduce((s,v) => s + (v.valor||0), 0);
+  const totalQtd = filtered.reduce((s,v) => s + (v.qtde||0), 0);
+  const dias = new Set(filtered.map(v => v.data));
+  const ats = new Set(filtered.map(v => v.atendente));
+  const ticketDia = dias.size ? totalFat / dias.size : 0;
+  if($kpis){
+    $kpis.innerHTML = `
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Faturamento</div>
+        <div class="text-xl font-bold mt-1 text-emerald-700">R$ ${totalFat.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+        <div class="text-[10px] text-ink-500 mt-0.5">${filtered.length.toLocaleString('pt-BR')} lançamentos</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Itens vendidos</div>
+        <div class="text-xl font-bold mt-1">${totalQtd.toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Dias no período</div>
+        <div class="text-xl font-bold mt-1">${dias.size}</div>
+        <div class="text-[10px] text-ink-500 mt-0.5">Média/dia: R$ ${ticketDia.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Atendentes ativos</div>
+        <div class="text-xl font-bold mt-1">${ats.size}</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Total na base</div>
+        <div class="text-xl font-bold mt-1">${all.length.toLocaleString('pt-BR')}</div>
+        <div class="text-[10px] text-ink-500 mt-0.5">${[...new Set(all.map(v=>v.data))].length} dias importados</div>
+      </div>
+    `;
+  }
+
+  destroyVendasCharts();
+  if(_vendasTab === 'overview') renderVendasOverview(filtered);
+  if(_vendasTab === 'atendentes') renderVendasAtendentes(filtered, totalFat);
+  if(_vendasTab === 'produtos') renderVendasProdutos(filtered, totalFat);
+  if(_vendasTab === 'grupos') renderVendasGrupos(filtered, totalFat);
+  if(_vendasTab === 'temporal') renderVendasTemporal(filtered);
+}
+
+function _agg(list, keyFn, valFn){
+  const m = new Map();
+  list.forEach(v => {
+    const k = keyFn(v);
+    if(!k) return;
+    m.set(k, (m.get(k) || 0) + valFn(v));
+  });
+  return m;
+}
+
+function renderVendasOverview(filtered){
+  if(!window.Chart) return;
+  // Faturamento por dia
+  const porDia = _agg(filtered, v=>v.data, v=>v.valor||0);
+  const dias = [...porDia.keys()].sort();
+  const $c1 = document.getElementById('vendas-chart-dia');
+  if($c1){
+    _vendasCharts.dia = new Chart($c1, {
+      type:'line',
+      data:{ labels: dias.map(d => new Date(d+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})),
+        datasets:[{ label:'R$', data: dias.map(d => porDia.get(d)), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:.3 }]},
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>'R$ '+v.toLocaleString('pt-BR')}}} }
+    });
+  }
+  // Top 10 produtos
+  const porProd = [..._agg(filtered, v=>v.item, v=>v.valor||0).entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const $c2 = document.getElementById('vendas-chart-top-prod');
+  if($c2){
+    _vendasCharts.prod = new Chart($c2, {
+      type:'bar',
+      data:{ labels: porProd.map(p=>p[0].length>22?p[0].slice(0,22)+'…':p[0]),
+        datasets:[{ data: porProd.map(p=>p[1]), backgroundColor:'#3b82f6' }] },
+      options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{callback:v=>'R$ '+v.toLocaleString('pt-BR')}}} }
+    });
+  }
+  // Por grupo
+  const porGr = [..._agg(filtered, v=>v.grupo, v=>v.valor||0).entries()].sort((a,b)=>b[1]-a[1]);
+  const $c3 = document.getElementById('vendas-chart-grupo');
+  if($c3){
+    _vendasCharts.grupo = new Chart($c3, {
+      type:'doughnut',
+      data:{ labels: porGr.map(g=>g[0]), datasets:[{ data: porGr.map(g=>g[1]),
+        backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16','#06b6d4','#a855f7','#f43f5e','#0ea5e9','#22c55e','#eab308'] }] },
+      options:{ responsive:true, plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}}} }
+    });
+  }
+  // Top atendentes
+  const porAt = [..._agg(filtered, v=>v.atendente, v=>v.valor||0).entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const $c4 = document.getElementById('vendas-chart-atendentes');
+  if($c4){
+    _vendasCharts.at = new Chart($c4, {
+      type:'bar',
+      data:{ labels: porAt.map(p=>p[0]), datasets:[{ data: porAt.map(p=>p[1]), backgroundColor:'#10b981' }] },
+      options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{callback:v=>'R$ '+v.toLocaleString('pt-BR')}}} }
+    });
+  }
+}
+
+function renderVendasAtendentes(filtered, totalFat){
+  const $list = document.getElementById('vendas-atendentes-list');
+  if(!$list) return;
+  if(!filtered.length){
+    $list.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-ink-400 text-sm">Nenhuma venda no período</td></tr>';
+    return;
+  }
+  const stats = new Map();
+  filtered.forEach(v => {
+    const k = v.atendente || '—';
+    if(!stats.has(k)) stats.set(k, { fat:0, qtd:0, datas:new Set() });
+    const s = stats.get(k);
+    s.fat += v.valor || 0;
+    s.qtd += v.qtde || 0;
+    s.datas.add(v.data);
+  });
+  const ranked = [...stats.entries()].sort((a,b)=>b[1].fat-a[1].fat);
+  $list.innerHTML = ranked.map(([nome, s], i) => {
+    const tickets = s.datas.size;
+    const tm = tickets ? s.fat / tickets : 0;
+    const pct = totalFat ? (s.fat/totalFat*100) : 0;
+    const tel = telefoneAtendente(nome);
+    const wabtn = tel ? `<button onclick="notificarRanking('${nome.replace(/'/g,'\\\'')}',${s.fat.toFixed(2)},${i+1})" class="text-emerald-600 hover:underline text-xs" title="Notificar via WhatsApp">📱</button>` : '';
+    const medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : `#${i+1}`));
+    return `
+      <tr>
+        <td class="px-5 py-3 font-bold">${medal}</td>
+        <td class="px-5 py-3"><strong>${nome}</strong></td>
+        <td class="px-5 py-3 text-right">${s.qtd.toLocaleString('pt-BR')}</td>
+        <td class="px-5 py-3 text-right">${tickets}</td>
+        <td class="px-5 py-3 text-right">R$ ${tm.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-3 text-right font-medium">R$ ${s.fat.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-3 text-right">${pct.toFixed(1)}%</td>
+        <td class="px-5 py-3 text-center">${wabtn}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderVendasProdutos(filtered, totalFat){
+  const $list = document.getElementById('vendas-produtos-list');
+  const $info = document.getElementById('vendas-prod-info');
+  if(!$list) return;
+  const search = (document.getElementById('vendas-prod-search')?.value || '').toLowerCase();
+  const stats = new Map();
+  filtered.forEach(v => {
+    const k = v.item;
+    if(!stats.has(k)) stats.set(k, { fat:0, qtd:0, grupo:v.grupo });
+    const s = stats.get(k);
+    s.fat += v.valor || 0;
+    s.qtd += v.qtde || 0;
+  });
+  let ranked = [...stats.entries()].sort((a,b)=>b[1].fat-a[1].fat);
+  if(search) ranked = ranked.filter(([nome])=>nome.toLowerCase().includes(search));
+  if($info) $info.textContent = `${ranked.length} produto(s) ${search?'no filtro':'no período'}`;
+  if(!ranked.length){
+    $list.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-ink-400 text-sm">Nenhum produto</td></tr>';
+    return;
+  }
+  $list.innerHTML = ranked.slice(0, 200).map(([nome, s]) => {
+    const tm = s.qtd ? s.fat / s.qtd : 0;
+    const pct = totalFat ? (s.fat/totalFat*100) : 0;
+    return `
+      <tr>
+        <td class="px-5 py-2.5 text-xs"><strong>${nome}</strong></td>
+        <td class="px-5 py-2.5 text-xs">${s.grupo||'—'}</td>
+        <td class="px-5 py-2.5 text-right text-xs">${s.qtd.toLocaleString('pt-BR')}</td>
+        <td class="px-5 py-2.5 text-right text-xs font-medium">R$ ${s.fat.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-right text-xs">R$ ${tm.toFixed(2).replace('.',',')}</td>
+        <td class="px-5 py-2.5 text-right text-xs">${pct.toFixed(2)}%</td>
+      </tr>
+    `;
+  }).join('') + (ranked.length > 200 ? `<tr><td colspan="6" class="text-center text-xs text-ink-500 py-2">… exibindo 200 de ${ranked.length} produtos</td></tr>` : '');
+}
+
+function renderVendasGrupos(filtered, totalFat){
+  const $list = document.getElementById('vendas-grupos-list');
+  if(!$list) return;
+  const stats = new Map();
+  filtered.forEach(v => {
+    const k = v.grupo || '—';
+    if(!stats.has(k)) stats.set(k, { fat:0, qtd:0, itens:new Set() });
+    const s = stats.get(k);
+    s.fat += v.valor || 0;
+    s.qtd += v.qtde || 0;
+    s.itens.add(v.item);
+  });
+  const ranked = [...stats.entries()].sort((a,b)=>b[1].fat-a[1].fat);
+  if(!ranked.length){
+    $list.innerHTML = '<tr><td colspan="5" class="text-center py-12 text-ink-400 text-sm">Nenhum grupo</td></tr>';
+    return;
+  }
+  $list.innerHTML = ranked.map(([nome, s]) => {
+    const pct = totalFat ? (s.fat/totalFat*100) : 0;
+    return `
+      <tr>
+        <td class="px-5 py-3"><strong>${nome}</strong></td>
+        <td class="px-5 py-3 text-right">${s.itens.size}</td>
+        <td class="px-5 py-3 text-right">${s.qtd.toLocaleString('pt-BR')}</td>
+        <td class="px-5 py-3 text-right font-medium">R$ ${s.fat.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-3 text-right">${pct.toFixed(1)}%</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderVendasTemporal(filtered){
+  if(!window.Chart) return;
+  // Por dia da semana
+  const dowAg = new Array(7).fill(0);
+  const dowQt = new Array(7).fill(0);
+  filtered.forEach(v => {
+    const dow = new Date(v.data + 'T12:00').getDay();
+    dowAg[dow] += v.valor || 0;
+    dowQt[dow]++;
+  });
+  const dowAvg = dowAg.map((s, i) => dowQt[i] ? s : 0);
+  const $c = document.getElementById('vendas-chart-dow');
+  if($c){
+    _vendasCharts.dow = new Chart($c, {
+      type:'bar',
+      data:{ labels:['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+        datasets:[{ label:'Faturamento', data: dowAvg, backgroundColor:['#ef4444','#3b82f6','#3b82f6','#3b82f6','#3b82f6','#10b981','#f59e0b'] }] },
+      options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>'R$ '+v.toLocaleString('pt-BR')}}} }
+    });
+  }
+
+  // Comparativo última semana vs penúltima
+  const $comp = document.getElementById('vendas-comp-semanal');
+  if($comp){
+    const all = getVendas();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const ini1 = new Date(today); ini1.setDate(ini1.getDate()-6);
+    const ini2 = new Date(today); ini2.setDate(ini2.getDate()-13);
+    const fim2 = new Date(today); fim2.setDate(fim2.getDate()-7);
+    const sem1 = all.filter(v => { const d = new Date(v.data+'T12:00'); return d >= ini1 && d <= today; });
+    const sem2 = all.filter(v => { const d = new Date(v.data+'T12:00'); return d >= ini2 && d <= fim2; });
+    const f1 = sem1.reduce((s,v)=>s+(v.valor||0),0);
+    const f2 = sem2.reduce((s,v)=>s+(v.valor||0),0);
+    const diff = f2 ? ((f1-f2)/f2*100) : 0;
+    $comp.innerHTML = `
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-ink-50 rounded-md p-3">
+          <div class="text-xs text-ink-600">Esta semana</div>
+          <div class="text-lg font-bold mt-1">R$ ${f1.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+          <div class="text-[10px] text-ink-500">${sem1.length} lançamentos</div>
+        </div>
+        <div class="bg-ink-50 rounded-md p-3">
+          <div class="text-xs text-ink-600">Semana anterior</div>
+          <div class="text-lg font-bold mt-1">R$ ${f2.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+          <div class="text-[10px] text-ink-500">${sem2.length} lançamentos</div>
+        </div>
+      </div>
+      <div class="mt-3 text-center ${diff>0?'text-emerald-700':(diff<0?'text-rose-700':'text-ink-600')} text-base font-bold">
+        ${diff>0?'↗':(diff<0?'↘':'→')} ${diff.toFixed(1)}% vs semana anterior
+      </div>
+    `;
+  }
+}
+
+// Helper: telefone do atendente (cruza com cadastros funcionário)
+function telefoneAtendente(nome){
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+  const n = norm(nome);
+  const f = (typeof getCadastros === 'function' ? getCadastros('funcionario') : []).find(c => norm(c.nome).startsWith(n) || n.startsWith(norm(c.nome)));
+  return f?.telefone || f?.whatsapp || '';
+}
+
+function notificarRanking(nome, fat, posicao){
+  const tel = telefoneAtendente(nome);
+  if(!tel){ showToast('Atendente sem telefone cadastrado em Funcionários', 'warn'); return; }
+  const msg = `*🏆 Ranking de Vendas - Cantinho do Boni*\n\nOlá ${nome}!\n\nVocê está em ${posicao}º lugar no período com:\n💰 *R$ ${fat.toLocaleString('pt-BR',{minimumFractionDigits:2})}* em vendas\n\nParabéns e continue assim! 🚀`;
+  abrirWhatsAppNotify(tel, msg);
 }
 
 // =====================================================
@@ -9692,13 +11532,14 @@ const MODULOS_SISTEMA = [
   { id:'cadastros', label:'Cadastros', icon:'📋' },
   { id:'freelancers', label:'Freelancers', icon:'👤' },
   { id:'dp', label:'Departamento Pessoal', icon:'⏱' },
+  { id:'vendas', label:'Vendas (PDV)', icon:'🛍' },
   { id:'usuarios', label:'Usuários e Acesso', icon:'🔐' }
 ];
 
 // Permissões padrão por perfil
 const PERMS_DEFAULT = {
   Admin:      MODULOS_SISTEMA.map(m => m.id),
-  Gerente:    ['dashboard','caixa','financeiro','estoque','etiquetas','cmv','dre','checklist','compras','notas','almoxarifado','banco','whatsapp','cadastros','freelancers','dp'],
+  Gerente:    ['dashboard','caixa','financeiro','estoque','etiquetas','cmv','dre','checklist','compras','notas','almoxarifado','banco','whatsapp','cadastros','freelancers','dp','vendas'],
   Operador:   ['dashboard','checklist','compras','etiquetas','estoque'],
   Estoquista: ['dashboard','estoque','almoxarifado','etiquetas','compras'],
   Caixa:      ['dashboard','caixa','etiquetas']
@@ -11888,6 +13729,7 @@ async function bootstrap(){
   if(typeof renderReservas === 'function') renderReservas();
   if(typeof renderNotas === 'function') renderNotas();
   if(typeof renderDP === 'function') renderDP();
+  if(typeof renderVendas === 'function') renderVendas();
   // Dashboard depende dos outros módulos — roda por último
   if(typeof renderDashboard === 'function') renderDashboard();
 }
@@ -11912,6 +13754,8 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     if(t === 'reservas') setTimeout(renderReservas, 50);
     if(t === 'notas') setTimeout(()=>typeof renderNotas==='function' && renderNotas(), 50);
     if(t === 'dp') setTimeout(()=>typeof renderDP==='function' && renderDP(), 50);
+    if(t === 'vendas') setTimeout(()=>typeof renderVendas==='function' && renderVendas(), 50);
+    if(t === 'whatsapp') setTimeout(()=>typeof renderWhatsAppConfig==='function' && renderWhatsAppConfig(), 50);
     if(t === 'dashboard') setTimeout(renderDashboard, 50);
   });
 });
