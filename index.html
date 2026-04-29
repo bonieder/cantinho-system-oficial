@@ -2409,6 +2409,7 @@ app.cantinhodoboni.com.br {
         <div class="flex gap-2 flex-wrap">
           <label for="vendas-import-input" class="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-md cursor-pointer">📥 Importar relatório (XLSX/CSV)</label>
           <input type="file" id="vendas-import-input" accept=".xlsx,.xls,.csv" onchange="handleVendasImport(this.files[0])" class="hidden">
+          <button onclick="abrirCompartilharRankingModal()" class="text-sm border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-md">🔗 Compartilhar ranking</button>
           <button onclick="exportarVendasCSV()" class="text-sm border border-ink-200 hover:bg-ink-50 px-3 py-1.5 rounded-md">📤 Exportar CSV</button>
           <button onclick="confirmLimparVendas()" class="text-sm border border-rose-300 hover:bg-rose-50 text-rose-700 px-3 py-1.5 rounded-md">🗑 Limpar tudo</button>
         </div>
@@ -12108,6 +12109,80 @@ function telefoneAtendente(nome){
   return f?.telefone || f?.whatsapp || '';
 }
 
+// Modal de compartilhamento do ranking público
+function abrirCompartilharRankingModal(){
+  const baseUrl = window.location.origin + window.location.pathname;
+  const periodoAtual = document.getElementById('vendas-periodo')?.value || 'hoje';
+  const linkComPeriodo = `${baseUrl}?view=ranking&periodo=${periodoAtual}`;
+  const linkSimples = `${baseUrl}?view=ranking`;
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full">
+        <div class="px-6 py-4 border-b border-ink-200">
+          <h2 class="font-semibold text-lg">🔗 Compartilhar Ranking de Vendas</h2>
+          <p class="text-xs text-ink-600 mt-0.5">Página pública — qualquer pessoa com o link pode ver, sem precisar de login</p>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Link com filtro atual (${periodoAtual})</label>
+            <div class="flex gap-2 mt-1">
+              <input id="link-periodo" type="text" readonly value="${linkComPeriodo}" class="flex-1 text-xs border border-ink-200 rounded-md px-3 py-2 bg-ink-50 font-mono">
+              <button onclick="copiarLink('link-periodo')" class="text-xs bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-md">📋 Copiar</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Link genérico (usuário escolhe o período)</label>
+            <div class="flex gap-2 mt-1">
+              <input id="link-simples" type="text" readonly value="${linkSimples}" class="flex-1 text-xs border border-ink-200 rounded-md px-3 py-2 bg-ink-50 font-mono">
+              <button onclick="copiarLink('link-simples')" class="text-xs bg-ink-700 hover:bg-ink-800 text-white px-3 py-2 rounded-md">📋 Copiar</button>
+            </div>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900 space-y-1">
+            <strong>ℹ Como funciona:</strong>
+            <ul class="list-disc list-inside space-y-0.5">
+              <li>Quem abrir o link verá o ranking <strong>somente leitura</strong></li>
+              <li>Os dados vêm direto do Supabase (sempre atualizados)</li>
+              <li>Sem login, sem acesso aos demais módulos</li>
+              <li>Mostra os top 15 atendentes com posição, valor e %</li>
+              <li>Filtros: hoje, ontem, 7d, 30d, este mês</li>
+            </ul>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-900">
+            <strong>⚠ Atenção:</strong> qualquer pessoa com o link pode acessar. Compartilhe só com quem você confia.
+          </div>
+          <div class="flex gap-2">
+            <a href="${linkComPeriodo}" target="_blank" class="flex-1 text-center text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md">🔍 Visualizar agora</a>
+            <button onclick="enviarLinkRankingWhatsApp('${linkComPeriodo.replace(/'/g,"\\\\'")}')" class="flex-1 text-sm bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">📱 Enviar via WhatsApp</button>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end bg-ink-50">
+          <button onclick="closeModal()" class="text-sm bg-ink-800 text-white px-4 py-2 rounded-md">Fechar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function copiarLink(inputId){
+  const $i = document.getElementById(inputId);
+  if(!$i) return;
+  $i.select();
+  navigator.clipboard.writeText($i.value).then(() => {
+    showToast('<strong>✓</strong> Link copiado para a área de transferência');
+  }).catch(() => {
+    document.execCommand('copy');
+    showToast('<strong>✓</strong> Link copiado');
+  });
+}
+
+function enviarLinkRankingWhatsApp(url){
+  const msg = `🏆 *Ranking de Vendas - Cantinho do Boni*\n\nConfere o desempenho da equipe:\n${url}`;
+  openNotifyModal({
+    titulo: 'Compartilhar Ranking',
+    mensagem: msg
+  });
+}
+
 // Detecta se o filtro do período é dia único ou múltiplos dias
 // Retorna { tipo:'hoje'|'ontem'|'dia'|'periodo', label:string }
 function descreverPeriodoVendas(){
@@ -15279,7 +15354,212 @@ function autoCleanSaldoEntries(){
   return 0;
 }
 
+// =====================================================
+// PÁGINA PÚBLICA DE RANKING (sem login)
+// Acesso: ?view=ranking[&periodo=hoje|ontem|7|30|mes]
+// =====================================================
+async function renderPaginaPublicaRanking(){
+  // Esconde toda a UI do sistema (login + wrapper de app + sidebar/header/main)
+  // O wrapper raiz é um div sem id que segura aside+main em flex; pega-se via primeiro filho do body
+  const $login = document.getElementById('login-screen');
+  if($login) $login.style.display = 'none';
+  // Encontra o app wrapper (primeiro div sibling do login que não é modal/toast/ranking)
+  Array.from(document.body.children).forEach(el => {
+    if(el.tagName === 'DIV' && !['login-screen','modal-root','toast-root','ranking-publico-root'].includes(el.id)){
+      el.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('aside, header, main').forEach(el => el.style.display = 'none');
+  document.body.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)';
+  document.body.style.minHeight = '100vh';
+
+  // Cria container
+  let $root = document.getElementById('ranking-publico-root');
+  if(!$root){
+    $root = document.createElement('div');
+    $root.id = 'ranking-publico-root';
+    $root.className = 'min-h-screen p-4 md:p-8';
+    document.body.appendChild($root);
+  }
+
+  $root.innerHTML = `
+    <div class="max-w-3xl mx-auto">
+      <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-gradient-to-br from-amber-600 to-orange-600 text-white px-6 py-6 text-center">
+          <h1 class="text-2xl md:text-3xl font-bold">🏆 Ranking de Vendas</h1>
+          <p class="text-amber-100 text-sm mt-1">Cantinho do Boni Colorado</p>
+        </div>
+
+        <!-- Filtros -->
+        <div class="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-center gap-2 flex-wrap">
+          <button data-periodo="hoje" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Hoje</button>
+          <button data-periodo="ontem" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Ontem</button>
+          <button data-periodo="7" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">7 dias</button>
+          <button data-periodo="30" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">30 dias</button>
+          <button data-periodo="mes" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Este mês</button>
+        </div>
+
+        <!-- Status -->
+        <div id="ranking-publico-status" class="px-6 py-4 text-center text-sm text-ink-600">
+          ⏳ Carregando dados...
+        </div>
+
+        <!-- Lista do ranking -->
+        <div id="ranking-publico-lista" class="divide-y divide-amber-100"></div>
+
+        <!-- Footer -->
+        <div class="px-6 py-3 bg-ink-50 text-center text-[10px] text-ink-500">
+          Atualizado em <span id="ranking-publico-data">—</span> · <button onclick="atualizarRankingPublico()" class="underline">🔄 Atualizar</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Inicializa Supabase pra ler vendas
+  if(!supabaseClient){
+    try {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch(e){
+      document.getElementById('ranking-publico-status').innerHTML = '<span class="text-rose-700">⚠ Erro ao conectar. Recarregue a página.</span>';
+      return;
+    }
+  }
+
+  // Vincula filtros
+  document.querySelectorAll('.ranking-pf-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ranking-pf-btn').forEach(b => {
+        b.classList.remove('bg-amber-600','text-white','border-amber-700');
+        b.classList.add('border-amber-300');
+      });
+      btn.classList.add('bg-amber-600','text-white','border-amber-700');
+      btn.classList.remove('border-amber-300');
+      _rankingPublicoPeriodo = btn.dataset.periodo;
+      renderRankingPublicoLista();
+    });
+  });
+
+  // Lê o filtro inicial da URL ou usa 'hoje'
+  const periodoInicial = params_get('periodo') || 'hoje';
+  const btnInicial = document.querySelector(`.ranking-pf-btn[data-periodo="${periodoInicial}"]`);
+  if(btnInicial) btnInicial.click();
+
+  // Carrega dados do Supabase
+  await atualizarRankingPublico();
+}
+
+function params_get(k){
+  return new URLSearchParams(window.location.search).get(k);
+}
+
+let _rankingPublicoPeriodo = 'hoje';
+let _rankingPublicoVendas = [];
+let _rankingPublicoFuncs = [];
+
+async function atualizarRankingPublico(){
+  const $st = document.getElementById('ranking-publico-status');
+  if($st) $st.innerHTML = '⏳ Buscando dados na nuvem...';
+  try {
+    // Busca vendas e funcionarios direto do kv_store
+    const { data, error } = await supabaseClient.from('kv_store').select('key,value').in('key', ['vendas.lancamentos','cadastros.funcionarios']);
+    if(error) throw error;
+    const map = {};
+    (data||[]).forEach(r => map[r.key] = r.value);
+    _rankingPublicoVendas = Array.isArray(map['vendas.lancamentos']) ? map['vendas.lancamentos'] : [];
+    _rankingPublicoFuncs = Array.isArray(map['cadastros.funcionarios']) ? map['cadastros.funcionarios'] : [];
+    const agora = new Date().toLocaleString('pt-BR');
+    document.getElementById('ranking-publico-data').textContent = agora;
+    renderRankingPublicoLista();
+  } catch(e){
+    if($st) $st.innerHTML = '<span class="text-rose-700">⚠ Erro: ' + (e.message||e) + '</span>';
+    console.error(e);
+  }
+}
+
+function renderRankingPublicoLista(){
+  const $lista = document.getElementById('ranking-publico-lista');
+  const $st = document.getElementById('ranking-publico-status');
+  if(!$lista) return;
+
+  // Filtra por período
+  const today = new Date(); today.setHours(0,0,0,0);
+  let ini, fim;
+  const sel = _rankingPublicoPeriodo;
+  if(sel === 'hoje'){ ini = today; fim = new Date(today); fim.setDate(fim.getDate()+1); }
+  else if(sel === 'ontem'){ ini = new Date(today); ini.setDate(ini.getDate()-1); fim = new Date(today); }
+  else if(sel === '7'){ ini = new Date(today); ini.setDate(ini.getDate()-6); fim = new Date(today); fim.setDate(fim.getDate()+1); }
+  else if(sel === '30'){ ini = new Date(today); ini.setDate(ini.getDate()-29); fim = new Date(today); fim.setDate(fim.getDate()+1); }
+  else if(sel === 'mes'){ ini = new Date(today.getFullYear(), today.getMonth(), 1); fim = new Date(today.getFullYear(), today.getMonth()+1, 1); }
+
+  const filtered = _rankingPublicoVendas.filter(v => {
+    const d = new Date(v.data + 'T12:00');
+    return d >= ini && d < fim;
+  });
+
+  // Agrega por atendente
+  const stats = new Map();
+  filtered.forEach(v => {
+    const k = v.atendente || '—';
+    if(!stats.has(k)) stats.set(k, { fat:0, qtd:0 });
+    const s = stats.get(k);
+    s.fat += v.valor || 0;
+    s.qtd += v.qtde || 0;
+  });
+  const ranked = [...stats.entries()].sort((a,b) => b[1].fat - a[1].fat);
+
+  if(!ranked.length){
+    if($st) $st.innerHTML = '<span class="text-ink-500">Nenhuma venda no período selecionado.</span>';
+    $lista.innerHTML = '';
+    return;
+  }
+  if($st) $st.innerHTML = `<strong>${ranked.length}</strong> atendente(s) · Total: <strong>R$ ${ranked.reduce((s,[,v])=>s+v.fat,0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong>`;
+
+  // Helper: nome amigável (vincula via codigoPDV ou primeiro nome)
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+  const nomeAmigavel = (atendente) => {
+    const n = norm(atendente);
+    const f = _rankingPublicoFuncs.find(c => c.codigoPDV && (norm(c.codigoPDV) === n || norm(c.codigoPDV).startsWith(n) || n.startsWith(norm(c.codigoPDV))));
+    if(f) return f.nome;
+    // tenta match pelo nome completo
+    const f2 = _rankingPublicoFuncs.find(c => norm(c.nome).startsWith(n) || n.startsWith(norm(c.nome)));
+    return f2 ? f2.nome : atendente;
+  };
+
+  const totalFat = ranked.reduce((s,[,v])=>s+v.fat, 0);
+
+  $lista.innerHTML = ranked.slice(0, 15).map(([atend, s], i) => {
+    const pct = totalFat ? (s.fat/totalFat*100) : 0;
+    const pos = i + 1;
+    const medalEmoji = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `${pos}º`;
+    const medalBg = pos === 1 ? 'bg-yellow-50' : pos === 2 ? 'bg-slate-50' : pos === 3 ? 'bg-orange-50' : 'bg-white';
+    const medalSize = pos <= 3 ? 'text-3xl md:text-4xl' : 'text-xl text-ink-400 font-bold';
+    return `
+      <div class="px-5 py-4 ${medalBg} flex items-center gap-4 hover:bg-amber-50 transition">
+        <div class="${medalSize} w-12 text-center flex-shrink-0">${medalEmoji}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-ink-900 truncate">${nomeAmigavel(atend)}</div>
+          <div class="text-xs text-ink-500 mt-0.5">${s.qtd.toLocaleString('pt-BR')} itens vendidos · ${pct.toFixed(1)}% do total</div>
+          <!-- Barra de progresso -->
+          <div class="mt-2 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-amber-500 to-orange-500" style="width:${Math.min(100, pct*3).toFixed(1)}%"></div>
+          </div>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div class="text-base md:text-lg font-bold text-emerald-700">R$ ${s.fat.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 async function bootstrap(){
+  // Página pública de visualização (sem login)
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('view') === 'ranking'){
+    return renderPaginaPublicaRanking();
+  }
+
   // Inicializa Supabase (se ainda não inicializado) + sincroniza com a nuvem
   if(!supabaseClient){
     if(initSupabase()){
