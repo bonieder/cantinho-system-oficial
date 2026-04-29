@@ -12108,10 +12108,86 @@ function telefoneAtendente(nome){
   return f?.telefone || f?.whatsapp || '';
 }
 
+// Detecta se o filtro do período é dia único ou múltiplos dias
+// Retorna { tipo:'hoje'|'ontem'|'dia'|'periodo', label:string }
+function descreverPeriodoVendas(){
+  const sel = document.getElementById('vendas-periodo')?.value || '30';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const fmtDia = d => d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  if(sel === 'hoje') return { tipo:'hoje', label:'hoje' };
+  if(sel === 'ontem'){
+    const y = new Date(today); y.setDate(y.getDate()-1);
+    return { tipo:'ontem', label:'ontem ('+fmtDia(y)+')' };
+  }
+  if(sel === '7') return { tipo:'periodo', label:'nos últimos 7 dias' };
+  if(sel === '30') return { tipo:'periodo', label:'nos últimos 30 dias' };
+  if(sel === 'mes') return { tipo:'periodo', label:'neste mês' };
+  if(sel === 'custom'){
+    const i = document.getElementById('vendas-data-ini')?.value;
+    const f = document.getElementById('vendas-data-fim')?.value;
+    if(i && f && i === f){
+      const d = new Date(i+'T12:00');
+      const isHoje = d.toDateString() === today.toDateString();
+      const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1);
+      const isOntem = d.toDateString() === yesterday.toDateString();
+      if(isHoje) return { tipo:'hoje', label:'hoje' };
+      if(isOntem) return { tipo:'ontem', label:'ontem ('+fmtDia(d)+')' };
+      return { tipo:'dia', label:'no dia '+fmtDia(d) };
+    }
+    if(i && f) return { tipo:'periodo', label:`de ${fmtDia(new Date(i+'T12:00'))} a ${fmtDia(new Date(f+'T12:00'))}` };
+  }
+  return { tipo:'periodo', label:'no período' };
+}
+
 function notificarRanking(nome, fat, posicao){
   const tel = telefoneAtendente(nome);
   if(!tel){ showToast('Atendente sem telefone cadastrado em Funcionários', 'warn'); return; }
-  const msg = `*🏆 Ranking de Vendas - Cantinho do Boni*\n\nOlá ${nome}!\n\nVocê está em ${posicao}º lugar no período com:\n💰 *R$ ${fat.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}* em vendas\n\nParabéns e continue assim! 🚀\n\n${_waCfgSig}`;
+  const periodo = descreverPeriodoVendas();
+  const valorFmt = `R$ ${fat.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const isDiaUnico = (periodo.tipo === 'hoje' || periodo.tipo === 'ontem' || periodo.tipo === 'dia');
+  const primeiroNome = nome.split(' ')[0];
+
+  // Linha de saudação adapta ao tipo de período
+  let saudacao;
+  if(periodo.tipo === 'hoje'){
+    saudacao = `*Hoje* você vendeu *${valorFmt}*.`;
+  } else if(periodo.tipo === 'ontem'){
+    saudacao = `*Ontem* você vendeu *${valorFmt}*.`;
+  } else if(periodo.tipo === 'dia'){
+    saudacao = `${periodo.label.charAt(0).toUpperCase()+periodo.label.slice(1)} você vendeu *${valorFmt}*.`;
+  } else {
+    saudacao = `${periodo.label.charAt(0).toUpperCase()+periodo.label.slice(1)} você acumulou *${valorFmt}* em vendas.`;
+  }
+
+  // Tom da mensagem por posição
+  let cabecalho, corpo, fechamento;
+  if(posicao === 1){
+    cabecalho = `*🥇 Você está em 1º lugar!*`;
+    corpo = `${saudacao}\n\nParabéns! Líder absoluto do ranking. 🏆`;
+    fechamento = isDiaUnico
+      ? 'Continue assim — esse ritmo é o que faz o Cantinho crescer! 🚀'
+      : 'Continue brilhando — sua performance é referência pro time! 🚀';
+  } else if(posicao <= 3){
+    cabecalho = `*${posicao === 2 ? '🥈' : '🥉'} ${posicao}º lugar no ranking*`;
+    corpo = `${saudacao}\n\nExcelente trabalho!`;
+    fechamento = isDiaUnico
+      ? 'Mantenha a constância — você está perto do topo. 💪'
+      : 'Continue assim — você está entre os melhores! 🚀';
+  } else if(posicao <= 5){
+    cabecalho = `*🏆 ${posicao}º lugar no ranking*`;
+    corpo = `${saudacao}\n\nÓtimo trabalho! Você está entre os top 5 atendentes.`;
+    fechamento = 'Continue focado — uma posição a mais e você sobe pro pódio! 💪';
+  } else {
+    // 6º em diante — tom construtivo
+    cabecalho = `*📊 Ranking de Vendas — ${posicao}º lugar*`;
+    corpo = `Olá ${primeiroNome}!\n\n${saudacao}`;
+    fechamento = isDiaUnico
+      ? 'Bora juntos pensar em algumas estratégias pra subir no ranking?\n\n• Sugerir entradas e bebidas no início do atendimento\n• Oferecer sobremesa antes de fechar a conta\n• Conhecer o cardápio pra recomendar combinações\n\nEstamos aqui pra te apoiar — fala comigo se quiser trocar uma ideia. 💬'
+      : 'Vamos analisar juntos sua rota de atendimento? Algumas ideias pra crescer:\n\n• Sugestão ativa de entradas e bebidas\n• Oferecer sobremesa antes do fechamento\n• Conhecer melhor o cardápio pra recomendar\n\nConta com a equipe pra te apoiar — sua evolução é prioridade. 💪';
+  }
+
+  const msg = `${cabecalho}\n\n${corpo}\n\n${fechamento}\n\n${_waCfgSig}`;
+
   openNotifyModal({
     titulo: `Ranking - ${nome}`,
     mensagem: msg,
