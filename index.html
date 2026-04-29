@@ -1984,7 +1984,7 @@ app.cantinhodoboni.com.br {
       <div class="flex border-b border-ink-200 -mt-2 overflow-x-auto">
         <button onclick="setDPTab('fechamento')" id="dp-tab-fechamento" class="px-5 py-3 text-sm font-medium border-b-2 border-brand-600 text-brand-700 whitespace-nowrap">📊 Fechamento do mês</button>
         <button onclick="setDPTab('apontamento')" id="dp-tab-apontamento" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⏱ Apontamento</button>
-        <button onclick="setDPTab('vales')" id="dp-tab-vales" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">💸 Vales / Adiantamentos</button>
+        <button onclick="setDPTab('vales')" id="dp-tab-vales" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">💸 Vales / Comissões</button>
         <button onclick="setDPTab('folha')" id="dp-tab-folha" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">💰 Folha de pagamento</button>
         <button onclick="setDPTab('rescisao')" id="dp-tab-rescisao" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">📤 Rescisões</button>
         <button onclick="setDPTab('premissas')" id="dp-tab-premissas" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⚙ Premissas</button>
@@ -2087,18 +2087,24 @@ app.cantinhodoboni.com.br {
         </div>
       </div>
 
-      <!-- Tab: Vales / Adiantamentos -->
+      <!-- Tab: Vales / Comissões / Adiantamentos -->
       <div id="dp-content-vales" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
         <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h3 class="font-semibold">💸 Vales / Adiantamentos</h3>
-            <p class="text-xs text-ink-600 mt-0.5">Lançamentos individuais que serão automaticamente descontados na folha do mês</p>
+            <h3 class="font-semibold">💸 Vales · Comissões · Adiantamentos</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Vale e Adiantamento <strong>descontam</strong> · Comissão <strong>soma</strong> ao bruto</p>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
+            <select id="dp-vales-tipo-filtro" onchange="renderValesTab()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5">
+              <option value="">Todos os tipos</option>
+              <option value="vale">💸 Vales</option>
+              <option value="adiantamento">📤 Adiantamentos</option>
+              <option value="comissao">💼 Comissões</option>
+            </select>
             <select id="dp-vales-colab-filtro" onchange="renderValesTab()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5">
               <option value="">Todos os colaboradores</option>
             </select>
-            <button onclick="abrirNovoValeModal()" class="text-sm bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-md">+ Novo Vale</button>
+            <button onclick="abrirNovoValeModal()" class="text-sm bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-md">+ Novo Lançamento</button>
           </div>
         </div>
         <div id="dp-vales-resumo" class="px-5 py-3 bg-ink-50 border-b border-ink-200 text-xs"></div>
@@ -2106,6 +2112,7 @@ app.cantinhodoboni.com.br {
           <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
             <tr>
               <th class="text-left px-5 py-3">Data</th>
+              <th class="text-left px-5 py-3">Tipo</th>
               <th class="text-left px-5 py-3">Colaborador</th>
               <th class="text-right px-5 py-3">Valor</th>
               <th class="text-left px-5 py-3">Forma</th>
@@ -2446,6 +2453,21 @@ app.cantinhodoboni.com.br {
 
       <!-- KPIs -->
       <div id="usuarios-kpis" class="grid grid-cols-4 gap-4"></div>
+
+      <!-- Modo Admin Livre -->
+      <div id="usuarios-admin-livre" class="hidden bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-300 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div class="flex-1">
+            <h3 class="font-semibold text-amber-900 flex items-center gap-2">⚠ Modo Admin Livre — Editar/Excluir tudo</h3>
+            <p class="text-xs text-amber-800 mt-1">Quando ativado, usuários com perfil <strong>Admin</strong> podem editar e excluir QUALQUER registro histórico de qualquer módulo (caixa, vendas, banco, DRE, compras, etc), incluindo registros antigos e fechados. Use com cautela.</p>
+          </div>
+          <label class="inline-flex items-center cursor-pointer gap-2">
+            <span class="text-xs font-medium" id="admin-livre-status">Desativado</span>
+            <input type="checkbox" id="admin-livre-toggle" onchange="toggleAdminLivre(this.checked)" class="sr-only peer">
+            <div class="relative w-12 h-6 bg-ink-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+          </label>
+        </div>
+      </div>
 
       <div class="bg-white rounded-xl border border-ink-200 overflow-hidden">
         <div class="px-5 py-4 border-b border-ink-200 flex justify-between items-center flex-wrap gap-2">
@@ -7281,7 +7303,8 @@ const CAIXA_CATEGORIAS_ENTRADA = [
 const CAIXA_CATEGORIAS_SAIDA = [
   { value:'Freelancer',       label:'Pagto Freelancer',     dreCat:'RH / Freelancer',     impactaDRE:true, exigeFreelancer:true },
   { value:'Ferragista',       label:'Ferragista',           dreCat:'Manutenção',          impactaDRE:true },
-  { value:'Vale',             label:'Vale (funcionário)',   dreCat:'RH / Benefícios',     impactaDRE:true },
+  { value:'Vale',             label:'Vale (funcionário)',   dreCat:'RH / Benefícios',     impactaDRE:true, exigeColaborador:true },
+  { value:'Adiantamento',     label:'Adiantamento',         dreCat:'RH / Benefícios',     impactaDRE:false, exigeColaborador:true },
   { value:'Supermercado',     label:'Supermercado',         dreCat:'Insumos / Outros',    impactaDRE:true },
   { value:'Papelaria',        label:'Papelaria',            dreCat:'Outros',              impactaDRE:true },
   { value:'Outros (saída)',   label:'Outros',               dreCat:'Outros',              impactaDRE:true, exigeObs:true }
@@ -7475,10 +7498,12 @@ function renderCaixa(){
       $fech.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ink-400 text-sm">Nenhum fechamento registrado.</td></tr>';
     } else {
       const fechsOrdered = fechs.slice().reverse();
+      const adminLivre = adminPodeEditarTudo();
       $fech.innerHTML = fechsOrdered.map((f, idx) => {
         const dataFmt = new Date(f.fechadoEm).toLocaleDateString('pt-BR');
         const diffClass = f.diferenca === 0 ? 'text-emerald-600' : (f.diferenca > 0 ? 'text-blue-600' : 'text-rose-600');
         const isLatest = idx === 0;
+        const podeReabrir = isLatest || adminLivre;
         return `
           <tr>
             <td class="px-5 py-2.5 text-xs">${dataFmt}</td>
@@ -7489,7 +7514,7 @@ function renderCaixa(){
             <td class="px-5 py-2.5 text-right text-xs ${diffClass} font-medium">${f.diferenca > 0 ? '+' : ''}R$ ${f.diferenca.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
             <td class="px-5 py-2.5 text-xs text-ink-600">${f.observacao || '—'}</td>
             <td class="px-5 py-2.5 text-center text-xs whitespace-nowrap">
-              ${isLatest ? `<button onclick="reabrirCaixa('${f.id}')" class="text-amber-600 hover:underline" title="Reabrir caixa">🔓 Reabrir</button>` : ''}
+              ${podeReabrir ? `<button onclick="reabrirCaixa('${f.id}')" class="text-amber-600 hover:underline" title="${isLatest?'Reabrir caixa':'⚠ Modo Admin Livre — Reabrir fechamento antigo'}">🔓 Reabrir</button>` : ''}
               <button onclick="excluirFechamento('${f.id}')" class="text-rose-500 hover:text-rose-700 ml-2" title="Excluir registro">🗑</button>
             </td>
           </tr>
@@ -7661,6 +7686,12 @@ function onCxCatChange(value){
     if(cfg?.exigeFreelancer) $freela.classList.remove('hidden');
     else $freela.classList.add('hidden');
   }
+  // Para Vale/Adiantamento (saída), mostra select de colaborador
+  const $colab = document.getElementById('cx-colab-wrap');
+  if($colab){
+    if(cfg?.exigeColaborador) $colab.classList.remove('hidden');
+    else $colab.classList.add('hidden');
+  }
 }
 
 function submitCaixaEntrada(e){
@@ -7719,6 +7750,13 @@ function openCaixaSaidaModal(){
               ${freelancers.length ? freelancers.map(f => `<option value="${f.id}" data-valor="${f.valorPadrao||0}">${f.nome} — ${f.funcao||'—'} (CPF ${f.cpf})</option>`).join('') : '<option value="">⚠ Nenhum freelancer cadastrado</option>'}
             </select>
             <p class="text-[10px] text-amber-700 mt-0.5">Após salvar, o recibo de prestação de serviços será gerado automaticamente para assinatura.</p>
+          </div>
+          <div id="cx-colab-wrap" class="hidden">
+            <label class="text-xs font-medium text-ink-600">Colaborador (CLT) <span class="text-rose-500">*</span></label>
+            <select name="colabId" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              ${(typeof getCadastros==='function'?getCadastros('funcionario'):[]).map(c => `<option value="${c.id}">${c.nome} — ${c.cargo||'—'}</option>`).join('') || '<option value="">⚠ Nenhum funcionário cadastrado</option>'}
+            </select>
+            <p class="text-[10px] text-emerald-700 mt-0.5">✓ Após salvar, será criado automaticamente um <strong>Vale</strong> no Departamento Pessoal e descontado na folha do mês.</p>
           </div>
           <div>
             <label class="text-xs font-medium text-ink-600">Valor (R$) <span class="text-rose-500">*</span></label>
@@ -7793,13 +7831,41 @@ function submitCaixaSaida(e){
     }
   }
 
+  // Se for Vale/Adiantamento: criar vale automático no DP
+  if(cfg?.exigeColaborador && data.colabId){
+    const colab = getCadastros('funcionario').find(c => c.id === data.colabId);
+    if(colab){
+      const tipoLanc = data.categoria === 'Adiantamento' ? 'adiantamento' : 'vale';
+      const vale = {
+        id: 'LANC-' + Date.now(),
+        tipo: tipoLanc,
+        colabId: colab.id,
+        data: new Date().toISOString().slice(0,10),
+        valor: tx.valor,
+        forma: 'Dinheiro',
+        obs: data.descricao || `${data.categoria} via Caixa`,
+        operador: tx.operador,
+        criadoEm: new Date().toISOString(),
+        caixaTxId: tx.id,
+        fromCaixa: true
+      };
+      const valesList = getVales(); valesList.unshift(vale); saveVales(valesList);
+      tx.valeId = vale.id;
+      tx.colabId = colab.id;
+      tx.colabNome = colab.nome;
+      tx.descricao = (tx.descricao || '') + (tx.descricao ? ' · ' : '') + colab.nome;
+    }
+  }
+
   const list = getCaixaTransacoes(); list.unshift(tx); saveCaixaTransacoes(list);
   closeModal();
   renderCaixa();
   if(typeof renderDRE === 'function') renderDRE();
   if(typeof renderFinanceiro === 'function') renderFinanceiro();
   if(typeof renderFreelancers === 'function') renderFreelancers();
+  if(typeof renderDP === 'function' && tx.valeId) renderDP();
   let msg = `<strong>✓</strong> Saída de R$ ${tx.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})} registrada`;
+  if(tx.valeId) msg += ` · Vale criado no DP para ${tx.colabNome}`;
   showToast(msg);
   // Se foi freelancer, abre recibo automático
   if(tx.pagamentoFreelancerId){
@@ -9440,51 +9506,86 @@ function exportarFechamentoCSV(){
 function getVales(){ return Store.get('dp.vales', []); }
 function saveVales(list){ Store.set('dp.vales', list); }
 
-function getValesDoMes(colabId, mesYM){
-  return getVales().filter(v => v.colabId === colabId && (v.data||'').slice(0,7) === mesYM);
+// "tipo" pode ser 'vale', 'comissao', 'adiantamento'. Vales antigos sem tipo = 'vale'.
+function getValesDoMes(colabId, mesYM, tipo){
+  return getVales().filter(v => {
+    if(v.colabId !== colabId) return false;
+    if((v.data||'').slice(0,7) !== mesYM) return false;
+    const t = v.tipo || 'vale';
+    if(tipo && t !== tipo) return false;
+    return true;
+  });
+}
+
+// Soma vales+adiantamento (descontos) do mês para um colab
+function totalDescontosLancados(colabId, mesYM){
+  return getVales().filter(v => v.colabId === colabId && (v.data||'').slice(0,7) === mesYM && (v.tipo||'vale') !== 'comissao')
+                   .reduce((s,v) => s + (v.valor||0), 0);
+}
+
+// Soma comissões lançadas do mês
+function totalComissoesLancadas(colabId, mesYM){
+  return getVales().filter(v => v.colabId === colabId && (v.data||'').slice(0,7) === mesYM && v.tipo === 'comissao')
+                   .reduce((s,v) => s + (v.valor||0), 0);
 }
 
 function renderValesTab(mesYM){
   if(!mesYM) mesYM = document.getElementById('dp-mes')?.value;
   const colabs = getCadastros('funcionario');
-  const $sel = document.getElementById('dp-vales-colab-filtro');
-  if($sel){
-    const cur = $sel.value;
-    $sel.innerHTML = '<option value="">Todos os colaboradores</option>' +
+  const $selColab = document.getElementById('dp-vales-colab-filtro');
+  const $selTipo = document.getElementById('dp-vales-tipo-filtro');
+  if($selColab){
+    const cur = $selColab.value;
+    $selColab.innerHTML = '<option value="">Todos os colaboradores</option>' +
       colabs.map(c => `<option value="${c.id}" ${c.id===cur?'selected':''}>${c.nome}</option>`).join('');
   }
-  const fColab = $sel?.value || '';
+  const fColab = $selColab?.value || '';
+  const fTipo = $selTipo?.value || '';
   let list = getVales().filter(v => (v.data||'').slice(0,7) === mesYM);
   if(fColab) list = list.filter(v => v.colabId === fColab);
+  if(fTipo) list = list.filter(v => (v.tipo || 'vale') === fTipo);
   list.sort((a,b) => (b.data||'').localeCompare(a.data||''));
 
-  const total = list.reduce((s,v) => s + (v.valor||0), 0);
+  const totVales = list.filter(v => (v.tipo||'vale')==='vale').reduce((s,v) => s + (v.valor||0), 0);
+  const totAdiant = list.filter(v => v.tipo==='adiantamento').reduce((s,v) => s + (v.valor||0), 0);
+  const totComis = list.filter(v => v.tipo==='comissao').reduce((s,v) => s + (v.valor||0), 0);
   const $resumo = document.getElementById('dp-vales-resumo');
   if($resumo){
     const mesNome = new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-    $resumo.innerHTML = `<strong>${mesNome}:</strong> ${list.length} vale(s) — Total: <strong class="text-rose-700">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>`;
+    $resumo.innerHTML = `<strong>${mesNome}:</strong> ${list.length} lançamento(s) · <span class="text-rose-700">Vales R$ ${totVales.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span> · <span class="text-rose-700">Adiantamentos R$ ${totAdiant.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span> · <span class="text-emerald-700">Comissões R$ ${totComis.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`;
   }
 
   const $list = document.getElementById('dp-vales-list');
   if(!$list) return;
   if(!list.length){
-    $list.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-ink-400 text-sm">Nenhum vale lançado neste mês. Clique em "+ Novo Vale" para adicionar.</td></tr>';
+    $list.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-ink-400 text-sm">Nenhum lançamento neste mês. Clique em "+ Novo Lançamento" para adicionar.</td></tr>';
     return;
   }
+  const tipoBadge = {
+    vale: '<span class="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded">💸 Vale</span>',
+    adiantamento: '<span class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">📤 Adiantamento</span>',
+    comissao: '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">💼 Comissão</span>'
+  };
   $list.innerHTML = list.map(v => {
     const c = colabs.find(x => x.id === v.colabId) || { nome:'(removido)' };
     const dataFmt = v.data ? new Date(v.data+'T12:00').toLocaleDateString('pt-BR') : '—';
+    const tipo = v.tipo || 'vale';
+    const valorClass = tipo === 'comissao' ? 'text-emerald-700' : 'text-rose-700';
+    const sinal = tipo === 'comissao' ? '+' : '−';
     return `
       <tr>
         <td class="px-5 py-2.5 text-xs whitespace-nowrap">${dataFmt}</td>
+        <td class="px-5 py-2.5 text-xs">${tipoBadge[tipo] || tipoBadge.vale}</td>
         <td class="px-5 py-2.5 text-xs"><strong>${c.nome}</strong></td>
-        <td class="px-5 py-2.5 text-right text-xs font-medium text-rose-700">R$ ${v.valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-right text-xs font-medium ${valorClass}">${sinal} R$ ${v.valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
         <td class="px-5 py-2.5 text-xs">${v.forma || '—'}</td>
         <td class="px-5 py-2.5 text-xs">${v.obs || '—'}</td>
         <td class="px-5 py-2.5 text-xs">${v.operador || '—'}</td>
-        <td class="px-5 py-2.5 text-center text-xs">${v.caixaTxId ? '<span class="text-emerald-700" title="Lançado como saída do caixa">✓ ' + v.caixaTxId + '</span>' : '—'}</td>
+        <td class="px-5 py-2.5 text-center text-xs">${v.caixaTxId ? '<span class="text-emerald-700" title="Vinculado ao caixa">✓ ' + v.caixaTxId.slice(0,8) + '…</span>' : '—'}</td>
         <td class="px-5 py-2.5 text-center text-xs whitespace-nowrap">
-          <button onclick="abrirNovoValeModal('${v.id}')" class="text-amber-600 hover:underline" title="Editar">✎</button>
+          ${tipo !== 'comissao' && (c.telefone || c.whatsapp) ? `<button onclick="notificarReciboVale('${v.id}')" class="text-emerald-600 hover:underline" title="Enviar recibo via WhatsApp">📱</button>` : ''}
+          <button onclick="imprimirReciboVale('${v.id}')" class="text-violet-600 hover:underline ml-1" title="Imprimir recibo">🖨</button>
+          <button onclick="abrirNovoValeModal('${v.id}')" class="text-amber-600 hover:underline ml-1" title="Editar">✎</button>
           <button onclick="excluirVale('${v.id}')" class="text-rose-500 hover:text-rose-700 ml-1" title="Excluir">🗑</button>
         </td>
       </tr>
@@ -9492,7 +9593,7 @@ function renderValesTab(mesYM){
   }).join('');
 }
 
-function abrirNovoValeModal(valeId){
+function abrirNovoValeModal(valeId, tipoPrefill){
   const colabs = getCadastros('funcionario');
   if(!colabs.length){ showToast('Cadastre colaboradores antes', 'warn'); return; }
   const existing = valeId ? getVales().find(v => v.id === valeId) : null;
@@ -9501,14 +9602,33 @@ function abrirNovoValeModal(valeId){
   // Pré-seleciona colaborador se vier do filtro
   const filtroColab = document.getElementById('dp-vales-colab-filtro')?.value;
   const colabIdInicial = existing?.colabId || filtroColab || colabs[0].id;
+  const tipoInicial = existing?.tipo || tipoPrefill || 'vale';
   $modalRoot.innerHTML = `
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
       <div class="bg-white rounded-xl shadow-2xl max-w-md w-full my-8">
         <div class="px-6 py-4 border-b border-ink-200">
-          <h2 class="font-semibold text-lg">${existing ? 'Editar' : '+ Novo'} Vale</h2>
-          <p class="text-xs text-ink-600 mt-0.5">Será descontado automaticamente na folha do mês</p>
+          <h2 class="font-semibold text-lg">${existing ? 'Editar' : '+ Novo'} Lançamento</h2>
+          <p class="text-xs text-ink-600 mt-0.5">Será aplicado automaticamente na folha do mês</p>
         </div>
         <form id="vale-form" onsubmit="submitVale(event,'${valeId||''}')" class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Tipo <span class="text-rose-500">*</span></label>
+            <div class="grid grid-cols-3 gap-2 mt-1">
+              <label class="border-2 border-ink-200 hover:border-rose-400 rounded-lg p-2 cursor-pointer text-center has-[:checked]:border-rose-500 has-[:checked]:bg-rose-50">
+                <input type="radio" name="tipo" value="vale" ${tipoInicial==='vale'?'checked':''} class="hidden">
+                <div class="text-xl">💸</div><div class="text-[11px] font-medium">Vale</div>
+              </label>
+              <label class="border-2 border-ink-200 hover:border-orange-400 rounded-lg p-2 cursor-pointer text-center has-[:checked]:border-orange-500 has-[:checked]:bg-orange-50">
+                <input type="radio" name="tipo" value="adiantamento" ${tipoInicial==='adiantamento'?'checked':''} class="hidden">
+                <div class="text-xl">📤</div><div class="text-[11px] font-medium">Adiantamento</div>
+              </label>
+              <label class="border-2 border-ink-200 hover:border-emerald-400 rounded-lg p-2 cursor-pointer text-center has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+                <input type="radio" name="tipo" value="comissao" ${tipoInicial==='comissao'?'checked':''} class="hidden">
+                <div class="text-xl">💼</div><div class="text-[11px] font-medium">Comissão</div>
+              </label>
+            </div>
+            <p class="text-[10px] text-ink-500 mt-1">Vale e Adiantamento <strong>descontam</strong> · Comissão <strong>soma</strong> ao bruto</p>
+          </div>
           <div>
             <label class="text-xs font-medium text-ink-600">Colaborador <span class="text-rose-500">*</span></label>
             <select name="colabId" required class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
@@ -9526,28 +9646,29 @@ function abrirNovoValeModal(valeId){
             </div>
           </div>
           <div>
-            <label class="text-xs font-medium text-ink-600">Forma de pagamento <span class="text-rose-500">*</span></label>
-            <select name="forma" required class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            <label class="text-xs font-medium text-ink-600">Forma de pagamento</label>
+            <select name="forma" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
               <option value="Dinheiro" ${existing?.forma==='Dinheiro'?'selected':''}>💵 Dinheiro (do caixa)</option>
               <option value="PIX" ${existing?.forma==='PIX'?'selected':''}>📱 PIX</option>
               <option value="Transferência" ${existing?.forma==='Transferência'?'selected':''}>🏦 Transferência</option>
-              <option value="Outro" ${existing?.forma==='Outro'?'selected':''}>Outro</option>
+              <option value="—" ${(existing?.forma==='—'||!existing?.forma)?'selected':''}>—</option>
             </select>
+            <p class="text-[10px] text-ink-500 mt-1">Para Comissão, forma é informativa (não cria saída no caixa).</p>
           </div>
           <div>
             <label class="text-xs font-medium text-ink-600">Observação</label>
-            <textarea name="obs" rows="2" placeholder="Ex: Adiantamento solicitado para emergência médica" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">${existing?.obs||''}</textarea>
+            <textarea name="obs" rows="2" placeholder="Ex: Adiantamento solicitado / 5% comissão sobre vendas" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">${existing?.obs||''}</textarea>
           </div>
           ${!existing ? `
           <label class="flex items-center gap-2 text-xs text-ink-700 bg-emerald-50 border border-emerald-200 rounded p-3 cursor-pointer">
             <input type="checkbox" name="lancarCaixa" id="vale-lancar-caixa" checked>
-            <span>Lançar automaticamente como <strong>saída do Caixa</strong> quando forma for "Dinheiro"</span>
+            <span>Se Vale/Adiantamento em <strong>Dinheiro</strong>, lançar automaticamente saída no Caixa</span>
           </label>` : ''}
           <input type="hidden" name="operador" value="${u?.nome || 'Sistema'}">
         </form>
         <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
           <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
-          <button onclick="document.getElementById('vale-form').requestSubmit()" type="button" class="text-sm bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-md">${existing ? 'Salvar' : 'Lançar Vale'}</button>
+          <button onclick="document.getElementById('vale-form').requestSubmit()" type="button" class="text-sm bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-md">${existing ? 'Salvar' : 'Lançar'}</button>
         </div>
       </div>
     </div>
@@ -9558,6 +9679,7 @@ function submitVale(e, id){
   e.preventDefault();
   const fd = Object.fromEntries(new FormData(e.target).entries());
   fd.valor = parseFloat(fd.valor) || 0;
+  fd.tipo = fd.tipo || 'vale';
   if(fd.valor <= 0){ showToast('Valor inválido', 'error'); return; }
   const lancarCaixa = !!fd.lancarCaixa;
   delete fd.lancarCaixa;
@@ -9569,32 +9691,35 @@ function submitVale(e, id){
     saveVales(list);
     closeModal();
     renderDP();
-    showToast('<strong>✓</strong> Vale atualizado');
+    showToast('<strong>✓</strong> Lançamento atualizado');
     return;
   }
 
-  // Novo vale
+  // Novo lançamento
   const novoVale = {
-    id: 'VALE-' + Date.now(),
+    id: 'LANC-' + Date.now(),
     ...fd,
     criadoEm: new Date().toISOString(),
     caixaTxId: null
   };
 
-  // Se forma = Dinheiro e checkbox marcada, lança saída no caixa
-  if(lancarCaixa && fd.forma === 'Dinheiro' && typeof getCaixaTransacoes === 'function'){
+  // Só vale/adiantamento em dinheiro geram saída no caixa
+  const podeLancarCaixa = (fd.tipo === 'vale' || fd.tipo === 'adiantamento') && fd.forma === 'Dinheiro';
+  if(lancarCaixa && podeLancarCaixa && typeof getCaixaTransacoes === 'function'){
     const colab = getCadastros('funcionario').find(c => c.id === fd.colabId);
     const txId = 'CX-' + Date.now();
+    const tipoLabel = fd.tipo === 'adiantamento' ? 'Adiantamento' : 'Vale';
     const tx = {
       id: txId,
       tipo: 'saida',
       categoria: 'Vale Funcionário',
       valor: fd.valor,
-      descricao: `Vale ${colab?.nome || ''}${fd.obs ? ' — ' + fd.obs : ''}`,
+      descricao: `${tipoLabel} ${colab?.nome || ''}${fd.obs ? ' — ' + fd.obs : ''}`,
       observacao: '',
       operador: fd.operador,
       createdAt: new Date(fd.data + 'T' + new Date().toTimeString().slice(0,8)).toISOString(),
-      valeId: novoVale.id
+      valeId: novoVale.id,
+      colabId: fd.colabId
     };
     const caixaList = getCaixaTransacoes();
     caixaList.push(tx);
@@ -9607,13 +9732,13 @@ function submitVale(e, id){
   closeModal();
   renderDP();
   if(typeof renderCaixa === 'function' && novoVale.caixaTxId) renderCaixa();
-  showToast(`<strong>✓</strong> Vale lançado${novoVale.caixaTxId ? ' (saída no caixa registrada)' : ''}`);
+  showToast(`<strong>✓</strong> Lançamento registrado${novoVale.caixaTxId ? ' · saída no caixa criada' : ''}`);
 }
 
 function excluirVale(id){
   const v = getVales().find(x => x.id === id);
   if(!v) return;
-  if(!confirm(`Excluir vale de R$ ${v.valor.toFixed(2)} de ${v.data}?\n\n${v.caixaTxId ? 'A saída correspondente no Caixa também será removida.' : ''}`)) return;
+  if(!confirm(`Excluir lançamento de R$ ${v.valor.toFixed(2)} de ${v.data}?\n\n${v.caixaTxId ? 'A saída correspondente no Caixa também será removida.' : ''}`)) return;
   saveVales(getVales().filter(x => x.id !== id));
   // Remove tx do caixa se vinculada
   if(v.caixaTxId && typeof getCaixaTransacoes === 'function'){
@@ -9621,7 +9746,102 @@ function excluirVale(id){
     if(typeof renderCaixa === 'function') renderCaixa();
   }
   renderDP();
-  showToast('<strong>✓</strong> Vale excluído');
+  showToast('<strong>✓</strong> Lançamento excluído');
+}
+
+function _htmlReciboVale(v){
+  const c = getCadastros('funcionario').find(x => x.id === v.colabId) || { nome:'(removido)' };
+  const fmt = vv => 'R$ ' + (vv||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const tipoLabel = { vale:'VALE', adiantamento:'ADIANTAMENTO', comissao:'PAGAMENTO DE COMISSÃO' }[v.tipo||'vale'];
+  const dataFmt = v.data ? new Date(v.data+'T12:00').toLocaleDateString('pt-BR') : '—';
+  const valorExtenso = (function(n){
+    try { return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); } catch{ return ''+n; }
+  })(v.valor||0);
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${tipoLabel} - ${c.nome}</title>
+<style>body{font-family:Arial,sans-serif;padding:20mm;max-width:720px;margin:0 auto;font-size:11pt;color:#111}
+h1{font-size:14pt;text-align:center;border:2px solid #000;padding:8px}
+.valor{font-size:18pt;font-weight:bold;text-align:center;background:#f3f4f6;padding:10px;margin:14px 0;border-radius:6px}
+.linhas{margin:14px 0;line-height:1.7}
+.assinatura{margin-top:60px;border-top:1px solid #000;padding-top:6px;text-align:center;width:300px;margin-left:auto;margin-right:auto}
+.meta{font-size:10pt;color:#444;margin-top:6px;text-align:right}
+@media print{button{display:none}}
+</style></head><body>
+<h1>RECIBO DE ${tipoLabel}</h1>
+<div class="valor">${fmt(v.valor)}</div>
+<div class="linhas">
+  Pelo presente recibo, eu, <strong>${c.nome}</strong>${c.cpf ? ` (CPF ${c.cpf})` : ''}, declaro ter recebido da empresa <strong>Cantinho do Boni Colorado LTDA</strong>, na presente data <strong>${dataFmt}</strong>, a quantia de <strong>${fmt(v.valor)}</strong> (${valorExtenso} reais) a título de <strong>${tipoLabel}</strong>${v.obs ? `, referente a: <em>"${v.obs}"</em>` : ''}.
+</div>
+<div class="linhas">
+  Forma de pagamento: <strong>${v.forma || '—'}</strong>${v.tipo !== 'comissao' ? '<br>O valor acima será descontado da minha próxima folha de pagamento, conforme acordado entre as partes.' : '<br>Valor referente à comissão devida pelo período.'}
+</div>
+<div class="meta">${dataFmt} · Operador: ${v.operador||'—'}</div>
+<div class="assinatura">${c.nome}<br><small>Colaborador</small></div>
+<div style="margin-top:30px;text-align:center">
+  <button onclick="window.print()" style="padding:10px 20px;background:#10b981;color:#fff;border:0;border-radius:6px;cursor:pointer">🖨 Imprimir</button>
+</div>
+<script>setTimeout(()=>window.print(),300);<\/script>
+</body></html>`;
+}
+
+function imprimirReciboVale(id){
+  const v = getVales().find(x => x.id === id);
+  if(!v) return;
+  const w = window.open('', '_blank');
+  if(!w){ showToast('Bloqueio de pop-up — libere para imprimir', 'error'); return; }
+  w.document.write(_htmlReciboVale(v));
+  w.document.close();
+}
+
+async function notificarReciboVale(id){
+  const v = getVales().find(x => x.id === id);
+  if(!v) return;
+  const c = getCadastros('funcionario').find(x => x.id === v.colabId);
+  if(!c){ showToast('Colaborador não encontrado', 'error'); return; }
+  const tel = c.telefone || c.whatsapp;
+  if(!tel){ showToast(`${c.nome} não tem telefone cadastrado`, 'warn'); return; }
+  const fmt = vv => 'R$ ' + (vv||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const tipoLabel = { vale:'Vale', adiantamento:'Adiantamento', comissao:'Comissão' }[v.tipo||'vale'];
+  const dataFmt = new Date(v.data+'T12:00').toLocaleDateString('pt-BR');
+  const msg = `*💸 Recibo de ${tipoLabel} - Cantinho do Boni*\n\n`
+    + `Olá ${c.nome.split(' ')[0]}!\n\n`
+    + `Confirma o recebimento do *${tipoLabel}* abaixo:\n`
+    + `• Valor: *${fmt(v.valor)}*\n`
+    + `• Data: ${dataFmt}\n`
+    + `• Forma: ${v.forma || '—'}\n`
+    + (v.obs ? `• Obs: ${v.obs}\n` : '')
+    + (v.tipo !== 'comissao' ? `\n_Esse valor será descontado na sua próxima folha._\n` : '')
+    + `\n${_waCfgSig}`;
+
+  // Gera PNG do recibo via iframe + html2canvas
+  let anexoUrl = null, anexoNome = null;
+  if(typeof html2canvas === 'function'){
+    showToast('<strong>📸</strong> Gerando recibo em imagem...', 'info');
+    try {
+      const html = _htmlReciboVale(v).replace(/<script>[\s\S]*?<\/script>/g, '').replace(/<button[^>]*>[\s\S]*?<\/button>/g,'');
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:-10000px;left:0;width:800px;height:1000px';
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      await new Promise(r => setTimeout(r, 300));
+      const canvas = await html2canvas(iframe.contentDocument.body, { backgroundColor:'#ffffff', scale: 2, useCORS:true, logging:false });
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png', 0.95));
+      anexoNome = `recibo-${tipoLabel.toLowerCase()}-${(c.nome.split(' ')[0]||'colab').toLowerCase()}-${v.data}.png`;
+      anexoUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = anexoUrl; a.download = anexoNome; a.click();
+      document.body.removeChild(iframe);
+    } catch(e){
+      console.warn('Erro recibo PNG', e);
+    }
+  }
+
+  openNotifyModal({
+    titulo: `Recibo ${tipoLabel} - ${c.nome}`,
+    mensagem: msg,
+    contatosExtra: [{ nome: c.nome, sub: c.cargo || 'Funcionário', tel, preSelecionado: true }],
+    anexoUrl, anexoNome
+  });
 }
 
 // === FOLHA DE PAGAMENTO ===
@@ -9693,7 +9913,9 @@ function calcularFolhaColab(colab, mesYM){
   const valorDSR = totalHEAdic / 6;
 
   const proventosVariaveis = totalHEAdic + valorDSR;
-  const comissao = m.comissao || 0;
+  const comissaoManual = m.comissao || 0;
+  const comissaoLancamentos = totalComissoesLancadas(colab.id, mesYM);
+  const comissao = comissaoManual + comissaoLancamentos;
   const bruto = salarioBase + proventosVariaveis + comissao;
 
   // Faltas: descontar dia de salário por falta + DSR proporcional
@@ -9710,7 +9932,7 @@ function calcularFolhaColab(colab, mesYM){
   const irrf = calcularIRRF(baseIRRF, dependentes);
 
   const adiantamentoManual = m.adiantamento || 0;
-  const totalVales = getValesDoMes(colab.id, mesYM).reduce((s,v) => s + (v.valor||0), 0);
+  const totalVales = totalDescontosLancados(colab.id, mesYM);
   const adiantamento = adiantamentoManual + totalVales;
   const liquido = baseINSS - inss - irrf - adiantamento;
 
@@ -9728,6 +9950,8 @@ function calcularFolhaColab(colab, mesYM){
     valorDSR,
     proventosVariaveis,
     comissao,
+    comissaoManual,
+    comissaoLancamentos,
     bruto,
     descFaltas, descDSRfaltas,
     baseINSS,
@@ -9771,7 +9995,7 @@ function renderFolhaTab(mesYM){
         <td class="px-3 py-2 text-xs"><strong>${c.nome}</strong><div class="text-[10px] text-ink-500">${c.cargo||''}</div></td>
         <td class="px-3 py-2 text-right text-xs">${fmt(f.salarioBase)}</td>
         <td class="px-3 py-2 text-right text-xs ${f.totalHEAdic?'text-emerald-700':''}">${fmt(f.totalHEAdic)}</td>
-        <td class="px-3 py-2 text-right text-xs">${fmt(f.valorDSR + f.comissao)}</td>
+        <td class="px-3 py-2 text-right text-xs" title="${f.comissaoLancamentos>0 ? 'Lançadas: R$ '+f.comissaoLancamentos.toFixed(2)+(f.comissaoManual>0?' + Manual: R$ '+f.comissaoManual.toFixed(2):'') : ''}">${fmt(f.valorDSR + f.comissao)}${f.comissaoLancamentos>0 ? `<span class="text-[9px] text-emerald-700 block">+ ${fmt(f.comissaoLancamentos)}</span>` : ''}</td>
         <td class="px-3 py-2 text-right text-xs font-semibold">${fmt(f.bruto)}</td>
         <td class="px-3 py-2 text-right text-xs text-rose-600">${fmt(f.inss)}</td>
         <td class="px-3 py-2 text-right text-xs text-rose-600">${fmt(f.irrf)}</td>
@@ -9840,13 +10064,9 @@ function exportarFolhaCSV(){
   showToast('<strong>✓</strong> Folha exportada');
 }
 
-function imprimirHolerite(colabId, mesYM){
-  const c = getCadastros('funcionario').find(x => x.id === colabId);
-  if(!c) return;
-  const f = calcularFolhaColab(c, mesYM);
-  const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
-  const mesNome = new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Holerite - ${c.nome} - ${mesYM}</title>
+function _htmlHolerite(c, f, mesYM, mesNome){
+  const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Holerite - ${c.nome} - ${mesYM}</title>
 <style>body{font-family:Arial,sans-serif;padding:20mm;max-width:800px;margin:0 auto;font-size:11pt}
 h1{font-size:14pt;border-bottom:2px solid #000;padding-bottom:6px}
 table{width:100%;border-collapse:collapse;margin:10px 0}
@@ -9896,12 +10116,19 @@ td.r{text-align:right;font-family:monospace}
 </div>
 <script>setTimeout(()=>window.print(),300);<\/script>
 </body></html>`;
-  const w = window.open('', '_blank');
-  if(!w){ showToast('Bloqueio de pop-up', 'error'); return; }
-  w.document.write(html); w.document.close();
 }
 
-function notificarHolerite(colabId, mesYM){
+function imprimirHolerite(colabId, mesYM){
+  const c = getCadastros('funcionario').find(x => x.id === colabId);
+  if(!c) return;
+  const f = calcularFolhaColab(c, mesYM);
+  const mesNome = new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const w = window.open('', '_blank');
+  if(!w){ showToast('Bloqueio de pop-up', 'error'); return; }
+  w.document.write(_htmlHolerite(c, f, mesYM, mesNome)); w.document.close();
+}
+
+async function notificarHolerite(colabId, mesYM){
   const c = getCadastros('funcionario').find(x => x.id === colabId);
   if(!c) return;
   const tel = c.telefone || c.whatsapp;
@@ -9918,11 +10145,37 @@ function notificarHolerite(colabId, mesYM){
     `• Bruto: ${fmt(f.bruto)}\n` +
     `• Descontos: ${fmt(f.bruto - f.liquido)}\n` +
     `• *Líquido: ${fmt(f.liquido)}*\n\n` +
-    `O holerite detalhado pode ser solicitado.\n${_waCfgSig}`;
+    `📎 Veja o holerite detalhado na imagem em anexo.\n\n${_waCfgSig}`;
+
+  // Gera PNG do holerite
+  let anexoUrl = null, anexoNome = null;
+  if(typeof html2canvas === 'function'){
+    showToast('<strong>📸</strong> Gerando holerite em imagem...', 'info');
+    try {
+      const html = _htmlHolerite(c, f, mesYM, mesNome);
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:-10000px;left:0;width:900px;height:1200px';
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      await new Promise(r => setTimeout(r, 300));
+      const canvas = await html2canvas(iframe.contentDocument.body, { backgroundColor:'#ffffff', scale:2, useCORS:true, logging:false });
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png', 0.95));
+      anexoNome = `holerite-${(c.nome.split(' ')[0]||'colab').toLowerCase()}-${mesYM}.png`;
+      anexoUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = anexoUrl; a.download = anexoNome; a.click();
+      document.body.removeChild(iframe);
+    } catch(e){
+      console.warn('Erro holerite PNG', e);
+    }
+  }
+
   openNotifyModal({
     titulo: `Holerite - ${c.nome}`,
     mensagem: msg,
-    contatosExtra: [{ nome: c.nome, sub: c.cargo || 'Funcionário', tel, preSelecionado: true }]
+    contatosExtra: [{ nome: c.nome, sub: c.cargo || 'Funcionário', tel, preSelecionado: true }],
+    anexoUrl, anexoNome
   });
 }
 
@@ -11763,6 +12016,22 @@ const SENHA_DEFAULT = 'cantinho123';
 
 function getCurrentUser(){ return Store.get('session.user', null); }
 function isLoggedIn(){ return !!getCurrentUser(); }
+function isAdmin(){ return getCurrentUser()?.perfil === 'Admin'; }
+function getAdminLivre(){ return Store.get('config.adminLivre', false) === true; }
+function setAdminLivre(v){ Store.set('config.adminLivre', !!v); }
+// Quando true, Admin pode editar/excluir qualquer registro histórico em qualquer módulo
+function adminPodeEditarTudo(){ return isAdmin() && getAdminLivre(); }
+
+function toggleAdminLivre(v){
+  if(!isAdmin()){ showToast('Apenas Admin pode alterar', 'error'); return; }
+  setAdminLivre(v);
+  document.getElementById('admin-livre-status').textContent = v ? 'Ativado ⚠' : 'Desativado';
+  showToast(v ? '<strong>⚠</strong> Modo Admin Livre ATIVADO — edição/exclusão liberada em todos os módulos' : '<strong>✓</strong> Modo Admin Livre desativado', v ? 'warn' : 'info');
+  // Re-render alguns módulos
+  if(typeof renderCaixa === 'function') renderCaixa();
+  if(typeof renderDP === 'function') renderDP();
+  if(typeof renderBanco === 'function') renderBanco();
+}
 
 async function tryLogin(email, senha){
   const usuarios = getUsuarios();
@@ -12229,6 +12498,19 @@ function nextUsuarioId(){
 
 function renderUsuarios(){
   const list = getUsuarios();
+  // Mostra/esconde card Admin Livre + sincroniza toggle
+  const $cardAL = document.getElementById('usuarios-admin-livre');
+  if($cardAL){
+    if(isAdmin()){
+      $cardAL.classList.remove('hidden');
+      const $tog = document.getElementById('admin-livre-toggle');
+      const $st = document.getElementById('admin-livre-status');
+      if($tog) $tog.checked = getAdminLivre();
+      if($st) $st.textContent = getAdminLivre() ? 'Ativado ⚠' : 'Desativado';
+    } else {
+      $cardAL.classList.add('hidden');
+    }
+  }
   const $kpis = document.getElementById('usuarios-kpis');
   const ativos = list.filter(u => u.status === 'ativo').length;
   const suspensos = list.filter(u => u.status === 'suspenso').length;
@@ -13482,6 +13764,78 @@ function deletePagamento(id){
   showToast('<strong>✓</strong> Pagamento excluído');
 }
 
+async function notificarReciboFreelancer(pagamentoId){
+  const p = getPagamentosFreelancer().find(x => x.id === pagamentoId);
+  if(!p){ showToast('<strong>!</strong> Pagamento não encontrado', 'error'); return; }
+  // Busca telefone do freelancer (no cadastro principal)
+  const freelancer = getFreelancers().find(f => f.id === p.freelancerId);
+  const tel = freelancer?.telefone || freelancer?.whatsapp || p.telefone;
+  if(!tel){ showToast(`${p.freelancerNome} não tem telefone cadastrado`, 'warn'); return; }
+  const valorFmt = p.valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const dataFmt = new Date(p.data+'T12:00').toLocaleDateString('pt-BR');
+  const msg = `*📄 Recibo de Pagamento - Cantinho do Boni*\n\n`
+    + `Olá ${p.freelancerNome.split(' ')[0]}!\n\n`
+    + `Confirma o recebimento de:\n`
+    + `• Valor: *R$ ${valorFmt}*\n`
+    + `• Data: ${dataFmt}\n`
+    + `• Forma: ${p.forma || 'Espécie'}\n`
+    + `• Serviço: ${p.servico}\n`
+    + `• Recibo: ${p.id}\n\n`
+    + `📎 Veja o recibo completo na imagem em anexo.\n\n${_waCfgSig}`;
+
+  // Gera PNG
+  let anexoUrl = null, anexoNome = null;
+  if(typeof html2canvas === 'function'){
+    showToast('<strong>📸</strong> Gerando recibo em imagem...', 'info');
+    try {
+      // Reusa o HTML já gerado pelo imprimirRecibo
+      const valorExtenso = numeroPorExtenso(p.valor);
+      const dataLong = new Date(p.data + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
+      const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+        body{font-family:'Times New Roman',serif;max-width:800px;margin:0 auto;padding:24px;color:#111;line-height:1.5}
+        h1{text-align:center;font-size:18pt;margin-bottom:6px;letter-spacing:1px}
+        .header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #333}
+        .recibo-num{text-align:right;font-size:10pt;color:#666;margin-bottom:8px}
+        .valor-destaque{background:#f4f4f4;padding:16px;border:1px solid #999;text-align:center;font-size:14pt;font-weight:bold;margin:20px 0}
+        .info-row{margin:4px 0}
+      </style></head><body>
+        <div class="recibo-num">Recibo nº <strong>${p.id}</strong></div>
+        <div class="header">
+          <h1>RECIBO DE PRESTAÇÃO DE SERVIÇOS AUTÔNOMOS</h1>
+          <div><strong>${EMPRESA_DADOS.razaoSocial}</strong><br>CNPJ: ${EMPRESA_DADOS.cnpj}<br>${EMPRESA_DADOS.endereco}</div>
+        </div>
+        <div class="valor-destaque">Valor: R$ ${valorFmt}<br><span style="font-size:10pt;font-weight:normal;font-style:italic">(${valorExtenso})</span></div>
+        <p>Recebi de <strong>${EMPRESA_DADOS.razaoSocial}</strong>, CNPJ ${EMPRESA_DADOS.cnpj}, a importância de <strong>R$ ${valorFmt}</strong>, referente a serviços prestados em ${dataLong}, pagos via <strong>${p.forma}</strong>.</p>
+        <div class="info-row"><strong>Prestador:</strong> ${p.freelancerNome}</div>
+        <div class="info-row"><strong>CPF:</strong> ${p.freelancerCPF}</div>
+        <div class="info-row"><strong>Serviço:</strong> ${p.servico}</div>
+        ${p.observacoes ? `<div class="info-row" style="font-size:9pt;color:#555"><strong>Obs:</strong> ${p.observacoes}</div>`:''}
+        <div style="margin-top:60px;border-top:1px solid #000;padding-top:6px;text-align:center;width:300px;margin-left:auto;margin-right:auto">${p.freelancerNome}<br><small>Prestador</small></div>
+      </body></html>`;
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:-10000px;left:0;width:900px;height:1200px';
+      document.body.appendChild(iframe);
+      iframe.contentDocument.open();
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      await new Promise(r => setTimeout(r, 300));
+      const canvas = await html2canvas(iframe.contentDocument.body, { backgroundColor:'#ffffff', scale:2, useCORS:true, logging:false });
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png', 0.95));
+      anexoNome = `recibo-${p.id}.png`;
+      anexoUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = anexoUrl; a.download = anexoNome; a.click();
+      document.body.removeChild(iframe);
+    } catch(e){ console.warn(e); }
+  }
+
+  openNotifyModal({
+    titulo: `Recibo - ${p.freelancerNome}`,
+    mensagem: msg,
+    contatosExtra: [{ nome: p.freelancerNome, sub: 'Freelancer', tel, preSelecionado: true }],
+    anexoUrl, anexoNome
+  });
+}
+
 function imprimirRecibo(pagamentoId){
   const p = getPagamentosFreelancer().find(x => x.id === pagamentoId);
   if(!p){ showToast('<strong>!</strong> Pagamento não encontrado', 'error'); return; }
@@ -13732,6 +14086,7 @@ function renderFreelancers(){
             <td class="px-5 py-3 text-center"><span class="text-xs bg-ink-100 text-ink-700 px-2 py-0.5 rounded">${p.forma||'Espécie'}</span></td>
             <td class="px-5 py-3 text-center whitespace-nowrap">
               <button onclick="imprimirRecibo('${p.id}')" title="Imprimir recibo" class="text-xs border border-ink-200 px-2 py-1 rounded hover:bg-ink-50">🖨 Recibo</button>
+              <button onclick="notificarReciboFreelancer('${p.id}')" title="Enviar recibo via WhatsApp" class="text-xs border border-emerald-300 bg-emerald-50 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-100 ml-1">📱</button>
               <button onclick="deletePagamento('${p.id}')" title="Excluir" class="text-ink-400 hover:text-rose-600 ml-1">🗑</button>
             </td>
           </tr>
