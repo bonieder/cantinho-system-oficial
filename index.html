@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <script src="seed-produtos.js"></script>
 <script>
   tailwind.config = {
@@ -3112,16 +3113,88 @@ document.addEventListener('visibilitychange', () => {
 // =====================================================
 // STORE (com cache local + sync para Supabase)
 // =====================================================
+// Compressão automática para valores grandes (>50KB)
+// Reduz JSON em ~70% via LZ-String, evita QuotaExceededError no localStorage
+const COMPRESSION_THRESHOLD = 50000; // bytes
+const COMPRESSED_PREFIX = 'LZ::'; // marcador para identificar comprimidos
 const Store = {
-  get(key, def){ try { return JSON.parse(localStorage.getItem('cantinho:'+key)) ?? def; } catch { return def; } },
+  get(key, def){
+    try {
+      const raw = localStorage.getItem('cantinho:'+key);
+      if(raw == null) return def;
+      let json;
+      if(raw.startsWith(COMPRESSED_PREFIX) && typeof LZString !== 'undefined'){
+        json = LZString.decompressFromUTF16(raw.substring(COMPRESSED_PREFIX.length));
+      } else {
+        json = raw;
+      }
+      const parsed = JSON.parse(json);
+      return parsed ?? def;
+    } catch(e){
+      console.warn('[Store.get] erro ao ler', key, e);
+      return def;
+    }
+  },
   set(key, val){
-    localStorage.setItem('cantinho:'+key, JSON.stringify(val));
-    if(syncEnabled && key !== 'session.user'){ // sessão fica só local
+    try {
+      _internalSet(key, val);
+    } catch(e){
+      // Quota exceeded → tenta liberar espaço e re-comprimir tudo
+      if(e.name === 'QuotaExceededError' || /quota/i.test(e.message || '')){
+        console.warn('[Store.set] quota excedida, tentando recovery...', key);
+        const liberou = _recoverFromQuota();
+        try {
+          _internalSet(key, val);
+          showToast('<strong>⚠</strong> Memória local recomprimida (' + liberou + 'KB liberados)', 'warn');
+        } catch(e2){
+          console.error('[Store.set] falha mesmo após cleanup:', e2);
+          showToast('<strong>!</strong> Memória do navegador cheia. Vá em <strong>Banco → Excluir período</strong> para apagar transações antigas. Os dados continuam no Supabase.', 'error');
+          throw e2;
+        }
+      } else {
+        throw e;
+      }
+    }
+    if(syncEnabled && key !== 'session.user'){
       syncQueue.set(key, val);
       scheduleSync();
     }
   }
 };
+
+function _internalSet(key, val){
+  const json = JSON.stringify(val);
+  let toStore;
+  if(json.length > COMPRESSION_THRESHOLD && typeof LZString !== 'undefined'){
+    const comp = LZString.compressToUTF16(json);
+    toStore = COMPRESSED_PREFIX + comp;
+  } else {
+    toStore = json;
+  }
+  localStorage.setItem('cantinho:'+key, toStore);
+}
+
+// Tenta liberar espaço re-comprimindo tudo que ainda não está
+function _recoverFromQuota(){
+  if(typeof LZString === 'undefined') return 0;
+  let liberou = 0;
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('cantinho:'));
+  for(const fullKey of keys){
+    const raw = localStorage.getItem(fullKey);
+    if(raw && !raw.startsWith(COMPRESSED_PREFIX) && raw.length > COMPRESSION_THRESHOLD){
+      try {
+        const comp = COMPRESSED_PREFIX + LZString.compressToUTF16(raw);
+        const before = raw.length;
+        const after = comp.length;
+        if(after < before){
+          localStorage.setItem(fullKey, comp);
+          liberou += Math.round((before - after) / 1024);
+        }
+      } catch{}
+    }
+  }
+  return liberou;
+}
 
 // =====================================================
 // PARSER OFX (formato Itaú/FEBRABAN — SGML e XML)
