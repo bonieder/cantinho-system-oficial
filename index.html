@@ -3402,15 +3402,13 @@ function reclassifyUncategorized(silent = false){
 
 function ofxImportHTML(){
   return `<div class="space-y-4">
-    <div class="border-2 border-dashed border-ink-300 rounded-lg p-8 text-center" id="ofx-drop">
-      <input type="file" id="ofx-file" accept=".ofx" class="hidden" onchange="handleOFXFile(this.files[0])">
+    <input type="file" id="ofx-file" accept=".ofx" class="hidden" onchange="handleOFXFile(this.files[0])">
+    <label for="ofx-file" class="border-2 border-dashed border-ink-300 hover:border-brand-400 hover:bg-brand-50/30 rounded-lg p-8 text-center cursor-pointer block transition" id="ofx-drop">
       <div class="text-3xl text-ink-400 mb-2">📄</div>
-      <div class="font-medium">Arraste o arquivo .ofx aqui</div>
-      <div class="text-xs text-ink-600 mt-1">ou
-        <button type="button" onclick="document.getElementById('ofx-file').click()" class="text-brand-600 hover:underline">clique para selecionar</button>
-      </div>
+      <div class="font-medium">Clique para selecionar o arquivo .ofx</div>
+      <div class="text-xs text-ink-600 mt-1">ou arraste e solte aqui</div>
       <div class="text-xs text-ink-400 mt-3">No Itaú: Internet Banking → Conta Corrente → Extrato → Salvar como OFX/Money</div>
-    </div>
+    </label>
     <div class="text-center">
       <button type="button" onclick="loadSampleOFX()" class="text-xs text-brand-600 hover:underline">Não tem um arquivo? Carregar exemplo de demonstração</button>
     </div>
