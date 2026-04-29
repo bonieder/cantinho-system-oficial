@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="seed-produtos.js"></script>
 <script>
   tailwind.config = {
@@ -10277,24 +10278,30 @@ function notificarEvento(evento, mensagem){
 }
 
 // Lista todos os contatos com telefone (funcionários + usuários + clientes opcionais)
-function listarContatosWA(incluirClientes = false){
+// filterPerfis (opcional): array de perfis ['Admin', 'Gerente', ...] — só usuários desses perfis
+function listarContatosWA(incluirClientes = false, filterPerfis = null){
   const todos = [];
   const seen = new Set();
-  (typeof getCadastros === 'function' ? getCadastros('funcionario') : []).forEach(f => {
-    const tel = f.telefone || f.whatsapp;
-    if(tel && !seen.has(f.id)){
-      seen.add(f.id);
-      todos.push({ id:f.id, tipo:'func', nome:f.nome, sub:(f.cargo||f.setor||'Funcionário'), tel });
-    }
-  });
+  // Se há filtro por perfil, NÃO inclui funcionários — só usuários do sistema com perfil
+  if(!filterPerfis){
+    (typeof getCadastros === 'function' ? getCadastros('funcionario') : []).forEach(f => {
+      const tel = f.telefone || f.whatsapp;
+      if(tel && !seen.has(f.id)){
+        seen.add(f.id);
+        todos.push({ id:f.id, tipo:'func', nome:f.nome, sub:(f.cargo||f.setor||'Funcionário'), tel });
+      }
+    });
+  }
   (typeof getUsuarios === 'function' ? getUsuarios() : []).forEach(u => {
+    if(filterPerfis && !filterPerfis.includes(u.perfil)) return;
+    if(u.status === 'inativo') return;
     const tel = u.whatsapp || u.telefone;
     if(tel && !seen.has(u.id)){
       seen.add(u.id);
       todos.push({ id:u.id, tipo:'user', nome:u.nome, sub:u.perfil, tel });
     }
   });
-  if(incluirClientes){
+  if(incluirClientes && !filterPerfis){
     (typeof getCadastros === 'function' ? getCadastros('cliente') : []).forEach(c => {
       const tel = c.whatsapp || c.telefone;
       if(tel && !seen.has(c.id)){
@@ -10307,11 +10314,13 @@ function listarContatosWA(incluirClientes = false){
 }
 
 // === MODAL UNIVERSAL DE NOTIFICAÇÃO ===
-// openNotifyModal({ titulo, evento?, mensagem, contatosExtra?: [{nome, tel}], incluirClientes?: bool })
-function openNotifyModal({ titulo, evento, mensagem, contatosExtra = [], incluirClientes = false }){
+// openNotifyModal({ titulo, evento?, mensagem, contatosExtra?, incluirClientes?, filterPerfis?, anexoNome?, anexoUrl? })
+function openNotifyModal({ titulo, evento, mensagem, contatosExtra = [], incluirClientes = false, filterPerfis = null, anexoNome = null, anexoUrl = null }){
   const cfg = getWAConfig();
   const padrao = new Set(evento ? (cfg.destinatarios[evento] || []) : []);
-  const todos = listarContatosWA(incluirClientes);
+  const todos = listarContatosWA(incluirClientes, filterPerfis);
+  // Se filtrou por perfil, pré-seleciona todos automaticamente
+  if(filterPerfis) todos.forEach(t => padrao.add(t.id));
   contatosExtra.forEach((c, i) => {
     todos.push({ id:'extra-'+i, tipo:'extra', nome:c.nome, sub:c.sub||'', tel:c.tel });
     if(c.preSelecionado) padrao.add('extra-'+i);
@@ -10354,6 +10363,14 @@ function openNotifyModal({ titulo, evento, mensagem, contatosExtra = [], incluir
             <label class="text-xs font-medium text-ink-600">Mensagem (use *texto* para negrito)</label>
             <textarea id="notify-msg" rows="10" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1 font-mono">${mensagem || ''}</textarea>
           </div>
+          ${anexoUrl ? `
+          <div class="bg-amber-50 border border-amber-300 rounded p-3 text-xs text-amber-900 flex items-center justify-between gap-3">
+            <div>
+              <strong>📎 Anexo gerado:</strong> ${anexoNome || 'imagem.png'}<br>
+              <span class="text-[11px]">A imagem foi baixada para o seu computador. <strong>Anexe manualmente</strong> no WhatsApp depois que abrir.</span>
+            </div>
+            <a href="${anexoUrl}" download="${anexoNome||'anexo.png'}" class="text-xs bg-amber-600 text-white px-3 py-1.5 rounded whitespace-nowrap">⬇ Baixar de novo</a>
+          </div>` : ''}
           <div class="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900">
             <strong>ℹ Modo manual:</strong> ao confirmar, será aberta uma aba do WhatsApp para CADA destinatário com a mensagem pronta. Se for muito destinatário, o navegador pode bloquear pop-ups — autorize no ícone da barra de endereço.
           </div>
@@ -10456,20 +10473,64 @@ function notificarResumoCaixa(){
 
   msg += `*Saldo final: ${fmt(saldoFinal)}*\n\n${_waCfgSig}`;
 
-  openNotifyModal({ titulo:`Resumo do Caixa - ${labelPeriodo}`, evento:'caixa_fechamento', mensagem: msg });
+  openNotifyModal({
+    titulo:`Resumo do Caixa - ${labelPeriodo}`,
+    evento:'caixa_fechamento',
+    mensagem: msg,
+    filterPerfis: ['Admin']
+  });
 }
 
-function notificarResumoDRE(){
-  if(typeof getDREData !== 'function' && typeof renderDRE !== 'function'){
+async function notificarResumoDRE(){
+  if(typeof renderDRE !== 'function'){
     showToast('DRE indisponível', 'error'); return;
   }
-  // Lê valores diretos dos KPIs já renderizados (mais simples e robusto)
+  // Garante que está aberto e renderizado
+  document.querySelector('[data-target=dre]')?.click();
+  await new Promise(r => setTimeout(r, 200));
+
   const $kpis = document.getElementById('dre-kpis');
   if(!$kpis || !$kpis.children.length){ showToast('Abra o DRE primeiro para gerar os KPIs', 'warn'); return; }
   const kpiTexts = Array.from($kpis.children).map(el => el.innerText.replace(/\s+/g,' ').trim());
   const periodo = document.getElementById('dre-info')?.textContent.trim() || '';
-  const msg = `*📊 DRE - Cantinho do Boni*\n${periodo ? '_' + periodo + '_\n' : ''}\n${kpiTexts.map(t => '• ' + t).join('\n')}\n\n${_waCfgSig}`;
-  openNotifyModal({ titulo:'Resumo DRE', mensagem: msg });
+  const data = new Date().toLocaleDateString('pt-BR');
+
+  const msg = `*📊 DRE - Cantinho do Boni*\n${periodo ? '_' + periodo + '_\n' : ''}\n${kpiTexts.map(t => '• ' + t).join('\n')}\n\n📎 *Veja o relatório completo na imagem em anexo.*\n\n${_waCfgSig}`;
+
+  let anexoUrl = null;
+  let anexoNome = null;
+  if(typeof html2canvas === 'function'){
+    showToast('<strong>📸</strong> Gerando print da DRE...', 'info');
+    try {
+      const $section = document.getElementById('dre');
+      const canvas = await html2canvas($section, {
+        backgroundColor:'#ffffff',
+        scale: 1.5,
+        windowWidth: 1200,
+        useCORS: true,
+        logging: false
+      });
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png', 0.92));
+      anexoNome = `DRE-${data.replace(/\//g,'-')}.png`;
+      anexoUrl = URL.createObjectURL(blob);
+      // Auto-download
+      const a = document.createElement('a');
+      a.href = anexoUrl;
+      a.download = anexoNome;
+      a.click();
+    } catch(e){
+      console.warn('Erro ao gerar print', e);
+      showToast('Não consegui gerar o print — enviarei só o resumo em texto', 'warn');
+    }
+  }
+
+  openNotifyModal({
+    titulo:'Resumo DRE',
+    mensagem: msg,
+    filterPerfis: ['Admin'],
+    anexoUrl,
+    anexoNome
+  });
 }
 
 function notificarPendenciasCompras(){
