@@ -1343,6 +1343,92 @@
       <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900">
         <strong>ℹ Como funciona o modo manual (wa.me):</strong> ao clicar nos botões "📱 Notificar" espalhados pelo sistema, o navegador abre o WhatsApp Web ou o app com a mensagem já digitada — você só confirma e envia. Não há automação, mas funciona em qualquer celular ou computador, sem custos.
       </div>
+
+      <!-- Orçamento WhatsApp automatizado -->
+      <div class="bg-white rounded-xl border border-ink-200 p-5">
+        <h3 class="font-semibold mb-3">💰 Orçamento — WhatsApp 100% automatizado</h3>
+        <p class="text-xs text-ink-600 mb-4">Comparativo das principais opções para automatizar 100% das notificações (sem precisar abrir o WhatsApp e enviar manualmente)</p>
+
+        <div class="grid md:grid-cols-3 gap-3">
+          <!-- Z-API -->
+          <div class="border-2 border-emerald-300 rounded-lg p-4 bg-emerald-50">
+            <div class="flex items-center justify-between mb-2">
+              <strong class="text-emerald-900">🥇 Z-API</strong>
+              <span class="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded">Recomendado</span>
+            </div>
+            <div class="text-2xl font-bold text-emerald-700">R$ 99,99<span class="text-xs font-normal">/mês</span></div>
+            <ul class="text-xs mt-3 space-y-1 text-emerald-900">
+              <li>✓ Mensagens <strong>ilimitadas</strong></li>
+              <li>✓ Setup em 10 minutos</li>
+              <li>✓ Usa seu próprio número WhatsApp comum</li>
+              <li>✓ Anexa imagens, PDFs, áudio</li>
+              <li>✓ Webhook (receber mensagens)</li>
+              <li>✓ Sem aprovação Meta</li>
+              <li>✗ Risco baixo de banimento se enviar muito spam</li>
+            </ul>
+            <p class="text-[10px] text-emerald-700 mt-2"><a href="https://www.z-api.io" target="_blank" class="underline">z-api.io</a> · 2 dias grátis pra testar</p>
+          </div>
+
+          <!-- Evolution API self-hosted -->
+          <div class="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+            <div class="flex items-center justify-between mb-2">
+              <strong class="text-blue-900">🛠 Evolution API</strong>
+              <span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded">Self-hosted</span>
+            </div>
+            <div class="text-2xl font-bold text-blue-700">R$ 30–50<span class="text-xs font-normal">/mês</span></div>
+            <p class="text-[10px] text-blue-700 mb-2">Custo só do VPS (Hostinger/Contabo) ou Raspberry Pi (R$ 800 único)</p>
+            <ul class="text-xs mt-3 space-y-1 text-blue-900">
+              <li>✓ Mensagens <strong>ilimitadas</strong></li>
+              <li>✓ Software <strong>grátis</strong> (open source)</li>
+              <li>✓ Funciona com seu número comum</li>
+              <li>✓ Anexa qualquer mídia</li>
+              <li>✗ Precisa instalar e manter o servidor</li>
+              <li>✗ Setup leva 1–2 horas (técnico)</li>
+            </ul>
+            <p class="text-[10px] text-blue-700 mt-2"><a href="https://github.com/EvolutionAPI/evolution-api" target="_blank" class="underline">github.com/EvolutionAPI</a></p>
+          </div>
+
+          <!-- Meta Cloud API oficial -->
+          <div class="border-2 border-purple-300 rounded-lg p-4 bg-purple-50">
+            <div class="flex items-center justify-between mb-2">
+              <strong class="text-purple-900">🏢 Meta Cloud API</strong>
+              <span class="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded">Oficial</span>
+            </div>
+            <div class="text-2xl font-bold text-purple-700">R$ 0 + uso<span class="text-xs font-normal">/mês</span></div>
+            <p class="text-[10px] text-purple-700 mb-2">Grátis até 1.000 conversas/mês, depois ~R$ 0,40 cada</p>
+            <ul class="text-xs mt-3 space-y-1 text-purple-900">
+              <li>✓ <strong>Oficial</strong> — sem risco de banimento</li>
+              <li>✓ Suporte da Meta</li>
+              <li>✓ Selo verde de empresa</li>
+              <li>✗ Precisa de número Business <strong>dedicado</strong></li>
+              <li>✗ Aprovação de templates pela Meta (1-3 dias)</li>
+              <li>✗ Setup complexo (BSP intermediário)</li>
+            </ul>
+            <p class="text-[10px] text-purple-700 mt-2">Via Twilio, 360dialog ou Take.</p>
+          </div>
+        </div>
+
+        <div class="mt-5 p-4 border border-amber-300 bg-amber-50 rounded-lg text-xs">
+          <strong class="text-amber-900">💡 Custo de implementação no Cantinho System:</strong>
+          <p class="text-amber-800 mt-1">A integração com qualquer dessas APIs já está pronta no código (campo "API URL" e "Token" na tela acima). Basta:</p>
+          <ol class="text-amber-800 list-decimal list-inside mt-2 space-y-0.5">
+            <li>Contratar um dos serviços acima</li>
+            <li>Receber a URL e o Token deles</li>
+            <li>Cole nos campos da tela "Modo de envio → Automático" e clica "Testar conexão"</li>
+            <li>A partir daí, todas as notificações que hoje abrem aba do WhatsApp serão enviadas automaticamente em segundo plano</li>
+          </ol>
+          <p class="text-amber-800 mt-2"><strong>Volume estimado do Cantinho:</strong> ~150–300 mensagens/mês (holerites mensais + notificações de evento). Qualquer plano cobre com folga.</p>
+        </div>
+
+        <div class="mt-3 p-4 border border-rose-300 bg-rose-50 rounded-lg text-xs">
+          <strong class="text-rose-900">⚠ Cuidados gerais:</strong>
+          <ul class="text-rose-800 list-disc list-inside mt-1 space-y-0.5">
+            <li>WhatsApp pode banir o número se enviar spam ou sem opt-in dos contatos. Para clientes/funcionários do bar isso não é problema (são contatos próximos).</li>
+            <li>O modo wa.me manual (atual) é 100% seguro e não banido.</li>
+            <li>Para o seu volume, R$ 99,99/mês da Z-API é o melhor custo/benefício.</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
     <!-- CADASTROS -->
@@ -7614,16 +7700,28 @@ function excluirFechamento(id){
 function excluirCaixaTransacao(id){
   const t = getCaixaTransacoes().find(x => x.id === id);
   if(!t) return;
-  if(!confirm(`Excluir movimento ${id} (${t.categoria} R$ ${t.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})})?`)) return;
+  // Avisa sobre cascata
+  let avisos = [];
+  if(t.pagamentoFreelancerId) avisos.push('o pagamento do freelancer vinculado');
+  if(t.valeId) avisos.push('o vale/adiantamento no DP');
+  const aviso = avisos.length ? `\n\n⚠ Esta exclusão também removerá: ${avisos.join(' e ')}.` : '';
+  if(!confirm(`Excluir movimento ${id} (${t.categoria} R$ ${t.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})})?${aviso}`)) return;
+
   saveCaixaTransacoes(getCaixaTransacoes().filter(x => x.id !== id));
-  // Se era pagamento de freelancer, remove a entrada associada também
+  // Pagamento de freelancer
   if(t.pagamentoFreelancerId){
     savePagamentosFreelancer(getPagamentosFreelancer().filter(p => p.id !== t.pagamentoFreelancerId));
+  }
+  // Vale/adiantamento no DP
+  if(t.valeId && typeof getVales === 'function'){
+    saveVales(getVales().filter(v => v.id !== t.valeId));
   }
   renderCaixa();
   if(typeof renderDRE === 'function') renderDRE();
   if(typeof renderFinanceiro === 'function') renderFinanceiro();
-  showToast('<strong>✓</strong> Movimento de caixa excluído');
+  if(typeof renderFreelancers === 'function') renderFreelancers();
+  if(typeof renderDP === 'function') renderDP();
+  showToast(`<strong>✓</strong> Movimento excluído${avisos.length ? ' (e ' + avisos.length + ' lançamento(s) vinculado(s))' : ''}`);
 }
 
 // === Modais de entrada/saída ===
@@ -9846,14 +9944,15 @@ async function notificarReciboVale(id){
 
 // === FOLHA DE PAGAMENTO ===
 
-// Tabela INSS 2026 (faixas progressivas)
+// Tabela INSS 2026 oficial (Contabilizei)
 const INSS_2026 = [
-  { ate: 1518.00, aliq: 0.075 },
-  { ate: 2793.88, aliq: 0.09 },
-  { ate: 4190.83, aliq: 0.12 },
-  { ate: 8157.41, aliq: 0.14 }
+  { ate: 1621.00, aliq: 0.075 },
+  { ate: 2902.84, aliq: 0.09 },
+  { ate: 4354.27, aliq: 0.12 },
+  { ate: 8475.55, aliq: 0.14 }
 ];
-const INSS_TETO = 951.62; // contribuição máxima 2026 aprox
+// Teto: 1621*7,5% + (2902,84-1621)*9% + (4354,27-2902,84)*12% + (8475,55-4354,27)*14% = 121,57 + 115,37 + 174,17 + 576,98 = 988,09
+const INSS_TETO = 988.09;
 
 function calcularINSS(salarioBruto){
   if(salarioBruto <= 0) return 0;
@@ -9915,8 +10014,10 @@ function calcularFolhaColab(colab, mesYM){
   const proventosVariaveis = totalHEAdic + valorDSR;
   const comissaoManual = m.comissao || 0;
   const comissaoLancamentos = totalComissoesLancadas(colab.id, mesYM);
+  // COMISSÃO É ISENTA DE INSS, IRRF E FGTS — paga em separado, fora do bruto tributável
   const comissao = comissaoManual + comissaoLancamentos;
-  const bruto = salarioBase + proventosVariaveis + comissao;
+  const brutoTributavel = salarioBase + proventosVariaveis;
+  const bruto = brutoTributavel + comissao; // total da folha exibido
 
   // Faltas: descontar dia de salário por falta + DSR proporcional
   const cargaDia = (premissas.cargaDiariaPadrao || 8);
@@ -9925,7 +10026,7 @@ function calcularFolhaColab(colab, mesYM){
   // DSR descontado também
   const descDSRfaltas = (m.qtdFaltas / 6) * valorDia;
 
-  const baseINSS = bruto - descFaltas - descDSRfaltas;
+  const baseINSS = brutoTributavel - descFaltas - descDSRfaltas;
   const inss = calcularINSS(baseINSS);
   const baseIRRF = baseINSS - inss;
   const dependentes = parseInt(colab.dependentes) || 0;
@@ -9934,10 +10035,11 @@ function calcularFolhaColab(colab, mesYM){
   const adiantamentoManual = m.adiantamento || 0;
   const totalVales = totalDescontosLancados(colab.id, mesYM);
   const adiantamento = adiantamentoManual + totalVales;
-  const liquido = baseINSS - inss - irrf - adiantamento;
+  // Líquido: bruto tributável − INSS − IRRF − descontos + comissão (já paga isenta)
+  const liquido = baseINSS - inss - irrf - adiantamento + comissao;
 
-  // FGTS 8% sobre o bruto (não sobre faltas)
-  const fgts = (bruto - descFaltas - descDSRfaltas) * 0.08;
+  // FGTS 8% só sobre brutoTributavel (NÃO incide na comissão)
+  const fgts = (brutoTributavel - descFaltas - descDSRfaltas) * 0.08;
 
   return {
     colab,
@@ -9952,6 +10054,7 @@ function calcularFolhaColab(colab, mesYM){
     comissao,
     comissaoManual,
     comissaoLancamentos,
+    brutoTributavel,
     bruto,
     descFaltas, descDSRfaltas,
     baseINSS,
@@ -10094,7 +10197,6 @@ td.r{text-align:right;font-family:monospace}
     ${f.valorHE100 > 0 ? `<tr><td>003</td><td>Hora extra 100%</td><td>${fmtMinutes(f.totalMin.totalHE100)}</td><td class="r">${fmt(f.valorHE100)}</td><td></td></tr>`:''}
     ${f.valorAdicNot > 0 ? `<tr><td>004</td><td>Adicional noturno</td><td>${fmtMinutes(f.totalMin.totalNoturno)}</td><td class="r">${fmt(f.valorAdicNot)}</td><td></td></tr>`:''}
     ${f.valorDSR > 0 ? `<tr><td>005</td><td>DSR sobre HE/Adic.</td><td>—</td><td class="r">${fmt(f.valorDSR)}</td><td></td></tr>`:''}
-    ${f.comissao > 0 ? `<tr><td>006</td><td>Comissão</td><td>—</td><td class="r">${fmt(f.comissao)}</td><td></td></tr>`:''}
     ${f.descFaltas > 0 ? `<tr><td>007</td><td>Faltas</td><td>${f.totalMin.qtdFaltas} dia(s)</td><td></td><td class="r">${fmt(f.descFaltas)}</td></tr>`:''}
     ${f.descDSRfaltas > 0 ? `<tr><td>008</td><td>DSR sobre faltas</td><td>—</td><td></td><td class="r">${fmt(f.descDSRfaltas)}</td></tr>`:''}
     ${f.inss > 0 ? `<tr><td>901</td><td>INSS</td><td>${(f.inss/f.baseINSS*100).toFixed(2)}% s/${fmt(f.baseINSS)}</td><td></td><td class="r">${fmt(f.inss)}</td></tr>`:''}
@@ -10103,12 +10205,13 @@ td.r{text-align:right;font-family:monospace}
     ${f.adiantamentoManual > 0 ? `<tr><td>904</td><td>Adiantamento adicional</td><td>—</td><td></td><td class="r">${fmt(f.adiantamentoManual)}</td></tr>`:''}
   </tbody>
   <tfoot>
-    <tr class="totais"><td colspan="3">Totais</td><td class="r">${fmt(f.bruto)}</td><td class="r">${fmt(f.bruto - f.liquido)}</td></tr>
+    <tr class="totais"><td colspan="3">Totais Tributáveis</td><td class="r">${fmt(f.brutoTributavel)}</td><td class="r">${fmt(f.brutoTributavel - (f.liquido - f.comissao))}</td></tr>
+    ${f.comissao > 0 ? `<tr style="background:#f0fdf4"><td colspan="3">+ Comissão (isenta de INSS/IRRF/FGTS — paga em separado)</td><td class="r" style="color:#059669">${fmt(f.comissao)}</td><td></td></tr>`:''}
     <tr class="totais"><td colspan="4" style="text-align:right">LÍQUIDO A RECEBER</td><td class="r" style="font-size:13pt">${fmt(f.liquido)}</td></tr>
   </tfoot>
 </table>
 <div style="font-size:9pt;color:#666;margin-top:10px">
-  <strong>Base FGTS:</strong> ${fmt(f.bruto - f.descFaltas - f.descDSRfaltas)} · <strong>FGTS 8%:</strong> ${fmt(f.fgts)} (recolhido pela empresa, não desconta do colaborador)
+  <strong>Base FGTS:</strong> ${fmt(f.brutoTributavel - f.descFaltas - f.descDSRfaltas)} · <strong>FGTS 8%:</strong> ${fmt(f.fgts)} (recolhido pela empresa, não desconta do colaborador. Comissão NÃO entra na base.)
 </div>
 <div class="assinatura">Assinatura do colaborador</div>
 <div style="margin-top:20px;text-align:center">
@@ -11211,58 +11314,91 @@ async function handleVendasImport(file){
     showToast('<strong>!</strong> Biblioteca XLSX não carregou. Recarregue a página.', 'error');
     return;
   }
-  let rows;
+  let aoa;
   try {
+    let ws;
     if(file.name.toLowerCase().endsWith('.csv')){
       const text = await file.text();
       const wb = XLSX.read(text, { type:'string' });
-      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+      ws = wb.Sheets[wb.SheetNames[0]];
     } else {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type:'array', cellDates:true });
-      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+      ws = wb.Sheets[wb.SheetNames[0]];
     }
+    // Corrige !ref se vier truncado (planilhas Pivot têm range errado às vezes)
+    let lastRow = 0, lastCol = 0;
+    for(const k in ws){
+      if(k[0] === '!') continue;
+      const m = k.match(/^([A-Z]+)(\d+)$/);
+      if(m){
+        const col = m[1].split('').reduce((a,c) => a*26 + (c.charCodeAt(0)-64), 0);
+        if(parseInt(m[2]) > lastRow) lastRow = parseInt(m[2]);
+        if(col > lastCol) lastCol = col;
+      }
+    }
+    if(lastRow > 0 && lastCol > 0){
+      const colLetter = (n) => { let s=''; while(n>0){ s=String.fromCharCode(65+(n-1)%26)+s; n=Math.floor((n-1)/26); } return s; };
+      ws['!ref'] = `A1:${colLetter(lastCol)}${lastRow}`;
+    }
+    aoa = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
   } catch(e){
     showToast('<strong>!</strong> Erro ao ler arquivo: ' + e.message, 'error');
     return;
   }
-  if(!rows.length){ showToast('Arquivo vazio', 'warn'); return; }
+  if(!aoa.length){ showToast('Arquivo vazio', 'warn'); return; }
 
-  // Mapear colunas (case insensitive, normalizado)
   const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  const sample = rows[0];
-  const colMap = {};
-  Object.keys(sample).forEach(k => {
-    const n = norm(k);
-    if(n === 'data') colMap.data = k;
-    else if(n === 'atendente' || n === 'garcom' || n === 'vendedor') colMap.atendente = k;
-    else if(n === 'grupo' || n === 'categoria' || n === 'familia') colMap.grupo = k;
-    else if(n === 'item' || n === 'produto' || n === 'descricao') colMap.item = k;
-    else if(n === 'qtde' || n === 'qtd' || n === 'quantidade') colMap.qtde = k;
-    else if(n.startsWith('valor') || n === 'total' || n === 'r$') colMap.valor = k;
-  });
-  if(!colMap.data || !colMap.item || !colMap.valor){
-    showToast(`<strong>!</strong> Colunas obrigatórias faltando. Esperado: Data, Atendente, Grupo, Item, Qtde, Valor. Encontrado: ${Object.keys(sample).join(', ')}`, 'error');
-    return;
+  const linhasCru = aoa.filter(r => r && r.some(c => c !== null && c !== ''));
+
+  // Detecta formato bruto: cabeçalho contém "Grande Total" ou Qtde+Valor sem "atendente"
+  const headerJoin = linhasCru.slice(0,3).map(r => r.map(c => norm(c)).join('|')).join(' ');
+  const ehBruto = headerJoin.includes('grande total') || (headerJoin.includes('qtde') && headerJoin.includes('valor') && !headerJoin.includes('atendente'));
+
+  let parsed = [];
+  if(ehBruto){
+    parsed = parseRelatorioPivotBruto(linhasCru);
+  } else {
+    // Formato limpo com cabeçalho na linha 1
+    const header = linhasCru[0].map(h => String(h||'').trim());
+    const colMap = {};
+    header.forEach(k => {
+      const n = norm(k);
+      if(n === 'data') colMap.data = k;
+      else if(n === 'atendente' || n === 'garcom' || n === 'vendedor') colMap.atendente = k;
+      else if(n === 'grupo' || n === 'categoria' || n === 'familia') colMap.grupo = k;
+      else if(n === 'item' || n === 'produto' || n === 'descricao') colMap.item = k;
+      else if(n === 'qtde' || n === 'qtd' || n === 'quantidade') colMap.qtde = k;
+      else if(n.startsWith('valor') || n === 'total' || n === 'r$') colMap.valor = k;
+    });
+    if(!colMap.data || !colMap.item || !colMap.valor){
+      showToast(`<strong>!</strong> Colunas obrigatórias faltando. Esperado: Data, Atendente, Grupo, Item, Qtde, Valor.`, 'error');
+      return;
+    }
+    parsed = linhasCru.slice(1).map(r => {
+      const o = {};
+      header.forEach((h, i) => o[h] = r[i]);
+      return {
+        data: parseDataBR(o[colMap.data]),
+        atendente: String(o[colMap.atendente] || '').trim(),
+        grupo: String(o[colMap.grupo] || '').trim(),
+        item: String(o[colMap.item] || '').trim(),
+        qtde: parseValorBR(o[colMap.qtde]),
+        valor: parseValorBR(o[colMap.valor])
+      };
+    });
   }
 
   const list = getVendas();
   const map = new Map(list.map(v => [vendaKey(v), v]));
   let novos = 0, atualizados = 0, ignorados = 0;
-  for(const row of rows){
-    const data = parseDataBR(row[colMap.data]);
-    const atendente = String(row[colMap.atendente] || '').trim();
-    const grupo = String(row[colMap.grupo] || '').trim();
-    const item = String(row[colMap.item] || '').trim();
-    const qtde = parseValorBR(row[colMap.qtde]);
-    const valor = parseValorBR(row[colMap.valor]);
-    if(!data || !item){ ignorados++; continue; }
-    const v = { data, atendente, grupo, item, qtde, valor };
+  for(const v of parsed){
+    if(!v.data || !v.item){ ignorados++; continue; }
     const k = vendaKey(v);
     if(map.has(k)){
       const old = map.get(k);
-      if(old.qtde !== qtde || Math.abs(old.valor - valor) > 0.01){
-        old.qtde = qtde; old.valor = valor; atualizados++;
+      if(old.qtde !== v.qtde || Math.abs(old.valor - v.valor) > 0.01){
+        old.qtde = v.qtde; old.valor = v.valor; atualizados++;
       }
     } else {
       map.set(k, v); novos++;
@@ -11271,7 +11407,58 @@ async function handleVendasImport(file){
   const newList = Array.from(map.values()).sort((a,b) => a.data.localeCompare(b.data));
   saveVendas(newList);
   renderVendas();
-  showToast(`<strong>✓</strong> ${novos} novo(s) · ${atualizados} atualizado(s) · ${ignorados} ignorado(s) · Total: ${newList.length} lançamento(s)`);
+  const formato = ehBruto ? '🪄 Relatório bruto detectado e processado' : 'Formato limpo';
+  showToast(`<strong>✓</strong> ${formato} · ${novos} novo(s) · ${atualizados} atualizado(s) · ${ignorados} ignorado(s)`);
+}
+
+// Parser do relatório PivotGrid bruto do PDV (Colibri)
+// Formato observado: data/atendente/grupo só preenchidos no início do bloco;
+// linhas "X Total" e "Grand Total" são ignoradas como totalizadores
+function parseRelatorioPivotBruto(rows){
+  const out = [];
+  let curData = '', curAtendente = '', curGrupo = '';
+  let inicio = 0;
+  // Acha a linha-cabeçalho com "Qtde" e "Valor" — dados começam logo depois
+  for(let i = 0; i < Math.min(5, rows.length); i++){
+    const lin = rows[i].map(c => String(c||'').toLowerCase());
+    if(lin.some(c => c === 'qtde' || c === 'qtd') && lin.some(c => c.startsWith('valor'))){
+      inicio = i + 1;
+      break;
+    }
+  }
+  for(let i = inicio; i < rows.length; i++){
+    const r = rows[i];
+    if(!r) continue;
+    const c0 = r[0], c1 = r[1], c2 = r[2], c3 = r[3], c4 = r[4], c5 = r[5];
+    // Atualiza contexto se a célula está preenchida
+    if(c0 !== null && c0 !== '' && c0 !== undefined){
+      const d = parseDataBR(c0);
+      if(d) curData = d;
+    }
+    if(c1 !== null && c1 !== '' && c1 !== undefined){
+      curAtendente = String(c1).trim();
+    }
+    if(c2 !== null && c2 !== '' && c2 !== undefined){
+      const txt = String(c2).trim();
+      // Linha totalizadora "GRUPO Total" / "Grand Total" — ignora
+      if(/total$/i.test(txt) || /^grand/i.test(txt)) continue;
+      curGrupo = txt;
+    }
+    // c3 = item; se vazio, não é linha de dado
+    if(c3 === null || c3 === '' || c3 === undefined) continue;
+    const item = String(c3).trim();
+    if(!item || /total$/i.test(item)) continue;
+    if(!curData) continue;
+    out.push({
+      data: curData,
+      atendente: curAtendente,
+      grupo: curGrupo,
+      item,
+      qtde: parseValorBR(c4),
+      valor: parseValorBR(c5)
+    });
+  }
+  return out;
 }
 
 function confirmLimparVendas(){
@@ -13756,12 +13943,19 @@ function submitFreelancerPagamento(e){
 }
 
 function deletePagamento(id){
-  if(!confirm('Excluir este pagamento? Ele será removido do histórico e não impactará mais a DRE.')) return;
-  const list = getPagamentosFreelancer().filter(x => x.id !== id);
-  savePagamentosFreelancer(list);
+  const p = getPagamentosFreelancer().find(x => x.id === id);
+  if(!p) return;
+  const aviso = p.sourceCaixaId ? '\n\n⚠ A saída correspondente no Caixa também será removida.' : '';
+  if(!confirm('Excluir este pagamento? Ele será removido do histórico e não impactará mais a DRE.' + aviso)) return;
+  savePagamentosFreelancer(getPagamentosFreelancer().filter(x => x.id !== id));
+  // Cascata: remove tx do caixa vinculada
+  if(p.sourceCaixaId && typeof getCaixaTransacoes === 'function'){
+    saveCaixaTransacoes(getCaixaTransacoes().filter(t => t.id !== p.sourceCaixaId));
+    if(typeof renderCaixa === 'function') renderCaixa();
+  }
   renderFreelancers();
   if(typeof renderDRE === 'function') renderDRE();
-  showToast('<strong>✓</strong> Pagamento excluído');
+  showToast(`<strong>✓</strong> Pagamento excluído${p.sourceCaixaId ? ' (e saída do caixa)' : ''}`);
 }
 
 async function notificarReciboFreelancer(pagamentoId){
