@@ -11896,13 +11896,17 @@ function renderVendasAtendentes(filtered, totalFat){
     const tickets = s.datas.size;
     const tm = tickets ? s.fat / tickets : 0;
     const pct = totalFat ? (s.fat/totalFat*100) : 0;
-    const tel = telefoneAtendente(nome);
-    const wabtn = tel ? `<button onclick="notificarRanking('${nome.replace(/'/g,'\\\'')}',${s.fat.toFixed(2)},${i+1})" class="text-emerald-600 hover:underline text-xs" title="Notificar via WhatsApp">📱</button>` : '';
+    const func = findFuncionarioByAtendentePDV(nome);
+    const tel = func?.telefone || func?.whatsapp || '';
+    const wabtn = tel ? `<button onclick="notificarRanking('${nome.replace(/'/g,'\\\'')}',${s.fat.toFixed(2)},${i+1})" class="text-emerald-600 hover:underline text-xs" title="Notificar via WhatsApp (${tel})">📱</button>` : `<button onclick="vincularAtendentePDV('${nome.replace(/'/g,"\\\\'")}')"  class="text-amber-600 hover:underline text-xs" title="Sem vínculo — clique para vincular ao funcionário">🔗</button>`;
     const medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : `#${i+1}`));
+    const vincLabel = func
+      ? `<span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded" title="Cód PDV: ${func.codigoPDV||'(matched por nome)'}">✓ ${func.nome.split(' ')[0]}</span>`
+      : '<span class="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded" title="Não vinculado a funcionário">⚠ sem vínculo</span>';
     return `
       <tr>
         <td class="px-5 py-3 font-bold">${medal}</td>
-        <td class="px-5 py-3"><strong>${nome}</strong></td>
+        <td class="px-5 py-3"><strong>${nome}</strong><div class="mt-0.5">${vincLabel}</div></td>
         <td class="px-5 py-3 text-right">${s.qtd.toLocaleString('pt-BR')}</td>
         <td class="px-5 py-3 text-right">${tickets}</td>
         <td class="px-5 py-3 text-right">R$ ${tm.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
@@ -11912,6 +11916,50 @@ function renderVendasAtendentes(filtered, totalFat){
       </tr>
     `;
   }).join('');
+}
+
+// Modal: vincular atendente do PDV a um funcionário cadastrado
+function vincularAtendentePDV(nomeAtendente){
+  const funcs = getCadastros('funcionario');
+  if(!funcs.length){ showToast('Cadastre funcionários primeiro', 'warn'); return; }
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div class="px-6 py-4 border-b border-ink-200">
+          <h2 class="font-semibold text-lg">🔗 Vincular Atendente PDV</h2>
+          <p class="text-xs text-ink-600 mt-0.5">Atendente do relatório do PDV: <strong>${nomeAtendente}</strong></p>
+        </div>
+        <form id="vinc-form" onsubmit="submitVincularAtendente(event,'${nomeAtendente.replace(/'/g,"\\\\'")}')" class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Funcionário cadastrado <span class="text-rose-500">*</span></label>
+            <select name="colabId" required class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <option value="">— Selecione —</option>
+              ${funcs.map(f => `<option value="${f.id}">${f.nome}${f.codigoPDV ? ' (PDV: '+f.codigoPDV+')' : ''} — ${f.cargo||''}</option>`).join('')}
+            </select>
+            <p class="text-[10px] text-ink-500 mt-1">O nome do PDV (<strong>${nomeAtendente}</strong>) será gravado como Código PDV no funcionário escolhido.</p>
+          </div>
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('vinc-form').requestSubmit()" type="button" class="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-md">Vincular</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function submitVincularAtendente(e, nomeAtendente){
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target).entries());
+  if(!fd.colabId){ showToast('Selecione um funcionário', 'error'); return; }
+  const list = getCadastros('funcionario');
+  const idx = list.findIndex(c => c.id === fd.colabId);
+  if(idx < 0) return;
+  list[idx].codigoPDV = nomeAtendente;
+  saveCadastros('funcionario', list);
+  closeModal();
+  if(typeof renderVendas === 'function') renderVendas();
+  if(typeof renderCadastros === 'function') renderCadastros();
+  showToast(`<strong>✓</strong> "${nomeAtendente}" vinculado a ${list[idx].nome}`);
 }
 
 function renderVendasProdutos(filtered, totalFat){
@@ -12036,10 +12084,27 @@ function renderVendasTemporal(filtered){
 }
 
 // Helper: telefone do atendente (cruza com cadastros funcionário)
-function telefoneAtendente(nome){
+// Encontra funcion\u00e1rio a partir do nome do atendente do PDV.
+// Prioridade: 1) match exato pelo C\u00f3digo PDV cadastrado; 2) fuzzy por nome
+function findFuncionarioByAtendentePDV(nomeAtendente){
+  if(!nomeAtendente) return null;
+  const funcs = (typeof getCadastros === 'function' ? getCadastros('funcionario') : []);
+  if(!funcs.length) return null;
   const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
-  const n = norm(nome);
-  const f = (typeof getCadastros === 'function' ? getCadastros('funcionario') : []).find(c => norm(c.nome).startsWith(n) || n.startsWith(norm(c.nome)));
+  const n = norm(nomeAtendente);
+  // 1) Match exato pelo codigoPDV cadastrado
+  const byCodigo = funcs.find(c => c.codigoPDV && norm(c.codigoPDV) === n);
+  if(byCodigo) return byCodigo;
+  // 2) Match parcial no codigoPDV (ex: "WALLISON F" cadastrado e nome "WALLISON FERREIRA" no PDV)
+  const byCodigoParcial = funcs.find(c => c.codigoPDV && (norm(c.codigoPDV).startsWith(n) || n.startsWith(norm(c.codigoPDV))));
+  if(byCodigoParcial) return byCodigoParcial;
+  // 3) Fuzzy pelo nome completo (fallback)
+  const byNome = funcs.find(c => norm(c.nome).startsWith(n) || n.startsWith(norm(c.nome)));
+  return byNome || null;
+}
+
+function telefoneAtendente(nome){
+  const f = findFuncionarioByAtendentePDV(nome);
   return f?.telefone || f?.whatsapp || '';
 }
 
@@ -13186,6 +13251,7 @@ const CADASTRO_DEFS = {
       { name:'admissao', label:'Data de admissão', type:'date', required:true },
       { name:'cargo', label:'Cargo', type:'text', required:true, placeholder:'Ex: Garçom, Cozinheiro' },
       { name:'setor', label:'Setor', type:'select', options:['Cozinha','Bar','Salão','Limpeza','Estoque','Caixa','Administrativo','Gestão'] },
+      { name:'codigoPDV', label:'Código PDV (Colibri)', type:'text', placeholder:'Ex: WALLISON F (igual ao relatório de vendas)' },
       { name:'salario', label:'Salário base (R$)', type:'number', step:'0.01' },
       { name:'tipoContrato', label:'Tipo de contrato', type:'select', options:['CLT','Estagiário','Aprendiz','Temporário'] },
       { name:'telefone', label:'Telefone', type:'tel' },
