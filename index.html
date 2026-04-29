@@ -209,6 +209,10 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM22 11l-3 3-2-2"/></svg>
         Freelancers
       </button>
+      <button data-target="dp" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-ink-800">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Departamento Pessoal
+      </button>
       <button data-target="usuarios" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-ink-800">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Usuários e Acesso
@@ -367,9 +371,36 @@
               <th class="text-right px-5 py-3">Contado</th>
               <th class="text-right px-5 py-3">Diferença</th>
               <th class="text-left px-5 py-3">Obs</th>
+              <th class="text-center px-5 py-3 w-32">Ações</th>
             </tr>
           </thead>
           <tbody id="caixa-fechamentos" class="divide-y divide-ink-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Conciliação Colibri (relatório do PDV) -->
+      <div class="bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">📋 Conciliação Diária — Relatório Colibri</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Apenas conferência. Crédito/Débito/PIX <strong>não</strong> impactam DRE (já vêm via extrato bancário).</p>
+          </div>
+          <button onclick="openConciliacaoColibriModal()" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-md flex items-center gap-2">+ Nova Conciliação</button>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+            <tr>
+              <th class="text-left px-5 py-3">Data</th>
+              <th class="text-right px-5 py-3">💵 Dinheiro</th>
+              <th class="text-right px-5 py-3">💳 Crédito</th>
+              <th class="text-right px-5 py-3">💳 Débito</th>
+              <th class="text-right px-5 py-3">📱 PIX</th>
+              <th class="text-right px-5 py-3">Total</th>
+              <th class="text-center px-5 py-3">Status</th>
+              <th class="text-center px-5 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="caixa-conciliacoes" class="divide-y divide-ink-100"></tbody>
         </table>
       </div>
 
@@ -981,48 +1012,63 @@
 
     <!-- NOTAS FISCAIS -->
     <section id="notas" class="module p-8 space-y-6">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid md:grid-cols-2 gap-4">
         <div class="bg-white p-6 rounded-xl border border-ink-200">
-          <h3 class="font-semibold">Importar XML NF-e</h3>
-          <p class="text-xs text-ink-600 mt-1">Parser automático para schema NF-e 4.00</p>
-          <div class="mt-4 border-2 border-dashed border-ink-200 rounded-lg p-8 text-center">
+          <h3 class="font-semibold">📄 Importar XML NF-e</h3>
+          <p class="text-xs text-ink-600 mt-1">Parser automático — schema NF-e 4.00 (DANFE)</p>
+          <label for="nfe-xml-input" class="mt-4 border-2 border-dashed border-ink-200 hover:border-brand-400 rounded-lg p-8 text-center cursor-pointer block transition">
             <div class="text-3xl text-ink-400">⬆</div>
-            <div class="text-sm mt-2">Arraste arquivos .xml aqui</div>
-            <div class="text-xs text-ink-400 mt-1">ou clique para selecionar</div>
-          </div>
+            <div class="text-sm mt-2">Clique para selecionar arquivos .xml</div>
+            <div class="text-xs text-ink-400 mt-1">Múltiplos arquivos suportados</div>
+          </label>
+          <input type="file" id="nfe-xml-input" accept=".xml,application/xml,text/xml" multiple onchange="handleNFeXML(this.files)" class="hidden">
         </div>
         <div class="bg-white p-6 rounded-xl border border-ink-200">
-          <h3 class="font-semibold">Foto de nota fiscal (OCR)</h3>
-          <p class="text-xs text-ink-600 mt-1">Tesseract + pré-processamento OpenCV</p>
-          <div class="mt-4 border-2 border-dashed border-ink-200 rounded-lg p-8 text-center">
+          <h3 class="font-semibold">📷 Foto / PDF de nota</h3>
+          <p class="text-xs text-ink-600 mt-1">Anexar nota com preenchimento manual dos campos</p>
+          <label for="nfe-foto-input" class="mt-4 border-2 border-dashed border-ink-200 hover:border-brand-400 rounded-lg p-8 text-center cursor-pointer block transition">
             <div class="text-3xl text-ink-400">📷</div>
-            <div class="text-sm mt-2">Tire ou envie uma foto</div>
-            <div class="text-xs text-ink-400 mt-1">JPG, PNG até 10MB</div>
-          </div>
+            <div class="text-sm mt-2">Tire ou envie uma foto / PDF</div>
+            <div class="text-xs text-ink-400 mt-1">JPG, PNG, PDF — até 5MB</div>
+          </label>
+          <input type="file" id="nfe-foto-input" accept="image/*,application/pdf" onchange="handleNFeFoto(this.files[0])" class="hidden">
         </div>
       </div>
 
+      <!-- KPIs -->
+      <div id="notas-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+
       <div class="bg-white rounded-xl border border-ink-200 overflow-hidden">
-        <div class="px-5 py-4 border-b border-ink-200">
-          <h3 class="font-semibold">Notas processadas recentemente</h3>
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">Notas Fiscais</h3>
+            <p class="text-xs text-ink-600 mt-0.5" id="notas-info">—</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <input type="search" id="notas-search" oninput="renderNotas()" placeholder="🔍 Buscar emitente, número, chave..." class="text-sm border border-ink-200 rounded-md px-3 py-1.5 w-64">
+            <select id="notas-filtro-status" onchange="renderNotas()" class="text-sm border border-ink-200 rounded-md px-2 py-1.5">
+              <option value="">Todas</option>
+              <option value="pendente">Pendente</option>
+              <option value="processada">Processada</option>
+              <option value="lancada">Lançada na DRE</option>
+            </select>
+            <button onclick="exportarNotasCSV()" class="text-xs border border-ink-200 hover:bg-ink-50 px-3 py-1.5 rounded-md">📥 Exportar CSV</button>
+          </div>
         </div>
         <table class="w-full text-sm">
           <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
             <tr>
               <th class="text-left px-5 py-3">Nº</th>
+              <th class="text-left px-5 py-3">Emissão</th>
               <th class="text-left px-5 py-3">Emitente</th>
               <th class="text-left px-5 py-3">Origem</th>
               <th class="text-right px-5 py-3">Valor</th>
-              <th class="text-center px-5 py-3">Confiança OCR</th>
+              <th class="text-center px-5 py-3">Itens</th>
               <th class="text-center px-5 py-3">Status</th>
+              <th class="text-center px-5 py-3">Ações</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-ink-100">
-            <tr><td class="px-5 py-3 font-mono">38291</td><td>Frigorífico Boi Bom</td><td>XML</td><td class="text-right">R$ 4.832,90</td><td class="text-center">100%</td><td class="text-center"><span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">Auto</span></td></tr>
-            <tr><td class="px-5 py-3 font-mono">15677</td><td>Distribuidora SP</td><td>XML</td><td class="text-right">R$ 2.140,00</td><td class="text-center">100%</td><td class="text-center"><span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">Auto</span></td></tr>
-            <tr><td class="px-5 py-3 font-mono">8871</td><td>Hortifruti Santo Amaro</td><td>Foto OCR</td><td class="text-right">R$ 480,00</td><td class="text-center">87%</td><td class="text-center"><span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">Auto</span></td></tr>
-            <tr><td class="px-5 py-3 font-mono">2210</td><td>Padaria Central</td><td>Foto OCR</td><td class="text-right">R$ 124,50</td><td class="text-center">62%</td><td class="text-center"><span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Revisar</span></td></tr>
-          </tbody>
+          <tbody id="notas-list" class="divide-y divide-ink-100"></tbody>
         </table>
       </div>
     </section>
@@ -1860,6 +1906,211 @@ app.cantinhodoboni.com.br {
 
     </section>
 
+    <!-- DEPARTAMENTO PESSOAL -->
+    <section id="dp" class="module p-8 space-y-6">
+      <!-- Tabs -->
+      <div class="flex border-b border-ink-200 -mt-2 overflow-x-auto">
+        <button onclick="setDPTab('fechamento')" id="dp-tab-fechamento" class="px-5 py-3 text-sm font-medium border-b-2 border-brand-600 text-brand-700 whitespace-nowrap">📊 Fechamento do mês</button>
+        <button onclick="setDPTab('apontamento')" id="dp-tab-apontamento" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⏱ Apontamento de ponto</button>
+        <button onclick="setDPTab('premissas')" id="dp-tab-premissas" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⚙ Premissas</button>
+        <button onclick="setDPTab('feriados')" id="dp-tab-feriados" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">📅 Feriados</button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="bg-white rounded-xl border border-ink-200 p-4 flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <label class="text-sm">Mês:
+            <input type="month" id="dp-mes" onchange="renderDP()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5 ml-2">
+          </label>
+          <button onclick="dpMesAnterior()" class="text-sm border border-ink-200 px-3 py-1.5 rounded-md">← Anterior</button>
+          <button onclick="dpMesAtual()" class="text-sm border border-ink-200 px-3 py-1.5 rounded-md">Hoje</button>
+          <button onclick="dpMesProximo()" class="text-sm border border-ink-200 px-3 py-1.5 rounded-md">Próximo →</button>
+        </div>
+        <div class="text-xs text-ink-500" id="dp-info">—</div>
+      </div>
+
+      <!-- Tab: Fechamento do mês -->
+      <div id="dp-content-fechamento" class="bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">Fechamento mensal — folha de pagamento</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Resumo por colaborador para envio à contabilidade</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="importarColaboradoresPlanilha()" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md" title="Importa 22 colaboradores da planilha CB Colorado">📥 Importar planilha CB</button>
+            <button onclick="recalcularTodosColabs()" class="text-xs border border-ink-200 hover:bg-ink-50 px-3 py-1.5 rounded-md">↻ Recalcular tudo</button>
+            <button onclick="exportarFechamentoCSV()" class="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-md">📥 Exportar CSV</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+              <tr>
+                <th class="text-left px-3 py-3">#</th>
+                <th class="text-left px-3 py-3">Nome</th>
+                <th class="text-center px-3 py-3">Assid.</th>
+                <th class="text-right px-3 py-3">H.E. 50%</th>
+                <th class="text-right px-3 py-3">H.E. 100%</th>
+                <th class="text-right px-3 py-3">Adic. Noturno</th>
+                <th class="text-right px-3 py-3">Atrasos</th>
+                <th class="text-center px-3 py-3">Faltas</th>
+                <th class="text-right px-3 py-3">Comissão</th>
+                <th class="text-right px-3 py-3">Adiantamento</th>
+                <th class="text-right px-3 py-3">Salário</th>
+                <th class="text-center px-3 py-3">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="dp-fechamento-list" class="divide-y divide-ink-100"></tbody>
+            <tfoot class="bg-ink-50 text-xs font-semibold border-t-2 border-ink-200">
+              <tr id="dp-fechamento-totais"></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab: Apontamento -->
+      <div id="dp-content-apontamento" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">Apontamento diário de ponto</h3>
+            <p class="text-xs text-ink-600 mt-0.5" id="dp-apont-info">Selecione um colaborador</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="dp-apont-colab" onchange="renderApontamentoColab()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5"></select>
+          </div>
+        </div>
+        <div id="dp-apont-card-info" class="px-5 py-3 bg-ink-50 border-b border-ink-200 text-xs"></div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs" id="dp-apont-table">
+            <thead class="bg-ink-50 text-ink-600 uppercase">
+              <tr>
+                <th class="text-left px-2 py-2">Dia</th>
+                <th class="text-left px-2 py-2">Sem.</th>
+                <th class="text-center px-2 py-2" colspan="2">1ª entrada/saída</th>
+                <th class="text-center px-2 py-2" colspan="2">2ª entrada/saída</th>
+                <th class="text-center px-2 py-2" colspan="2">3ª entrada/saída</th>
+                <th class="text-center px-2 py-2">Abona</th>
+                <th class="text-right px-2 py-2">Trabalhado</th>
+                <th class="text-right px-2 py-2">Atraso</th>
+                <th class="text-right px-2 py-2">H.E.</th>
+                <th class="text-right px-2 py-2">Ad.Not.</th>
+                <th class="text-left px-2 py-2">Obs</th>
+              </tr>
+            </thead>
+            <tbody id="dp-apont-body" class="divide-y divide-ink-100"></tbody>
+          </table>
+        </div>
+        <div class="px-5 py-3 border-t border-ink-200 bg-ink-50 flex items-center justify-between flex-wrap gap-3 text-xs">
+          <div id="dp-apont-totais"></div>
+          <div class="flex gap-2">
+            <button onclick="abrirFechamentoColabModal()" class="text-xs border border-brand-300 bg-white text-brand-700 px-3 py-1.5 rounded-md">+ Comissão / Adiantamento / Obs</button>
+          </div>
+        </div>
+        <div class="px-5 py-3 border-t border-ink-200 text-[11px] text-ink-500">
+          💡 Dica: digite o horário sem os dois pontos (ex: <strong>1600</strong> = 16:00) e a planilha completa automaticamente. Para falta digite <strong>F</strong>, atestado <strong>A</strong>, folga <strong>FL</strong>.
+        </div>
+      </div>
+
+      <!-- Tab: Premissas -->
+      <div id="dp-content-premissas" class="hidden bg-white rounded-xl border border-ink-200 p-6 space-y-5">
+        <h3 class="font-semibold text-lg">⚙ Premissas de cálculo</h3>
+        <p class="text-xs text-ink-600">Estas configurações afetam o cálculo de horas extras, atrasos e adicional noturno de TODOS os colaboradores. Confira com seu contador antes de salvar.</p>
+
+        <div class="grid md:grid-cols-2 gap-5 pt-2">
+          <div class="space-y-3">
+            <h4 class="text-sm font-semibold border-b pb-2">Tolerância e adicional noturno</h4>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Tolerância de atraso/HE (minutos por dia)</label>
+              <input type="number" id="prem-tolerancia" min="0" max="60" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <p class="text-[10px] text-ink-500 mt-1">CLT padrão: 10 minutos. Aplicado ao total do dia.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-medium text-ink-600">Início adic. noturno</label>
+                <input type="time" id="prem-noturno-ini" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              </div>
+              <div>
+                <label class="text-xs font-medium text-ink-600">Fim adic. noturno</label>
+                <input type="time" id="prem-noturno-fim" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600 flex items-center gap-2">
+                <input type="checkbox" id="prem-hora-reduzida"> Hora noturna reduzida (52'30")
+              </label>
+              <p class="text-[10px] text-ink-500 mt-1">Marque se o acordo coletivo prevê a hora noturna reduzida.</p>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Percentual adicional noturno (%)</label>
+              <input type="number" id="prem-noturno-pct" min="0" max="100" step="1" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <p class="text-[10px] text-ink-500 mt-1">CLT mínimo: 20%</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <h4 class="text-sm font-semibold border-b pb-2">Distribuição de horas extras</h4>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Faixa 1 — até quantas horas/dia</label>
+              <div class="flex gap-2 mt-1">
+                <input type="number" id="prem-he1-ate" step="0.5" min="0" class="text-sm border border-ink-200 rounded-md px-3 py-2 w-24">
+                <span class="text-sm self-center">horas →</span>
+                <input type="number" id="prem-he1-pct" min="0" max="200" step="1" class="text-sm border border-ink-200 rounded-md px-3 py-2 w-24">
+                <span class="text-sm self-center">%</span>
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Faixa 2 — H.E. excedente</label>
+              <div class="flex gap-2 mt-1">
+                <input type="number" id="prem-he2-pct" min="0" max="200" step="1" class="text-sm border border-ink-200 rounded-md px-3 py-2 w-24">
+                <span class="text-sm self-center">%</span>
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Domingo / Feriado %</label>
+              <input type="number" id="prem-domfer-pct" min="0" max="200" step="1" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <p class="text-[10px] text-ink-500 mt-1">CLT padrão: 100% para domingos e feriados.</p>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Carga horária diária padrão (horas)</label>
+              <input type="number" id="prem-carga-diaria" step="0.5" min="0" max="12" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <p class="text-[10px] text-ink-500 mt-1">Usada quando o colaborador não tem carga personalizada. CLT padrão: 7h20min ou 8h.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-3 border-t">
+          <button onclick="salvarPremissasDP()" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-md">Salvar premissas</button>
+        </div>
+      </div>
+
+      <!-- Tab: Feriados -->
+      <div id="dp-content-feriados" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div>
+            <h3 class="font-semibold">📅 Feriados</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Datas que serão tratadas como domingo no cálculo (HE 100%)</p>
+          </div>
+          <button onclick="addFeriadoModal()" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-md">+ Feriado</button>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+            <tr>
+              <th class="text-left px-5 py-3">Data</th>
+              <th class="text-left px-5 py-3">Dia da semana</th>
+              <th class="text-left px-5 py-3">Descrição</th>
+              <th class="text-center px-5 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="dp-feriados-list" class="divide-y divide-ink-100"></tbody>
+        </table>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900">
+        <strong>⚠ Importante:</strong> Este módulo é uma <strong>ferramenta de cálculo e fechamento</strong> — ele não substitui ponto eletrônico oficial nem a folha emitida pelo contador. Use os totais aqui calculados como insumo para enviar à contabilidade. Para evitar erros legais, valide as premissas com seu contador antes do primeiro fechamento.
+      </div>
+
+    </section>
+
     <!-- USUÁRIOS -->
     <section id="usuarios" class="module p-8 space-y-6">
 
@@ -1922,6 +2173,7 @@ const titles = {
   cadastros: ['Cadastros', 'Funcionários, fornecedores, clientes e prestadores'],
   setup: ['Setup & Instalação', 'Como rodar o sistema em servidor próprio — soberania de dados'],
   freelancers: ['Freelancers', 'Cadastro de prestadores autônomos e pagamentos em espécie'],
+  dp: ['Departamento Pessoal', 'Apontamento de ponto, cálculo de horas extras e fechamento mensal de folha'],
   usuarios: ['Usuários e Acesso', 'RBAC + auditoria completa']
 };
 
@@ -4122,21 +4374,58 @@ function setExecResponse(value){
   }
 }
 
-function handleExecPhoto(file){
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => setExecResponse(e.target.result);
-  reader.readAsDataURL(file);
+// Comprime imagem: redimensiona para no máx 1024px no lado maior + JPEG qualidade 0.7
+// Reduz fotos de celular de ~3MB para ~80-150KB sem perda visual prática
+function compressImage(file, maxSide = 1024, quality = 0.7){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxSide || height > maxSide){
+          if(width >= height){
+            height = Math.round(height * (maxSide / width));
+            width = maxSide;
+          } else {
+            width = Math.round(width * (maxSide / height));
+            height = maxSide;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
-function handleConfirmPhoto(itemId, file){
+async function handleExecPhoto(file){
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    _execState.responses['photo_'+itemId] = e.target.result;
+  try {
+    const compressed = await compressImage(file);
+    setExecResponse(compressed);
+  } catch {
+    showToast('<strong>!</strong> Erro ao processar foto', 'error');
+  }
+}
+
+async function handleConfirmPhoto(itemId, file){
+  if(!file) return;
+  try {
+    const compressed = await compressImage(file);
+    _execState.responses['photo_'+itemId] = compressed;
     renderExecutionModal();
-  };
-  reader.readAsDataURL(file);
+  } catch {
+    showToast('<strong>!</strong> Erro ao processar foto', 'error');
+  }
 }
 
 function nextExecStep(){
@@ -6623,11 +6912,13 @@ function renderCaixa(){
   if($fech){
     const fechs = getCaixaFechamentos();
     if(!fechs.length){
-      $fech.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-ink-400 text-sm">Nenhum fechamento registrado.</td></tr>';
+      $fech.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ink-400 text-sm">Nenhum fechamento registrado.</td></tr>';
     } else {
-      $fech.innerHTML = fechs.slice().reverse().map(f => {
+      const fechsOrdered = fechs.slice().reverse();
+      $fech.innerHTML = fechsOrdered.map((f, idx) => {
         const dataFmt = new Date(f.fechadoEm).toLocaleDateString('pt-BR');
         const diffClass = f.diferenca === 0 ? 'text-emerald-600' : (f.diferenca > 0 ? 'text-blue-600' : 'text-rose-600');
+        const isLatest = idx === 0;
         return `
           <tr>
             <td class="px-5 py-2.5 text-xs">${dataFmt}</td>
@@ -6637,11 +6928,38 @@ function renderCaixa(){
             <td class="px-5 py-2.5 text-right text-xs font-medium">R$ ${f.saldoContado.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
             <td class="px-5 py-2.5 text-right text-xs ${diffClass} font-medium">${f.diferenca > 0 ? '+' : ''}R$ ${f.diferenca.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
             <td class="px-5 py-2.5 text-xs text-ink-600">${f.observacao || '—'}</td>
+            <td class="px-5 py-2.5 text-center text-xs whitespace-nowrap">
+              ${isLatest ? `<button onclick="reabrirCaixa('${f.id}')" class="text-amber-600 hover:underline" title="Reabrir caixa">🔓 Reabrir</button>` : ''}
+              <button onclick="excluirFechamento('${f.id}')" class="text-rose-500 hover:text-rose-700 ml-2" title="Excluir registro">🗑</button>
+            </td>
           </tr>
         `;
       }).join('');
     }
   }
+
+  if(typeof renderConciliacoesColibri === 'function') renderConciliacoesColibri();
+}
+
+function reabrirCaixa(id){
+  const fechs = getCaixaFechamentos();
+  const f = fechs.find(x => x.id === id);
+  if(!f) return;
+  if(!confirm(`Reabrir o caixa fechado em ${new Date(f.fechadoEm).toLocaleString('pt-BR')}?\n\nO fechamento será removido e o saldo inicial voltará para R$ ${(f.saldoInicial||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}.\n\nIsso permite registrar novos lançamentos no dia.`)) return;
+  saveCaixaFechamentos(fechs.filter(x => x.id !== id));
+  saveCaixaSaldoInicial(f.saldoInicial || 0);
+  renderCaixa();
+  showToast(`<strong>🔓</strong> Caixa reaberto — saldo inicial restaurado para R$ ${(f.saldoInicial||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`);
+}
+
+function excluirFechamento(id){
+  const fechs = getCaixaFechamentos();
+  const f = fechs.find(x => x.id === id);
+  if(!f) return;
+  if(!confirm(`Excluir registro de fechamento de ${new Date(f.fechadoEm).toLocaleDateString('pt-BR')}?\n\nO saldo inicial NÃO será alterado — use "Reabrir" para isso.`)) return;
+  saveCaixaFechamentos(fechs.filter(x => x.id !== id));
+  renderCaixa();
+  showToast('<strong>✓</strong> Registro de fechamento excluído');
 }
 
 function excluirCaixaTransacao(id){
@@ -7191,6 +7509,1412 @@ function confirmarFechamento(saldoEsperado){
   closeModal();
   renderCaixa();
   showToast(`<strong>✓</strong> Caixa fechado — saldo contado R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})} (diferença R$ ${diff.toFixed(2).replace('.',',')})`);
+}
+
+// =====================================================
+// CONCILIAÇÃO DIÁRIA — Relatório Colibri (PDV)
+// IMPORTANTE: Apenas conferência. NÃO impacta DRE.
+// Crédito/Débito/PIX já são apropriados pelo extrato bancário.
+// O dinheiro em espécie já é apropriado pelas entradas de caixa.
+// =====================================================
+
+function getConciliacoesColibri(){ return Store.get('caixa.conciliacoesColibri', []); }
+function saveConciliacoesColibri(list){ Store.set('caixa.conciliacoesColibri', list); }
+
+function renderConciliacoesColibri(){
+  const $tbody = document.getElementById('caixa-conciliacoes');
+  if(!$tbody) return;
+  const list = getConciliacoesColibri().slice().sort((a,b) => b.data.localeCompare(a.data));
+  if(!list.length){
+    $tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-ink-400 text-sm">Nenhuma conciliação registrada. Clique em "+ Nova Conciliação" para anexar o relatório de fechamento do Colibri.</td></tr>';
+    return;
+  }
+  $tbody.innerHTML = list.map(c => {
+    const total = (c.dinheiro||0) + (c.credito||0) + (c.debito||0) + (c.pix||0);
+    const dataFmt = new Date(c.data + 'T12:00').toLocaleDateString('pt-BR');
+    let statusBadge;
+    if(c.status === 'conciliado'){
+      statusBadge = '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">✓ Conciliado</span>';
+    } else if(c.status === 'divergente'){
+      statusBadge = `<span class="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded" title="${c.divergencia||''}">⚠ Divergente</span>`;
+    } else {
+      statusBadge = '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Pendente</span>';
+    }
+    return `
+      <tr>
+        <td class="px-5 py-2.5 text-xs whitespace-nowrap">${dataFmt}</td>
+        <td class="px-5 py-2.5 text-right text-xs">R$ ${(c.dinheiro||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-right text-xs">R$ ${(c.credito||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-right text-xs">R$ ${(c.debito||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-right text-xs">R$ ${(c.pix||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-right text-xs font-semibold">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-center">${statusBadge}</td>
+        <td class="px-5 py-2.5 text-center text-xs whitespace-nowrap">
+          <button onclick="verConciliacao('${c.id}')" class="text-brand-600 hover:underline" title="Detalhes">👁</button>
+          ${c.anexo ? `<button onclick="verAnexoConciliacao('${c.id}')" class="text-violet-600 hover:underline ml-2" title="Ver anexo">📎</button>` : ''}
+          <button onclick="excluirConciliacao('${c.id}')" class="text-rose-500 hover:text-rose-700 ml-2" title="Excluir">🗑</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openConciliacaoColibriModal(id){
+  const existing = id ? getConciliacoesColibri().find(c => c.id === id) : null;
+  const today = new Date().toISOString().slice(0,10);
+  // Dinheiro esperado do caixa nessa data
+  const dataDefault = existing?.data || today;
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold text-lg">📋 Conciliação Diária — Relatório Colibri</h2>
+            <p class="text-xs text-ink-600 mt-0.5">Anexe o relatório do PDV e confira os valores por forma de pagamento</p>
+          </div>
+          <button onclick="closeModal()" class="text-ink-400 hover:text-ink-800 text-2xl leading-none">×</button>
+        </div>
+        <form id="conc-form" onsubmit="submitConciliacao(event, '${id||''}')" class="p-6 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">Data do fechamento <span class="text-rose-500">*</span></label>
+              <input type="date" name="data" required value="${dataDefault}" onchange="atualizarDinheiroEsperado()" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Operador</label>
+              <input type="text" name="operador" value="${existing?.operador||'Bonieder S.'}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+          </div>
+
+          <div class="border-t border-ink-200 pt-4">
+            <h3 class="text-sm font-semibold mb-3">💰 Valores do relatório Colibri</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-medium text-ink-600">💵 Dinheiro <span class="text-rose-500">*</span></label>
+                <input type="number" name="dinheiro" required step="0.01" min="0" value="${existing?.dinheiro||''}" placeholder="0,00" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+                <div class="text-[10px] text-ink-500 mt-1" id="conc-dinheiro-info">Calculando...</div>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-ink-600">💳 Cartão Crédito <span class="text-rose-500">*</span></label>
+                <input type="number" name="credito" required step="0.01" min="0" value="${existing?.credito||''}" placeholder="0,00" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              </div>
+              <div>
+                <label class="text-xs font-medium text-ink-600">💳 Cartão Débito <span class="text-rose-500">*</span></label>
+                <input type="number" name="debito" required step="0.01" min="0" value="${existing?.debito||''}" placeholder="0,00" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              </div>
+              <div>
+                <label class="text-xs font-medium text-ink-600">📱 PIX <span class="text-rose-500">*</span></label>
+                <input type="number" name="pix" required step="0.01" min="0" value="${existing?.pix||''}" placeholder="0,00" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-ink-200 pt-4">
+            <label class="text-xs font-medium text-ink-600">📎 Anexar relatório (PDF ou foto)</label>
+            <input type="file" name="anexoFile" accept="image/*,application/pdf" onchange="handleAnexoConcil(this.files[0])" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            <input type="hidden" name="anexo" id="conc-anexo" value="${existing?.anexo||''}">
+            <input type="hidden" name="anexoTipo" id="conc-anexoTipo" value="${existing?.anexoTipo||''}">
+            <input type="hidden" name="anexoNome" id="conc-anexoNome" value="${existing?.anexoNome||''}">
+            ${existing?.anexo ? `<div class="text-xs text-emerald-700 mt-1">✓ Já existe anexo (${existing.anexoNome||'arquivo'}) — selecione um novo para substituir</div>` : ''}
+          </div>
+
+          <div>
+            <label class="text-xs font-medium text-ink-600">Observações</label>
+            <textarea name="observacao" rows="2" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">${existing?.observacao||''}</textarea>
+          </div>
+
+          <div class="bg-amber-50 border border-amber-200 rounded-md p-3 text-xs text-amber-900">
+            <strong>⚠ Importante:</strong> Esses valores servem <strong>apenas para conferência</strong>. Eles não criam lançamentos no Caixa nem na DRE. O dinheiro em espécie já é registrado pelas entradas/saídas do Caixa, e crédito/débito/PIX entram pela importação do extrato bancário.
+          </div>
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('conc-form').requestSubmit()" type="button" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-md">${existing?'Salvar alterações':'Conciliar e Salvar'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  setTimeout(atualizarDinheiroEsperado, 50);
+}
+
+function atualizarDinheiroEsperado(){
+  const $info = document.getElementById('conc-dinheiro-info');
+  if(!$info) return;
+  const data = document.querySelector('[name=data]')?.value;
+  if(!data){ $info.textContent = ''; return; }
+  // Soma entradas - saídas em espécie do Caixa para essa data
+  const txs = getCaixaTransacoes().filter(t => t.createdAt.slice(0,10) === data);
+  const ent = txs.filter(t => t.tipo === 'entrada' && t.categoria === 'Receita').reduce((s,t)=>s+t.valor, 0);
+  if(ent === 0){
+    $info.innerHTML = '<span class="text-ink-500">Nenhuma receita em espécie registrada nessa data</span>';
+  } else {
+    $info.innerHTML = `<span class="text-ink-600">Caixa registrou em espécie: <strong>R$ ${ent.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>`;
+  }
+}
+
+async function handleAnexoConcil(file){
+  if(!file) return;
+  if(file.size > 5 * 1024 * 1024){
+    showToast('<strong>!</strong> Arquivo maior que 5MB. Comprima ou use foto menor.', 'error');
+    return;
+  }
+  try {
+    let dataUrl;
+    if(file.type.startsWith('image/')){
+      dataUrl = await compressImage(file, 1400, 0.75);
+    } else {
+      dataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = e => resolve(e.target.result);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+    }
+    document.getElementById('conc-anexo').value = dataUrl;
+    document.getElementById('conc-anexoTipo').value = file.type;
+    document.getElementById('conc-anexoNome').value = file.name;
+    showToast('<strong>✓</strong> Anexo carregado');
+  } catch {
+    showToast('<strong>!</strong> Erro ao carregar anexo', 'error');
+  }
+}
+
+function submitConciliacao(e, id){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  ['dinheiro','credito','debito','pix'].forEach(k => data[k] = parseFloat(data[k]) || 0);
+  delete data.anexoFile;
+  // Determinar status: comparar dinheiro com receitas em espécie do Caixa
+  const txs = getCaixaTransacoes().filter(t => t.createdAt.slice(0,10) === data.data);
+  const dinheiroCaixa = txs.filter(t => t.tipo === 'entrada' && t.categoria === 'Receita').reduce((s,t)=>s+t.valor, 0);
+  const diff = data.dinheiro - dinheiroCaixa;
+  if(Math.abs(diff) < 0.01){
+    data.status = 'conciliado';
+    data.divergencia = '';
+  } else {
+    data.status = 'divergente';
+    data.divergencia = `Dinheiro Colibri R$ ${data.dinheiro.toFixed(2)} vs Caixa R$ ${dinheiroCaixa.toFixed(2)} = diferença R$ ${diff.toFixed(2)}`;
+  }
+  data.dinheiroCaixaEsperado = dinheiroCaixa;
+
+  const list = getConciliacoesColibri();
+  if(id){
+    const idx = list.findIndex(c => c.id === id);
+    if(idx >= 0) list[idx] = { ...list[idx], ...data, id };
+  } else {
+    list.unshift({ id:'CONC-'+Date.now(), ...data, createdAt:new Date().toISOString() });
+  }
+  saveConciliacoesColibri(list);
+  closeModal();
+  renderConciliacoesColibri();
+  if(data.status === 'conciliado'){
+    showToast('<strong>✓</strong> Conciliação OK — dinheiro confere com o caixa');
+  } else {
+    showToast(`<strong>⚠</strong> Conciliação salva com divergência: R$ ${diff.toFixed(2).replace('.',',')}`, 'warn');
+  }
+}
+
+function verConciliacao(id){
+  const c = getConciliacoesColibri().find(x => x.id === id);
+  if(!c) return;
+  const total = (c.dinheiro||0) + (c.credito||0) + (c.debito||0) + (c.pix||0);
+  const dataFmt = new Date(c.data + 'T12:00').toLocaleDateString('pt-BR');
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <h2 class="font-semibold text-lg">Conciliação ${dataFmt}</h2>
+          <button onclick="closeModal()" class="text-ink-400 hover:text-ink-800 text-2xl leading-none">×</button>
+        </div>
+        <div class="p-6 space-y-3 text-sm">
+          <div class="grid grid-cols-2 gap-3">
+            <div><span class="text-ink-600">Operador:</span> <strong>${c.operador||'—'}</strong></div>
+            <div><span class="text-ink-600">Status:</span> <strong>${c.status === 'conciliado' ? '✓ Conciliado' : '⚠ Divergente'}</strong></div>
+          </div>
+          <div class="border-t pt-3 space-y-1.5">
+            <div class="flex justify-between"><span>💵 Dinheiro</span><span class="font-mono">R$ ${(c.dinheiro||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
+            ${c.dinheiroCaixaEsperado !== undefined ? `<div class="flex justify-between text-xs ${Math.abs((c.dinheiro||0)-(c.dinheiroCaixaEsperado||0))<0.01?'text-emerald-700':'text-rose-700'}"><span>↳ Caixa em espécie no dia</span><span class="font-mono">R$ ${(c.dinheiroCaixaEsperado||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>`:''}
+            <div class="flex justify-between"><span>💳 Crédito</span><span class="font-mono">R$ ${(c.credito||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
+            <div class="flex justify-between"><span>💳 Débito</span><span class="font-mono">R$ ${(c.debito||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
+            <div class="flex justify-between"><span>📱 PIX</span><span class="font-mono">R$ ${(c.pix||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
+            <div class="flex justify-between border-t pt-2 font-semibold"><span>Total</span><span class="font-mono">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></div>
+          </div>
+          ${c.divergencia ? `<div class="bg-rose-50 border border-rose-200 rounded p-3 text-xs text-rose-900">${c.divergencia}</div>`:''}
+          ${c.observacao ? `<div class="bg-ink-50 rounded p-3 text-xs"><strong>Obs:</strong> ${c.observacao}</div>`:''}
+          ${c.anexo ? `<button onclick="verAnexoConciliacao('${c.id}')" class="w-full text-sm border border-ink-200 hover:bg-ink-50 px-4 py-2 rounded-md">📎 Ver anexo (${c.anexoNome||'arquivo'})</button>`:''}
+        </div>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-between bg-ink-50">
+          <button onclick="closeModal(); openConciliacaoColibriModal('${c.id}')" class="text-sm border border-ink-200 bg-white px-4 py-2 rounded-md">Editar</button>
+          <button onclick="closeModal()" class="text-sm bg-ink-800 text-white px-4 py-2 rounded-md">Fechar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function verAnexoConciliacao(id){
+  const c = getConciliacoesColibri().find(x => x.id === id);
+  if(!c || !c.anexo) return;
+  if((c.anexoTipo||'').startsWith('image/')){
+    const w = window.open('', '_blank');
+    if(w) w.document.write(`<title>${c.anexoNome||'Anexo'}</title><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${c.anexo}" style="max-width:100%;max-height:100vh"></body>`);
+  } else {
+    const w = window.open('', '_blank');
+    if(w) w.document.write(`<title>${c.anexoNome||'Anexo'}</title><body style="margin:0"><iframe src="${c.anexo}" style="width:100%;height:100vh;border:0"></iframe></body>`);
+  }
+}
+
+function excluirConciliacao(id){
+  if(!confirm('Excluir esta conciliação?')) return;
+  saveConciliacoesColibri(getConciliacoesColibri().filter(c => c.id !== id));
+  renderConciliacoesColibri();
+  showToast('<strong>✓</strong> Conciliação excluída');
+}
+
+// =====================================================
+// NOTAS FISCAIS — Importação XML NF-e + anexo de foto/PDF
+// =====================================================
+
+function getNotas(){ return Store.get('notas.fiscais', []); }
+function saveNotas(list){ Store.set('notas.fiscais', list); }
+
+function parseNFeXML(xmlText, fileName){
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlText, 'application/xml');
+  const errs = doc.getElementsByTagName('parsererror');
+  if(errs.length) throw new Error('XML inválido ou corrompido');
+
+  const get = (sel) => doc.querySelector(sel)?.textContent?.trim() || '';
+
+  // Tenta extrair chave (Id no infNFe = "NFe" + 44 dígitos)
+  const infNFe = doc.querySelector('infNFe');
+  const chave = infNFe ? (infNFe.getAttribute('Id') || '').replace(/^NFe/i, '') : '';
+
+  const numero = get('ide nNF') || get('nNF');
+  const dhEmi = get('ide dhEmi') || get('dhEmi') || get('ide dEmi') || get('dEmi');
+  const emitNome = get('emit xNome');
+  const emitFantasia = get('emit xFant');
+  const emitCNPJ = get('emit CNPJ');
+  const emitCPF = get('emit CPF');
+  const destNome = get('dest xNome');
+  const destCNPJ = get('dest CNPJ') || get('dest CPF');
+  const valorTotal = parseFloat(get('total ICMSTot vNF') || get('vNF') || '0') || 0;
+  const valorICMS = parseFloat(get('total ICMSTot vICMS') || '0') || 0;
+  const valorIPI = parseFloat(get('total ICMSTot vIPI') || '0') || 0;
+  const valorFrete = parseFloat(get('total ICMSTot vFrete') || '0') || 0;
+  const valorDesc = parseFloat(get('total ICMSTot vDesc') || '0') || 0;
+  const tipoNF = get('ide tpNF'); // 0=entrada, 1=saída
+
+  // Itens (det/prod)
+  const dets = doc.querySelectorAll('det');
+  const itens = Array.from(dets).map(det => {
+    const q = (sel) => det.querySelector(sel)?.textContent?.trim() || '';
+    return {
+      codigo: q('prod cProd'),
+      descricao: q('prod xProd'),
+      ncm: q('prod NCM'),
+      cfop: q('prod CFOP'),
+      unidade: q('prod uCom'),
+      quantidade: parseFloat(q('prod qCom')) || 0,
+      valorUnit: parseFloat(q('prod vUnCom')) || 0,
+      valorTotal: parseFloat(q('prod vProd')) || 0,
+      ean: q('prod cEAN')
+    };
+  });
+
+  if(!numero && !valorTotal && !emitNome) throw new Error('Não parece ser uma NF-e válida — campos essenciais ausentes');
+
+  return {
+    id: 'NF-' + (chave || Date.now()),
+    chave,
+    numero,
+    dhEmi: dhEmi ? dhEmi.slice(0,10) : '',
+    emitNome,
+    emitFantasia,
+    emitCNPJ: emitCNPJ || emitCPF,
+    destNome,
+    destCNPJ,
+    valorTotal,
+    valorICMS,
+    valorIPI,
+    valorFrete,
+    valorDesc,
+    tipoNF: tipoNF === '0' ? 'entrada' : (tipoNF === '1' ? 'saida' : 'desconhecido'),
+    itens,
+    origem: 'XML',
+    arquivoNome: fileName,
+    xmlRaw: xmlText.length < 500000 ? xmlText : null,
+    status: 'processada',
+    importadoEm: new Date().toISOString()
+  };
+}
+
+async function handleNFeXML(files){
+  if(!files || !files.length) return;
+  const list = getNotas();
+  let ok = 0, dup = 0, err = 0;
+  for(const file of files){
+    try {
+      const text = await file.text();
+      const nf = parseNFeXML(text, file.name);
+      // Dedup por chave (ou número+emitente)
+      const dupKey = nf.chave || (nf.numero + '|' + nf.emitCNPJ);
+      const exists = list.some(x => (x.chave && x.chave === nf.chave) || (!x.chave && nf.numero && x.numero === nf.numero && x.emitCNPJ === nf.emitCNPJ));
+      if(exists){ dup++; continue; }
+      list.unshift(nf);
+      ok++;
+    } catch(e){
+      err++;
+      console.warn('Erro ao processar', file.name, e);
+    }
+  }
+  saveNotas(list);
+  document.getElementById('nfe-xml-input').value = '';
+  renderNotas();
+  let msg = `<strong>✓</strong> ${ok} nota(s) importada(s)`;
+  if(dup) msg += ` · ${dup} duplicada(s) ignorada(s)`;
+  if(err) msg += ` · ${err} erro(s)`;
+  showToast(msg, ok > 0 ? 'success' : (err > 0 ? 'error' : 'warn'));
+}
+
+async function handleNFeFoto(file){
+  if(!file) return;
+  if(file.size > 5 * 1024 * 1024){
+    showToast('<strong>!</strong> Arquivo maior que 5MB', 'error');
+    return;
+  }
+  let dataUrl;
+  try {
+    if(file.type.startsWith('image/')){
+      dataUrl = await compressImage(file, 1600, 0.75);
+    } else {
+      dataUrl = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    }
+  } catch {
+    showToast('<strong>!</strong> Erro ao carregar arquivo', 'error');
+    return;
+  }
+  document.getElementById('nfe-foto-input').value = '';
+  // Abre modal de preenchimento manual
+  openNotaManualModal({
+    origem: 'Foto/PDF',
+    anexo: dataUrl,
+    anexoTipo: file.type,
+    anexoNome: file.name
+  });
+}
+
+function openNotaManualModal(prefill, editId){
+  const nf = editId ? getNotas().find(n => n.id === editId) : (prefill || {});
+  const isEdit = !!editId;
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold text-lg">${isEdit ? 'Editar Nota' : 'Nova Nota Fiscal'}</h2>
+            <p class="text-xs text-ink-600 mt-0.5">${nf.origem || 'Manual'}</p>
+          </div>
+          <button onclick="closeModal()" class="text-ink-400 hover:text-ink-800 text-2xl leading-none">×</button>
+        </div>
+        <form id="nf-form" onsubmit="submitNotaManual(event, '${editId||''}')" class="p-6 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">Número da NF <span class="text-rose-500">*</span></label>
+              <input type="text" name="numero" required value="${nf.numero||''}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Data de emissão <span class="text-rose-500">*</span></label>
+              <input type="date" name="dhEmi" required value="${nf.dhEmi||new Date().toISOString().slice(0,10)}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Emitente (Razão social) <span class="text-rose-500">*</span></label>
+            <input type="text" name="emitNome" required value="${nf.emitNome||''}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">CNPJ/CPF do emitente</label>
+              <input type="text" name="emitCNPJ" value="${nf.emitCNPJ||''}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Valor total (R$) <span class="text-rose-500">*</span></label>
+              <input type="number" name="valorTotal" required step="0.01" min="0" value="${nf.valorTotal||''}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Chave de acesso (44 dígitos — opcional)</label>
+            <input type="text" name="chave" value="${nf.chave||''}" maxlength="44" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1 font-mono">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Observações</label>
+            <textarea name="observacao" rows="2" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">${nf.observacao||''}</textarea>
+          </div>
+          <input type="hidden" name="anexo" value="${nf.anexo||''}">
+          <input type="hidden" name="anexoTipo" value="${nf.anexoTipo||''}">
+          <input type="hidden" name="anexoNome" value="${nf.anexoNome||''}">
+          <input type="hidden" name="origem" value="${nf.origem||'Manual'}">
+          ${nf.anexo ? `<div class="text-xs text-emerald-700">📎 Anexo: ${nf.anexoNome||'arquivo'}</div>`:''}
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('nf-form').requestSubmit()" type="button" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-md">${isEdit?'Salvar':'Cadastrar Nota'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function submitNotaManual(e, id){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  data.valorTotal = parseFloat(data.valorTotal) || 0;
+  const list = getNotas();
+  if(id){
+    const idx = list.findIndex(n => n.id === id);
+    if(idx >= 0) list[idx] = { ...list[idx], ...data };
+  } else {
+    list.unshift({
+      id: 'NF-' + Date.now(),
+      ...data,
+      status: 'processada',
+      itens: [],
+      importadoEm: new Date().toISOString()
+    });
+  }
+  saveNotas(list);
+  closeModal();
+  renderNotas();
+  showToast(`<strong>✓</strong> Nota ${id ? 'atualizada' : 'cadastrada'}`);
+}
+
+function renderNotas(){
+  const $list = document.getElementById('notas-list');
+  const $info = document.getElementById('notas-info');
+  const $kpis = document.getElementById('notas-kpis');
+  if(!$list) return;
+  const search = (document.getElementById('notas-search')?.value || '').toLowerCase();
+  const fStatus = document.getElementById('notas-filtro-status')?.value || '';
+  let notas = getNotas();
+  if(search){
+    notas = notas.filter(n =>
+      (n.emitNome||'').toLowerCase().includes(search) ||
+      (n.numero||'').includes(search) ||
+      (n.chave||'').includes(search)
+    );
+  }
+  if(fStatus) notas = notas.filter(n => n.status === fStatus);
+
+  // KPIs
+  if($kpis){
+    const all = getNotas();
+    const totalValor = all.reduce((s,n) => s + (n.valorTotal||0), 0);
+    const mes = new Date().toISOString().slice(0,7);
+    const mesNotas = all.filter(n => (n.dhEmi||'').slice(0,7) === mes);
+    const mesValor = mesNotas.reduce((s,n) => s + (n.valorTotal||0), 0);
+    const pendentes = all.filter(n => n.status === 'pendente').length;
+    $kpis.innerHTML = `
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Total de notas</div>
+        <div class="text-xl font-bold mt-1">${all.length}</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Valor total acumulado</div>
+        <div class="text-xl font-bold mt-1">R$ ${totalValor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Mês atual</div>
+        <div class="text-xl font-bold mt-1">${mesNotas.length} <span class="text-sm font-normal text-ink-500">notas</span></div>
+        <div class="text-xs text-ink-500 mt-0.5">R$ ${mesValor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-ink-200">
+        <div class="text-xs text-ink-600 uppercase">Pendentes</div>
+        <div class="text-xl font-bold mt-1 ${pendentes ? 'text-amber-600' : 'text-emerald-600'}">${pendentes}</div>
+      </div>
+    `;
+  }
+
+  if($info) $info.textContent = `${notas.length} nota(s) ${search||fStatus ? 'no filtro atual' : 'no total'}`;
+
+  if(!notas.length){
+    $list.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-ink-400 text-sm">Nenhuma nota fiscal cadastrada. Importe um XML NF-e ou anexe foto/PDF para começar.</td></tr>';
+    return;
+  }
+
+  $list.innerHTML = notas.map(n => {
+    const dataFmt = n.dhEmi ? new Date(n.dhEmi + 'T12:00').toLocaleDateString('pt-BR') : '—';
+    const statusBadges = {
+      processada: '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">✓ Processada</span>',
+      pendente: '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Pendente</span>',
+      lancada: '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Lançada</span>'
+    };
+    const origemBadge = n.origem === 'XML'
+      ? '<span class="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">XML</span>'
+      : '<span class="text-xs bg-ink-100 text-ink-700 px-2 py-0.5 rounded">📷 Anexo</span>';
+    return `
+      <tr>
+        <td class="px-5 py-3 font-mono text-xs">${n.numero || '—'}</td>
+        <td class="px-5 py-3 text-xs whitespace-nowrap">${dataFmt}</td>
+        <td class="px-5 py-3 text-xs">
+          <div class="font-medium">${n.emitNome || '—'}</div>
+          ${n.emitCNPJ ? `<div class="text-[10px] text-ink-500 font-mono">${n.emitCNPJ}</div>` : ''}
+        </td>
+        <td class="px-5 py-3">${origemBadge}</td>
+        <td class="px-5 py-3 text-right font-medium whitespace-nowrap">R$ ${(n.valorTotal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="px-5 py-3 text-center text-xs">${(n.itens||[]).length || '—'}</td>
+        <td class="px-5 py-3 text-center">${statusBadges[n.status] || '—'}</td>
+        <td class="px-5 py-3 text-center text-xs whitespace-nowrap">
+          <button onclick="verNota('${n.id}')" class="text-brand-600 hover:underline" title="Detalhes">👁</button>
+          ${n.anexo ? `<button onclick="verAnexoNota('${n.id}')" class="text-violet-600 hover:underline ml-1" title="Anexo">📎</button>`:''}
+          ${n.xmlRaw ? `<button onclick="baixarXML('${n.id}')" class="text-emerald-600 hover:underline ml-1" title="Baixar XML">⬇</button>`:''}
+          <button onclick="openNotaManualModal(null,'${n.id}')" class="text-amber-600 hover:underline ml-1" title="Editar">✎</button>
+          <button onclick="excluirNota('${n.id}')" class="text-rose-500 hover:text-rose-700 ml-1" title="Excluir">🗑</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function verNota(id){
+  const n = getNotas().find(x => x.id === id);
+  if(!n) return;
+  const itens = n.itens || [];
+  const itensHtml = itens.length ? `
+    <div class="border-t pt-3 mt-3">
+      <h4 class="text-sm font-semibold mb-2">Itens (${itens.length})</h4>
+      <div class="max-h-64 overflow-y-auto border rounded">
+        <table class="w-full text-xs">
+          <thead class="bg-ink-50 sticky top-0">
+            <tr><th class="text-left p-2">Descrição</th><th class="text-right p-2">Qtd</th><th class="text-right p-2">V. Unit</th><th class="text-right p-2">Total</th></tr>
+          </thead>
+          <tbody class="divide-y">
+            ${itens.map(i => `<tr><td class="p-2">${i.descricao||'—'}</td><td class="p-2 text-right">${i.quantidade||0} ${i.unidade||''}</td><td class="p-2 text-right">R$ ${(i.valorUnit||0).toFixed(2)}</td><td class="p-2 text-right">R$ ${(i.valorTotal||0).toFixed(2)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '';
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <h2 class="font-semibold text-lg">Nota Fiscal nº ${n.numero||'—'}</h2>
+          <button onclick="closeModal()" class="text-ink-400 hover:text-ink-800 text-2xl leading-none">×</button>
+        </div>
+        <div class="p-6 space-y-2 text-sm">
+          <div class="grid grid-cols-2 gap-3">
+            <div><span class="text-ink-600">Data:</span> <strong>${n.dhEmi ? new Date(n.dhEmi+'T12:00').toLocaleDateString('pt-BR') : '—'}</strong></div>
+            <div><span class="text-ink-600">Origem:</span> <strong>${n.origem||'—'}</strong></div>
+          </div>
+          <div><span class="text-ink-600">Emitente:</span> <strong>${n.emitNome||'—'}</strong></div>
+          ${n.emitCNPJ ? `<div><span class="text-ink-600">CNPJ:</span> <span class="font-mono text-xs">${n.emitCNPJ}</span></div>`:''}
+          ${n.chave ? `<div><span class="text-ink-600">Chave:</span> <span class="font-mono text-xs break-all">${n.chave}</span></div>`:''}
+          <div class="border-t pt-3 grid grid-cols-2 gap-2">
+            <div class="flex justify-between"><span>Valor total</span><strong class="text-lg">R$ ${(n.valorTotal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+            ${n.valorICMS ? `<div class="text-xs flex justify-between"><span class="text-ink-600">ICMS</span><span>R$ ${n.valorICMS.toFixed(2)}</span></div>`:''}
+            ${n.valorIPI ? `<div class="text-xs flex justify-between"><span class="text-ink-600">IPI</span><span>R$ ${n.valorIPI.toFixed(2)}</span></div>`:''}
+            ${n.valorFrete ? `<div class="text-xs flex justify-between"><span class="text-ink-600">Frete</span><span>R$ ${n.valorFrete.toFixed(2)}</span></div>`:''}
+            ${n.valorDesc ? `<div class="text-xs flex justify-between"><span class="text-ink-600">Desconto</span><span>R$ ${n.valorDesc.toFixed(2)}</span></div>`:''}
+          </div>
+          ${n.observacao ? `<div class="bg-ink-50 rounded p-3 text-xs"><strong>Obs:</strong> ${n.observacao}</div>`:''}
+          ${itensHtml}
+        </div>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-between bg-ink-50">
+          <div class="flex gap-2">
+            ${n.anexo ? `<button onclick="verAnexoNota('${n.id}')" class="text-sm border border-ink-200 bg-white px-3 py-2 rounded-md">📎 Ver anexo</button>`:''}
+            ${n.xmlRaw ? `<button onclick="baixarXML('${n.id}')" class="text-sm border border-ink-200 bg-white px-3 py-2 rounded-md">⬇ Baixar XML</button>`:''}
+          </div>
+          <button onclick="closeModal()" class="text-sm bg-ink-800 text-white px-4 py-2 rounded-md">Fechar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function verAnexoNota(id){
+  const n = getNotas().find(x => x.id === id);
+  if(!n || !n.anexo) return;
+  const w = window.open('', '_blank');
+  if(!w) return;
+  if((n.anexoTipo||'').startsWith('image/')){
+    w.document.write(`<title>${n.anexoNome||'Anexo'}</title><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${n.anexo}" style="max-width:100%;max-height:100vh"></body>`);
+  } else {
+    w.document.write(`<title>${n.anexoNome||'Anexo'}</title><body style="margin:0"><iframe src="${n.anexo}" style="width:100%;height:100vh;border:0"></iframe></body>`);
+  }
+}
+
+function baixarXML(id){
+  const n = getNotas().find(x => x.id === id);
+  if(!n || !n.xmlRaw) return;
+  const blob = new Blob([n.xmlRaw], { type:'application/xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nfe-${n.numero||n.id}.xml`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function excluirNota(id){
+  const n = getNotas().find(x => x.id === id);
+  if(!n) return;
+  if(!confirm(`Excluir NF nº ${n.numero||'—'} de ${n.emitNome||'—'}?`)) return;
+  saveNotas(getNotas().filter(x => x.id !== id));
+  renderNotas();
+  showToast('<strong>✓</strong> Nota excluída');
+}
+
+function exportarNotasCSV(){
+  const list = getNotas();
+  if(!list.length){ showToast('Nenhuma nota para exportar', 'warn'); return; }
+  const sep = ';';
+  const headers = ['Numero','Data Emissao','Emitente','CNPJ Emitente','Valor Total','ICMS','IPI','Frete','Desconto','Itens','Origem','Chave','Status'];
+  const rows = list.map(n => [
+    n.numero||'',
+    n.dhEmi||'',
+    `"${(n.emitNome||'').replace(/"/g,'""')}"`,
+    n.emitCNPJ||'',
+    (n.valorTotal||0).toFixed(2).replace('.',','),
+    (n.valorICMS||0).toFixed(2).replace('.',','),
+    (n.valorIPI||0).toFixed(2).replace('.',','),
+    (n.valorFrete||0).toFixed(2).replace('.',','),
+    (n.valorDesc||0).toFixed(2).replace('.',','),
+    (n.itens||[]).length,
+    n.origem||'',
+    n.chave||'',
+    n.status||''
+  ].join(sep));
+  const csv = '﻿' + headers.join(sep) + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `notas-fiscais-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`<strong>✓</strong> ${list.length} nota(s) exportada(s)`);
+}
+
+// =====================================================
+// DEPARTAMENTO PESSOAL — Apontamento de ponto e fechamento mensal
+// =====================================================
+
+const DP_PREMISSAS_DEFAULT = {
+  toleranciaMin: 10,
+  noturnoIni: '22:00',
+  noturnoFim: '05:00',
+  noturnoPct: 20,
+  noturnoReduzida: false,
+  he1AteHoras: 2,
+  he1Pct: 50,
+  he2Pct: 100,
+  domferPct: 100,
+  cargaDiariaPadrao: 8
+};
+
+function getPremissasDP(){ return { ...DP_PREMISSAS_DEFAULT, ...Store.get('dp.premissas', {}) }; }
+function savePremissasDP(p){ Store.set('dp.premissas', p); }
+function getFeriados(){ return Store.get('dp.feriados', []); }
+function saveFeriados(list){ Store.set('dp.feriados', list); }
+function getApontamentos(){ return Store.get('dp.apontamentos', {}); }
+function saveApontamentos(a){ Store.set('dp.apontamentos', a); }
+function getFechamentosDP(){ return Store.get('dp.fechamentos', {}); }
+function saveFechamentosDP(f){ Store.set('dp.fechamentos', f); }
+
+// === Helpers de tempo ===
+// "1600" → 960 min, "16:00" → 960 min
+function parseHorario(str){
+  if(str === null || str === undefined || str === '') return null;
+  const s = String(str).trim().toLowerCase();
+  if(['f','falta','folga','fl','a','atestado','suspensao','suspensão'].includes(s)) return null;
+  if(s.includes(':')){
+    const [h,m] = s.split(':').map(x => parseInt(x)||0);
+    return h*60 + m;
+  }
+  const n = parseInt(s);
+  if(isNaN(n)) return null;
+  if(n < 24) return n * 60;
+  if(n < 100) return null;
+  if(n < 2400){
+    const h = Math.floor(n / 100);
+    const m = n % 100;
+    if(m >= 60) return null;
+    return h*60 + m;
+  }
+  return null;
+}
+
+function fmtMinutes(min){
+  if(!min || min < 0) min = Math.abs(min || 0);
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+// Soma de minutos trabalhados a partir de pares ent/sai (até 3 pares)
+// Trata virada de meia-noite (sai < ent → assumir +24h)
+function calcMinutosTrabalhados(pares){
+  let total = 0;
+  for(const [ent, sai] of pares){
+    if(ent == null || sai == null) continue;
+    let s = sai;
+    if(s < ent) s += 1440; // virada de dia
+    total += (s - ent);
+  }
+  return total;
+}
+
+// Calcula minutos no intervalo noturno (22:00–05:00, ou config) para um par ent/sai
+function calcMinutosNoturnos(pares, niIni, niFim){
+  // niIni/niFim em minutos (ex: 22:00 = 1320, 05:00 = 300)
+  // Janela cruza meia-noite: dividimos em [niIni, 1440) ∪ [0, niFim)
+  let total = 0;
+  for(const [ent, sai] of pares){
+    if(ent == null || sai == null) continue;
+    let s = sai;
+    if(s < ent) s += 1440;
+    // Considerar 2 dias possíveis: dia 1 (0..1440) e dia 2 (1440..2880)
+    const intervals = [];
+    if(niFim < niIni){
+      // Janela noturna: [niIni..1440) ∪ [0..niFim) repetida em cada dia
+      intervals.push([niIni, 1440]);
+      intervals.push([1440, 1440 + niFim]);
+      intervals.push([1440 + niIni, 2880]);
+      intervals.push([2880, 2880 + niFim]);
+    } else {
+      intervals.push([niIni, niFim]);
+      intervals.push([1440 + niIni, 1440 + niFim]);
+    }
+    for(const [a, b] of intervals){
+      const lo = Math.max(ent, a);
+      const hi = Math.min(s, b);
+      if(hi > lo) total += (hi - lo);
+    }
+  }
+  return total;
+}
+
+// === Status de ausência ===
+function detectarStatusDia(d){
+  if(!d) return 'normal';
+  const ents = [d.ent1, d.ent2, d.ent3].filter(Boolean).map(s => String(s).toLowerCase());
+  if(ents.some(e => ['f','falta'].includes(e))) return 'falta';
+  if(ents.some(e => ['fl','folga'].includes(e))) return 'folga';
+  if(ents.some(e => ['a','atestado'].includes(e))) return 'atestado';
+  if(ents.some(e => ['suspensao','suspensão'].includes(e))) return 'suspensao';
+  return 'normal';
+}
+
+// === Cálculo do dia ===
+function calcularDia(dia, premissas, feriadosSet){
+  // dia: { data, ent1, sai1, ent2, sai2, ent3, sai3, abona, obs, cargaDia }
+  const status = detectarStatusDia(dia);
+  const result = {
+    status,
+    minTrab: 0,
+    minAtraso: 0,
+    minHE: 0,
+    minHE50: 0,
+    minHE100: 0,
+    minNoturno: 0,
+    isFeriado: false,
+    isDomingo: false
+  };
+  const dataObj = new Date(dia.data + 'T12:00');
+  const dow = dataObj.getDay(); // 0 = dom
+  result.isDomingo = dow === 0;
+  result.isFeriado = feriadosSet.has(dia.data);
+
+  if(status !== 'normal') return result;
+
+  const pares = [
+    [parseHorario(dia.ent1), parseHorario(dia.sai1)],
+    [parseHorario(dia.ent2), parseHorario(dia.sai2)],
+    [parseHorario(dia.ent3), parseHorario(dia.sai3)]
+  ];
+  const minTrab = calcMinutosTrabalhados(pares);
+  if(minTrab === 0) return result;
+  result.minTrab = minTrab;
+
+  // Carga do dia: específica do dia ou padrão
+  const cargaMin = (dia.cargaDia || premissas.cargaDiariaPadrao || 0) * 60;
+
+  // Tolerância
+  const tol = premissas.toleranciaMin || 0;
+  const diff = minTrab - cargaMin;
+
+  if(diff > tol){
+    let extra = diff;
+    // Domingo/feriado tudo é HE 100% (regra padrão)
+    if(result.isDomingo || result.isFeriado){
+      result.minHE100 = extra;
+    } else {
+      const faixa1Min = (premissas.he1AteHoras || 2) * 60;
+      const f1 = Math.min(extra, faixa1Min);
+      const f2 = Math.max(0, extra - faixa1Min);
+      result.minHE50 = f1;
+      result.minHE100 = f2;
+    }
+    result.minHE = extra;
+  } else if(diff < -tol){
+    if(dia.abona === 'sim' || dia.abona === true) {
+      // abonado, não conta como atraso
+    } else {
+      result.minAtraso = -diff;
+    }
+  }
+
+  // Adicional noturno (sempre conta sobre minutos efetivos no intervalo noturno)
+  const niIni = parseHorario(premissas.noturnoIni) ?? 1320;
+  const niFim = parseHorario(premissas.noturnoFim) ?? 300;
+  result.minNoturno = calcMinutosNoturnos(pares, niIni, niFim);
+
+  return result;
+}
+
+function calcularMesColab(colabId, mesYM){
+  const apont = getApontamentos();
+  const key = `${mesYM}|${colabId}`;
+  const dias = (apont[key]?.dias || []);
+  const premissas = getPremissasDP();
+  const feriados = new Set(getFeriados().map(f => f.data));
+  const fech = getFechamentosDP()[key] || {};
+
+  let totalHE50 = 0, totalHE100 = 0, totalAtraso = 0, totalNoturno = 0, totalTrab = 0;
+  let qtdFaltas = 0, qtdAtestados = 0, qtdFolgas = 0;
+  let temFalta = false;
+
+  const detalhes = dias.map(d => {
+    const r = calcularDia(d, premissas, feriados);
+    if(r.status === 'falta') { qtdFaltas++; temFalta = true; }
+    if(r.status === 'atestado') qtdAtestados++;
+    if(r.status === 'folga') qtdFolgas++;
+    totalHE50 += r.minHE50;
+    totalHE100 += r.minHE100;
+    totalAtraso += r.minAtraso;
+    totalNoturno += r.minNoturno;
+    totalTrab += r.minTrab;
+    return { ...d, ...r };
+  });
+
+  return {
+    colabId, mesYM, dias: detalhes,
+    totalHE50, totalHE100, totalAtraso, totalNoturno, totalTrab,
+    qtdFaltas, qtdAtestados, qtdFolgas,
+    assiduidade: !temFalta, // sem faltas no mês
+    comissao: parseFloat(fech.comissao) || 0,
+    adiantamento: parseFloat(fech.adiantamento) || 0,
+    obsFech: fech.obs || ''
+  };
+}
+
+// === Tab navigation ===
+let _dpTab = 'fechamento';
+function setDPTab(tab){
+  _dpTab = tab;
+  ['fechamento','apontamento','premissas','feriados'].forEach(t => {
+    const $tab = document.getElementById('dp-tab-'+t);
+    const $cnt = document.getElementById('dp-content-'+t);
+    if($tab) $tab.className = t === tab
+      ? 'px-5 py-3 text-sm font-medium border-b-2 border-brand-600 text-brand-700 whitespace-nowrap'
+      : 'px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap';
+    if($cnt) $cnt.classList.toggle('hidden', t !== tab);
+  });
+  renderDP();
+}
+
+function dpMesAnterior(){
+  const $m = document.getElementById('dp-mes');
+  if(!$m.value) $m.value = new Date().toISOString().slice(0,7);
+  const [y,mo] = $m.value.split('-').map(x=>parseInt(x));
+  const d = new Date(y, mo-2, 1);
+  $m.value = d.toISOString().slice(0,7);
+  renderDP();
+}
+function dpMesProximo(){
+  const $m = document.getElementById('dp-mes');
+  if(!$m.value) $m.value = new Date().toISOString().slice(0,7);
+  const [y,mo] = $m.value.split('-').map(x=>parseInt(x));
+  const d = new Date(y, mo, 1);
+  $m.value = d.toISOString().slice(0,7);
+  renderDP();
+}
+function dpMesAtual(){
+  document.getElementById('dp-mes').value = new Date().toISOString().slice(0,7);
+  renderDP();
+}
+
+// === Render principal ===
+function renderDP(){
+  const $mes = document.getElementById('dp-mes');
+  if(!$mes) return;
+  if(!$mes.value) $mes.value = new Date().toISOString().slice(0,7);
+  const mesYM = $mes.value;
+  const [y,m] = mesYM.split('-').map(x=>parseInt(x));
+  const nomeMes = new Date(y, m-1, 1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  document.getElementById('dp-info').textContent = `${nomeMes} · ${getCadastros('funcionario').length} colaborador(es) cadastrado(s)`;
+
+  if(_dpTab === 'fechamento') renderFechamentoMensal(mesYM);
+  if(_dpTab === 'apontamento') renderApontamentoTab(mesYM);
+  if(_dpTab === 'premissas') renderPremissasTab();
+  if(_dpTab === 'feriados') renderFeriadosTab();
+}
+
+// === Fechamento mensal ===
+function renderFechamentoMensal(mesYM){
+  const $list = document.getElementById('dp-fechamento-list');
+  const $totais = document.getElementById('dp-fechamento-totais');
+  if(!$list) return;
+  const colabs = getCadastros('funcionario');
+  if(!colabs.length){
+    $list.innerHTML = '<tr><td colspan="12" class="text-center py-12 text-ink-400 text-sm">Nenhum colaborador cadastrado. Vá em <strong>Cadastros → Funcionários</strong>.</td></tr>';
+    $totais.innerHTML = '';
+    return;
+  }
+  let totalSalario = 0, totalComissao = 0, totalAdiant = 0;
+  let totalHE50min = 0, totalHE100min = 0, totalAtrMin = 0, totalNotMin = 0, totalFaltas = 0;
+
+  $list.innerHTML = colabs.map((c, i) => {
+    const r = calcularMesColab(c.id, mesYM);
+    const sal = parseFloat(c.salario) || 0;
+    totalSalario += sal;
+    totalComissao += r.comissao;
+    totalAdiant += r.adiantamento;
+    totalHE50min += r.totalHE50;
+    totalHE100min += r.totalHE100;
+    totalAtrMin += r.totalAtraso;
+    totalNotMin += r.totalNoturno;
+    totalFaltas += r.qtdFaltas;
+    const assidBadge = r.assiduidade
+      ? '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">SIM</span>'
+      : '<span class="text-xs bg-rose-100 text-rose-700 px-2 py-0.5 rounded">NÃO</span>';
+    return `
+      <tr class="hover:bg-ink-50">
+        <td class="px-3 py-2 text-xs">${i+1}</td>
+        <td class="px-3 py-2 text-xs"><strong>${c.nome}</strong><div class="text-[10px] text-ink-500">${c.cargo||''}</div></td>
+        <td class="px-3 py-2 text-center">${assidBadge}</td>
+        <td class="px-3 py-2 text-right text-xs font-mono ${r.totalHE50?'text-emerald-700':''}">${r.totalHE50 ? fmtMinutes(r.totalHE50) : '—'}</td>
+        <td class="px-3 py-2 text-right text-xs font-mono ${r.totalHE100?'text-emerald-700':''}">${r.totalHE100 ? fmtMinutes(r.totalHE100) : '—'}</td>
+        <td class="px-3 py-2 text-right text-xs font-mono ${r.totalNoturno?'text-violet-700':''}">${r.totalNoturno ? fmtMinutes(r.totalNoturno) : '—'}</td>
+        <td class="px-3 py-2 text-right text-xs font-mono ${r.totalAtraso?'text-rose-600':''}">${r.totalAtraso ? fmtMinutes(r.totalAtraso) : '—'}</td>
+        <td class="px-3 py-2 text-center text-xs ${r.qtdFaltas?'text-rose-600 font-bold':''}">${r.qtdFaltas || '—'}</td>
+        <td class="px-3 py-2 text-right text-xs">${r.comissao ? 'R$ '+r.comissao.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—'}</td>
+        <td class="px-3 py-2 text-right text-xs">${r.adiantamento ? 'R$ '+r.adiantamento.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—'}</td>
+        <td class="px-3 py-2 text-right text-xs font-medium">${sal ? 'R$ '+sal.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—'}</td>
+        <td class="px-3 py-2 text-center text-xs whitespace-nowrap">
+          <button onclick="abrirApontamentoColab('${c.id}')" class="text-brand-600 hover:underline" title="Apontamento">⏱</button>
+          <button onclick="abrirFechamentoColabModal('${c.id}')" class="text-amber-600 hover:underline ml-1" title="Editar comissão/adiantamento/obs">✎</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  $totais.innerHTML = `
+    <td class="px-3 py-2.5"></td>
+    <td class="px-3 py-2.5 text-xs">TOTAIS (${colabs.length})</td>
+    <td class="px-3 py-2.5 text-center text-xs">—</td>
+    <td class="px-3 py-2.5 text-right text-xs font-mono">${fmtMinutes(totalHE50min)}</td>
+    <td class="px-3 py-2.5 text-right text-xs font-mono">${fmtMinutes(totalHE100min)}</td>
+    <td class="px-3 py-2.5 text-right text-xs font-mono">${fmtMinutes(totalNotMin)}</td>
+    <td class="px-3 py-2.5 text-right text-xs font-mono">${fmtMinutes(totalAtrMin)}</td>
+    <td class="px-3 py-2.5 text-center text-xs">${totalFaltas}</td>
+    <td class="px-3 py-2.5 text-right text-xs">R$ ${totalComissao.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    <td class="px-3 py-2.5 text-right text-xs">R$ ${totalAdiant.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    <td class="px-3 py-2.5 text-right text-xs">R$ ${totalSalario.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    <td></td>
+  `;
+}
+
+// === Apontamento ===
+function renderApontamentoTab(mesYM){
+  const $sel = document.getElementById('dp-apont-colab');
+  if(!$sel) return;
+  const colabs = getCadastros('funcionario');
+  const currentVal = $sel.value;
+  $sel.innerHTML = '<option value="">— Selecione —</option>' +
+    colabs.map(c => `<option value="${c.id}" ${c.id===currentVal?'selected':''}>${c.nome}</option>`).join('');
+  // Mantém seleção ou abre o primeiro automaticamente
+  if(!currentVal && colabs.length){
+    $sel.value = colabs[0].id;
+  }
+  renderApontamentoColab();
+}
+
+function abrirApontamentoColab(colabId){
+  setDPTab('apontamento');
+  setTimeout(() => {
+    const $sel = document.getElementById('dp-apont-colab');
+    if($sel) $sel.value = colabId;
+    renderApontamentoColab();
+  }, 100);
+}
+
+function renderApontamentoColab(){
+  const colabId = document.getElementById('dp-apont-colab')?.value;
+  const $body = document.getElementById('dp-apont-body');
+  const $info = document.getElementById('dp-apont-info');
+  const $cardInfo = document.getElementById('dp-apont-card-info');
+  const $totais = document.getElementById('dp-apont-totais');
+  if(!$body) return;
+  if(!colabId){
+    $body.innerHTML = '<tr><td colspan="14" class="text-center py-12 text-ink-400 text-sm">Selecione um colaborador acima para iniciar o apontamento.</td></tr>';
+    $info.textContent = 'Selecione um colaborador';
+    $cardInfo.innerHTML = '';
+    $totais.innerHTML = '';
+    return;
+  }
+  const mesYM = document.getElementById('dp-mes').value;
+  const colab = getCadastros('funcionario').find(c => c.id === colabId);
+  if(!colab) return;
+  const [y, m] = mesYM.split('-').map(x => parseInt(x));
+  const ultimoDia = new Date(y, m, 0).getDate();
+  const apont = getApontamentos();
+  const key = `${mesYM}|${colabId}`;
+  const dias = apont[key]?.dias || [];
+  const diasMap = Object.fromEntries(dias.map(d => [d.data, d]));
+  const premissas = getPremissasDP();
+  const feriados = new Set(getFeriados().map(f => f.data));
+  const dowNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  $info.textContent = `${colab.nome} · ${colab.cargo||''} · Salário R$ ${(parseFloat(colab.salario)||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+  $cardInfo.innerHTML = `Carga horária diária: <strong>${premissas.cargaDiariaPadrao}h</strong> · Tolerância: <strong>${premissas.toleranciaMin}min</strong> · Adic. noturno: <strong>${premissas.noturnoIni}–${premissas.noturnoFim} (${premissas.noturnoPct}%)</strong>`;
+
+  // Render rows
+  let totHE50 = 0, totHE100 = 0, totAtraso = 0, totNot = 0, totTrab = 0;
+  let qtdFaltas = 0;
+  const rows = [];
+  for(let dia = 1; dia <= ultimoDia; dia++){
+    const dataStr = `${mesYM}-${String(dia).padStart(2,'0')}`;
+    const dataObj = new Date(y, m-1, dia);
+    const dow = dataObj.getDay();
+    const d = diasMap[dataStr] || { data: dataStr };
+    const r = calcularDia(d, premissas, feriados);
+    if(r.status === 'falta') qtdFaltas++;
+    totHE50 += r.minHE50;
+    totHE100 += r.minHE100;
+    totAtraso += r.minAtraso;
+    totNot += r.minNoturno;
+    totTrab += r.minTrab;
+    const isWeekend = dow === 0 || dow === 6;
+    const isHoliday = feriados.has(dataStr);
+    const rowClass = isHoliday ? 'bg-amber-50' : (isWeekend ? 'bg-ink-50/60' : '');
+    const inputCls = 'w-14 text-center text-[11px] border border-ink-200 rounded px-1 py-0.5 focus:border-brand-500';
+    const statusBadge = {
+      falta: '<span class="text-[10px] bg-rose-100 text-rose-700 px-1 rounded">FALTA</span>',
+      folga: '<span class="text-[10px] bg-ink-100 text-ink-700 px-1 rounded">FOLGA</span>',
+      atestado: '<span class="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">ATEST.</span>',
+      suspensao: '<span class="text-[10px] bg-purple-100 text-purple-700 px-1 rounded">SUSP.</span>',
+      normal: ''
+    }[r.status];
+
+    rows.push(`
+      <tr class="${rowClass}">
+        <td class="px-2 py-1 whitespace-nowrap"><strong>${String(dia).padStart(2,'0')}</strong>${isHoliday ? ' 🎉' : ''}</td>
+        <td class="px-2 py-1 ${isWeekend?'font-semibold text-rose-600':''}">${dowNames[dow]} ${statusBadge}</td>
+        <td class="px-1 py-1 text-center"><input type="text" data-data="${dataStr}" data-field="ent1" value="${d.ent1||''}" placeholder="Ent" oninput="onApontamentoChange('${colabId}','${dataStr}','ent1',this.value)" class="${inputCls}"></td>
+        <td class="px-1 py-1 text-center"><input type="text" data-data="${dataStr}" data-field="sai1" value="${d.sai1||''}" placeholder="Sai" oninput="onApontamentoChange('${colabId}','${dataStr}','sai1',this.value)" class="${inputCls}"></td>
+        <td class="px-1 py-1 text-center"><input type="text" data-data="${dataStr}" data-field="ent2" value="${d.ent2||''}" placeholder="Ent" oninput="onApontamentoChange('${colabId}','${dataStr}','ent2',this.value)" class="${inputCls}"></td>
+        <td class="px-1 py-1 text-center"><input type="text" data-data="${dataStr}" data-field="sai2" value="${d.sai2||''}" placeholder="Sai" oninput="onApontamentoChange('${colabId}','${dataStr}','sai2',this.value)" class="${inputCls}"></td>
+        <td class="px-1 py-1 text-center"><input type="text" data-data="${dataStr}" data-field="ent3" value="${d.ent3||''}" placeholder="Ent" oninput="onApontamentoChange('${colabId}','${dataStr}','ent3',this.value)" class="${inputCls}"></td>
+        <td class="px-1 py-1 text-center"><input type="text" data-data="${dataStr}" data-field="sai3" value="${d.sai3||''}" placeholder="Sai" oninput="onApontamentoChange('${colabId}','${dataStr}','sai3',this.value)" class="${inputCls}"></td>
+        <td class="px-1 py-1 text-center"><input type="checkbox" ${d.abona?'checked':''} onchange="onApontamentoChange('${colabId}','${dataStr}','abona',this.checked)"></td>
+        <td class="px-2 py-1 text-right font-mono ${r.minTrab>0?'':'text-ink-400'}">${r.minTrab > 0 ? fmtMinutes(r.minTrab) : '—'}</td>
+        <td class="px-2 py-1 text-right font-mono ${r.minAtraso>0?'text-rose-600':'text-ink-400'}">${r.minAtraso > 0 ? fmtMinutes(r.minAtraso) : '—'}</td>
+        <td class="px-2 py-1 text-right font-mono ${r.minHE>0?'text-emerald-700':'text-ink-400'}">${r.minHE > 0 ? fmtMinutes(r.minHE) : '—'}</td>
+        <td class="px-2 py-1 text-right font-mono ${r.minNoturno>0?'text-violet-700':'text-ink-400'}">${r.minNoturno > 0 ? fmtMinutes(r.minNoturno) : '—'}</td>
+        <td class="px-2 py-1"><input type="text" value="${(d.obs||'').replace(/"/g,'&quot;')}" oninput="onApontamentoChange('${colabId}','${dataStr}','obs',this.value)" class="text-[11px] border border-ink-200 rounded px-1 py-0.5 w-32"></td>
+      </tr>
+    `);
+  }
+  $body.innerHTML = rows.join('');
+
+  $totais.innerHTML = `
+    <span class="mr-4">Trabalhado: <strong class="font-mono">${fmtMinutes(totTrab)}</strong></span>
+    <span class="mr-4 ${totAtraso?'text-rose-600':''}">Atrasos: <strong class="font-mono">${fmtMinutes(totAtraso)}</strong></span>
+    <span class="mr-4 text-emerald-700">H.E. 50%: <strong class="font-mono">${fmtMinutes(totHE50)}</strong></span>
+    <span class="mr-4 text-emerald-700">H.E. 100%: <strong class="font-mono">${fmtMinutes(totHE100)}</strong></span>
+    <span class="mr-4 text-violet-700">Adic. Not.: <strong class="font-mono">${fmtMinutes(totNot)}</strong></span>
+    ${qtdFaltas ? `<span class="text-rose-600">Faltas: <strong>${qtdFaltas}</strong></span>` : ''}
+  `;
+}
+
+// Salva mudança e recalcula a linha
+let _apontDebounce = null;
+function onApontamentoChange(colabId, dataStr, field, value){
+  const apont = getApontamentos();
+  const mesYM = dataStr.slice(0,7);
+  const key = `${mesYM}|${colabId}`;
+  apont[key] = apont[key] || { dias: [] };
+  let d = apont[key].dias.find(x => x.data === dataStr);
+  if(!d){ d = { data: dataStr }; apont[key].dias.push(d); }
+  d[field] = value;
+  saveApontamentos(apont);
+  // Atualiza fechamento depois de pequeno debounce
+  clearTimeout(_apontDebounce);
+  _apontDebounce = setTimeout(() => {
+    if(_dpTab === 'apontamento') renderApontamentoColab();
+  }, 200);
+}
+
+// Modal de fechamento de colaborador (comissão / adiantamento / obs)
+function abrirFechamentoColabModal(colabId){
+  if(!colabId){
+    const sel = document.getElementById('dp-apont-colab');
+    colabId = sel?.value;
+    if(!colabId){ showToast('Selecione um colaborador antes', 'warn'); return; }
+  }
+  const mesYM = document.getElementById('dp-mes').value;
+  const colab = getCadastros('funcionario').find(c => c.id === colabId);
+  if(!colab) return;
+  const fechs = getFechamentosDP();
+  const key = `${mesYM}|${colabId}`;
+  const f = fechs[key] || {};
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200">
+          <h2 class="font-semibold">${colab.nome}</h2>
+          <p class="text-xs text-ink-600 mt-0.5">${new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</p>
+        </div>
+        <form id="fechcol-form" onsubmit="submitFechamentoColab(event,'${colabId}','${mesYM}')" class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Comissão (R$)</label>
+            <input type="number" name="comissao" step="0.01" min="0" value="${f.comissao||''}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Adiantamento (R$)</label>
+            <input type="number" name="adiantamento" step="0.01" min="0" value="${f.adiantamento||''}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Observações do mês</label>
+            <textarea name="obs" rows="3" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">${f.obs||''}</textarea>
+          </div>
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('fechcol-form').requestSubmit()" type="button" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-md">Salvar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function submitFechamentoColab(e, colabId, mesYM){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  const fechs = getFechamentosDP();
+  fechs[`${mesYM}|${colabId}`] = {
+    comissao: parseFloat(data.comissao) || 0,
+    adiantamento: parseFloat(data.adiantamento) || 0,
+    obs: data.obs || ''
+  };
+  saveFechamentosDP(fechs);
+  closeModal();
+  renderDP();
+  showToast('<strong>✓</strong> Fechamento atualizado');
+}
+
+function recalcularTodosColabs(){
+  renderDP();
+  showToast('<strong>✓</strong> Recalculado');
+}
+
+const COLABORADORES_PLANILHA_CB = [
+  { nome:'Alessandro Lima da Silva', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Aline Evelyn de Almeida Souza Rezende', salario:1750, cargo:'Garçonete', setor:'Salão' },
+  { nome:'Apolonio Pinto Monteiro', salario:1750, cargo:'Auxiliar de Cozinha', setor:'Cozinha' },
+  { nome:'Davi Alves Galvão', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Emerson Franklins Carvalho', salario:1750, cargo:'Bartender', setor:'Bar' },
+  { nome:'Ítalo Roberto de Sousa', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'João Batista da Luz', salario:1750, cargo:'Cozinheiro', setor:'Cozinha' },
+  { nome:'Katrielisson Amaral Machado', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Lucas Gonçalves de Araújo', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Maira Araujo Silva', salario:1750, cargo:'Garçonete', setor:'Salão' },
+  { nome:'Marcus Vinicius Beltrão Pires', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Marcus Vinicius Moreira Alves Barbosa', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Pablo Marat da Silva Lima', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Pedro', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Raí Santos Sousa', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Rosimary Costa', salario:2310, cargo:'Cozinheira', setor:'Cozinha' },
+  { nome:'Taiza Cristina da Silva', salario:2310, cargo:'Cozinheira', setor:'Cozinha' },
+  { nome:'Therelis Rojas Fonseca', salario:1750, cargo:'Garçonete', setor:'Salão' },
+  { nome:'Victor Miguel Alcocer Bermudez', salario:2200, cargo:'Maître', setor:'Salão' },
+  { nome:'Wallison Ferreira Fernandes', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Wellison Duarte de Oliveira', salario:1750, cargo:'Garçom', setor:'Salão' },
+  { nome:'Camilla', salario:1750, cargo:'Garçonete', setor:'Salão' }
+];
+
+function importarColaboradoresPlanilha(){
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const existentes = getCadastros('funcionario');
+  const existSet = new Set(existentes.map(c => norm(c.nome)));
+  const novos = COLABORADORES_PLANILHA_CB.filter(c => !existSet.has(norm(c.nome)));
+  if(!novos.length){
+    showToast('<strong>i</strong> Todos os 22 colaboradores da planilha já estão cadastrados', 'info');
+    return;
+  }
+  if(!confirm(`Importar ${novos.length} colaborador(es) da planilha CB Colorado?\n\n${novos.map(c => '• ' + c.nome).join('\n')}\n\nOs já cadastrados serão ignorados.`)) return;
+  const list = existentes.slice();
+  let nextId = 1;
+  while(list.some(x => x.id === 'FUNC-CB-'+String(nextId).padStart(3,'0'))) nextId++;
+  novos.forEach(c => {
+    list.push({
+      id: 'FUNC-CB-' + String(nextId++).padStart(3,'0'),
+      ...c,
+      tipoContrato: 'CLT',
+      admissao: ''
+    });
+  });
+  saveCadastros('funcionario', list);
+  renderCadastros();
+  renderDP();
+  showToast(`<strong>✓</strong> ${novos.length} colaborador(es) importados da planilha`);
+}
+
+function exportarFechamentoCSV(){
+  const mesYM = document.getElementById('dp-mes').value;
+  const colabs = getCadastros('funcionario');
+  if(!colabs.length){ showToast('Sem colaboradores', 'warn'); return; }
+  const sep = ';';
+  const headers = ['#','Nome','Cargo','Assiduidade','HE 50%','HE 100%','Adic Noturno','Atrasos','Faltas','Comissao','Adiantamento','Salario'];
+  const rows = colabs.map((c, i) => {
+    const r = calcularMesColab(c.id, mesYM);
+    return [
+      i+1,
+      `"${c.nome.replace(/"/g,'""')}"`,
+      `"${(c.cargo||'').replace(/"/g,'""')}"`,
+      r.assiduidade ? 'SIM' : 'NAO',
+      r.totalHE50 ? fmtMinutes(r.totalHE50) : '',
+      r.totalHE100 ? fmtMinutes(r.totalHE100) : '',
+      r.totalNoturno ? fmtMinutes(r.totalNoturno) : '',
+      r.totalAtraso ? fmtMinutes(r.totalAtraso) : '',
+      r.qtdFaltas || '',
+      r.comissao.toFixed(2).replace('.',','),
+      r.adiantamento.toFixed(2).replace('.',','),
+      ((parseFloat(c.salario)||0)).toFixed(2).replace('.',',')
+    ].join(sep);
+  });
+  const csv = '﻿' + headers.join(sep) + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fechamento-folha-${mesYM}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('<strong>✓</strong> Fechamento exportado');
+}
+
+// === Premissas ===
+function renderPremissasTab(){
+  const p = getPremissasDP();
+  const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+  const setChk = (id, v) => { const el = document.getElementById(id); if(el) el.checked = !!v; };
+  setVal('prem-tolerancia', p.toleranciaMin);
+  setVal('prem-noturno-ini', p.noturnoIni);
+  setVal('prem-noturno-fim', p.noturnoFim);
+  setVal('prem-noturno-pct', p.noturnoPct);
+  setChk('prem-hora-reduzida', p.noturnoReduzida);
+  setVal('prem-he1-ate', p.he1AteHoras);
+  setVal('prem-he1-pct', p.he1Pct);
+  setVal('prem-he2-pct', p.he2Pct);
+  setVal('prem-domfer-pct', p.domferPct);
+  setVal('prem-carga-diaria', p.cargaDiariaPadrao);
+}
+
+function salvarPremissasDP(){
+  const get = id => document.getElementById(id)?.value;
+  const getNum = id => parseFloat(get(id)) || 0;
+  const getChk = id => document.getElementById(id)?.checked || false;
+  const p = {
+    toleranciaMin: getNum('prem-tolerancia'),
+    noturnoIni: get('prem-noturno-ini') || '22:00',
+    noturnoFim: get('prem-noturno-fim') || '05:00',
+    noturnoPct: getNum('prem-noturno-pct'),
+    noturnoReduzida: getChk('prem-hora-reduzida'),
+    he1AteHoras: getNum('prem-he1-ate'),
+    he1Pct: getNum('prem-he1-pct'),
+    he2Pct: getNum('prem-he2-pct'),
+    domferPct: getNum('prem-domfer-pct'),
+    cargaDiariaPadrao: getNum('prem-carga-diaria')
+  };
+  savePremissasDP(p);
+  renderDP();
+  showToast('<strong>✓</strong> Premissas salvas');
+}
+
+// === Feriados ===
+function renderFeriadosTab(){
+  const $list = document.getElementById('dp-feriados-list');
+  if(!$list) return;
+  const list = getFeriados().slice().sort((a,b) => a.data.localeCompare(b.data));
+  if(!list.length){
+    $list.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-ink-400 text-sm">Nenhum feriado cadastrado</td></tr>';
+    return;
+  }
+  const dowNames = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  $list.innerHTML = list.map(f => {
+    const d = new Date(f.data + 'T12:00');
+    return `
+      <tr>
+        <td class="px-5 py-2.5 text-xs">${d.toLocaleDateString('pt-BR')}</td>
+        <td class="px-5 py-2.5 text-xs">${dowNames[d.getDay()]}</td>
+        <td class="px-5 py-2.5 text-xs">${f.descricao || '—'}</td>
+        <td class="px-5 py-2.5 text-center">
+          <button onclick="excluirFeriado('${f.data}')" class="text-rose-500 hover:text-rose-700 text-xs">🗑</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function addFeriadoModal(){
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div class="px-6 py-4 border-b border-ink-200">
+          <h2 class="font-semibold">Adicionar feriado</h2>
+        </div>
+        <form id="fer-form" onsubmit="submitFeriado(event)" class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Data <span class="text-rose-500">*</span></label>
+            <input type="date" name="data" required class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Descrição</label>
+            <input type="text" name="descricao" placeholder="Ex: Tiradentes" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+          </div>
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('fer-form').requestSubmit()" type="button" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-md">Adicionar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function submitFeriado(e){
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  const list = getFeriados();
+  if(list.some(x => x.data === data.data)){
+    showToast('Feriado já existe nessa data', 'warn');
+    return;
+  }
+  list.push(data);
+  saveFeriados(list);
+  closeModal();
+  renderDP();
+  showToast('<strong>✓</strong> Feriado adicionado');
+}
+function excluirFeriado(dataStr){
+  if(!confirm('Excluir este feriado?')) return;
+  saveFeriados(getFeriados().filter(f => f.data !== dataStr));
+  renderDP();
+  showToast('<strong>✓</strong> Feriado removido');
 }
 
 // =====================================================
@@ -8303,11 +10027,28 @@ const CADASTRO_DEFS = {
       { name:'observacoes', label:'Observações', type:'textarea', span:2 }
     ],
     seed: [
-      { id:'FUNC-001', nome:'Carla Mendes', cpf:'234.567.890-12', cargo:'Gerente', setor:'Gestão', salario:5800, admissao:'2023-03-15', telefone:'+55 11 98888-5678', email:'carla@cantinhodoboni.com', tipoContrato:'CLT' },
-      { id:'FUNC-002', nome:'João Silva', cpf:'345.678.901-23', cargo:'Cozinheiro', setor:'Cozinha', salario:3200, admissao:'2023-06-01', telefone:'+55 11 97777-9012', email:'joao@cantinhodoboni.com', tipoContrato:'CLT' },
-      { id:'FUNC-003', nome:'Maria Costa', cpf:'456.789.012-34', cargo:'Bartender', setor:'Bar', salario:2900, admissao:'2024-01-10', telefone:'+55 11 96666-3456', email:'maria@cantinhodoboni.com', tipoContrato:'CLT' },
-      { id:'FUNC-004', nome:'Pedro Rocha', cpf:'567.890.123-45', cargo:'Estoquista', setor:'Estoque', salario:2400, admissao:'2024-04-20', telefone:'+55 11 95555-7890', email:'pedro@cantinhodoboni.com', tipoContrato:'CLT' },
-      { id:'FUNC-005', nome:'Ana Paula', cpf:'678.901.234-56', cargo:'Caixa', setor:'Caixa', salario:2300, admissao:'2024-09-05', telefone:'+55 11 94444-2345', email:'ana@cantinhodoboni.com', tipoContrato:'CLT' }
+      { id:'FUNC-001', nome:'Alessandro Lima da Silva', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-002', nome:'Aline Evelyn de Almeida Souza Rezende', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçonete' },
+      { id:'FUNC-003', nome:'Apolonio Pinto Monteiro', salario:1750, tipoContrato:'CLT', setor:'Cozinha', cargo:'Auxiliar de Cozinha' },
+      { id:'FUNC-004', nome:'Davi Alves Galvão', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-005', nome:'Emerson Franklins Carvalho', salario:1750, tipoContrato:'CLT', setor:'Bar', cargo:'Bartender' },
+      { id:'FUNC-006', nome:'Ítalo Roberto de Sousa', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-007', nome:'João Batista da Luz', salario:1750, tipoContrato:'CLT', setor:'Cozinha', cargo:'Cozinheiro' },
+      { id:'FUNC-008', nome:'Katrielisson Amaral Machado', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-009', nome:'Lucas Gonçalves de Araújo', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-010', nome:'Maira Araujo Silva', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçonete' },
+      { id:'FUNC-011', nome:'Marcus Vinicius Beltrão Pires', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-012', nome:'Marcus Vinicius Moreira Alves Barbosa', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-013', nome:'Pablo Marat da Silva Lima', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-014', nome:'Pedro', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-015', nome:'Raí Santos Sousa', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-016', nome:'Rosimary Costa', salario:2310, tipoContrato:'CLT', setor:'Cozinha', cargo:'Cozinheira' },
+      { id:'FUNC-017', nome:'Taiza Cristina da Silva', salario:2310, tipoContrato:'CLT', setor:'Cozinha', cargo:'Cozinheira' },
+      { id:'FUNC-018', nome:'Therelis Rojas Fonseca', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçonete' },
+      { id:'FUNC-019', nome:'Victor Miguel Alcocer Bermudez', salario:2200, tipoContrato:'CLT', setor:'Salão', cargo:'Maître' },
+      { id:'FUNC-020', nome:'Wallison Ferreira Fernandes', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-021', nome:'Wellison Duarte de Oliveira', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçom' },
+      { id:'FUNC-022', nome:'Camilla', salario:1750, tipoContrato:'CLT', setor:'Salão', cargo:'Garçonete' }
     ]
   },
   fornecedor: {
@@ -10140,6 +11881,8 @@ async function bootstrap(){
   if(typeof renderEtiquetas === 'function') renderEtiquetas();
   if(typeof renderUsuarios === 'function') renderUsuarios();
   if(typeof renderReservas === 'function') renderReservas();
+  if(typeof renderNotas === 'function') renderNotas();
+  if(typeof renderDP === 'function') renderDP();
   // Dashboard depende dos outros módulos — roda por último
   if(typeof renderDashboard === 'function') renderDashboard();
 }
@@ -10162,6 +11905,8 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     if(t === 'etiquetas') setTimeout(renderEtiquetas, 50);
     if(t === 'usuarios') setTimeout(renderUsuarios, 50);
     if(t === 'reservas') setTimeout(renderReservas, 50);
+    if(t === 'notas') setTimeout(()=>typeof renderNotas==='function' && renderNotas(), 50);
+    if(t === 'dp') setTimeout(()=>typeof renderDP==='function' && renderDP(), 50);
     if(t === 'dashboard') setTimeout(renderDashboard, 50);
   });
 });
