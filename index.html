@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="seed-produtos.js"></script>
 <script>
   tailwind.config = {
@@ -236,10 +237,10 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <div class="text-xs flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">
-          <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-          Sistema operacional — LAN
-        </div>
+        <button id="sync-status" onclick="manualSync()" title="Clique para sincronizar agora" class="text-xs flex items-center gap-2 text-ink-500 bg-ink-100 px-3 py-1.5 rounded-full hover:bg-ink-200">
+          <span class="w-2 h-2 bg-ink-400 rounded-full"></span>
+          Iniciando...
+        </button>
         <button class="text-sm border border-ink-200 rounded-md px-3 py-1.5 hover:bg-ink-50">Hoje • 27/04/2026</button>
       </div>
     </header>
@@ -2287,9 +2288,148 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); }
 // PERSISTÊNCIA (localStorage)
 // =====================================================
 
+// =====================================================
+// SUPABASE SYNC LAYER (multi-device sincronizado)
+// =====================================================
+const SUPABASE_URL = 'https://ropzcmibzqylcukwkyzu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_dOyD2PHNJS3NqHVB2eSBzg_Tvxxi4jZ';
+let supabaseClient = null;
+let syncEnabled = false;
+const syncQueue = new Map();
+let syncTimer = null;
+let lastPullAt = 0;
+
+function setSyncStatus(status, msg){
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  const map = {
+    syncing: { text: msg || 'Sincronizando…', cls: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500 animate-pulse' },
+    ok:      { text: msg || 'Sincronizado',    cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+    error:   { text: msg || 'Erro de sync',     cls: 'bg-rose-50 text-rose-700', dot: 'bg-rose-500' },
+    offline: { text: msg || 'Sem nuvem (local)', cls: 'bg-ink-100 text-ink-600', dot: 'bg-ink-400' }
+  };
+  const s = map[status] || map.offline;
+  el.className = 'text-xs flex items-center gap-2 px-3 py-1.5 rounded-full hover:opacity-80 ' + s.cls;
+  el.innerHTML = `<span class="w-2 h-2 rounded-full ${s.dot}"></span>${s.text}`;
+}
+
+function initSupabase(){
+  if(!window.supabase){
+    setSyncStatus('offline', 'Sem nuvem (lib não carregou)');
+    return false;
+  }
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    syncEnabled = true;
+    return true;
+  } catch(e){
+    console.error('Supabase init failed:', e);
+    setSyncStatus('error', 'Falha ao conectar');
+    return false;
+  }
+}
+
+function scheduleSync(){
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(flushSyncQueue, 600);
+}
+
+async function flushSyncQueue(){
+  if(!supabaseClient || !syncQueue.size) return;
+  const batch = Array.from(syncQueue.entries()).map(([key, value]) => ({ key, value }));
+  syncQueue.clear();
+  setSyncStatus('syncing', `Enviando ${batch.length}…`);
+  try {
+    const { error } = await supabaseClient.from('kv_store').upsert(batch);
+    if(error) throw error;
+    setSyncStatus('ok');
+  } catch(e){
+    console.error('Sync error:', e);
+    setSyncStatus('error', 'Erro ao enviar');
+    batch.forEach(({key, value}) => syncQueue.set(key, value));
+  }
+}
+
+async function pullFromRemote(showStatus){
+  if(!supabaseClient) return 0;
+  if(showStatus) setSyncStatus('syncing', 'Baixando…');
+  try {
+    const { data, error } = await supabaseClient.from('kv_store').select('key,value');
+    if(error) throw error;
+    if(data){
+      data.forEach(row => {
+        try { localStorage.setItem('cantinho:'+row.key, JSON.stringify(row.value)); } catch(e){}
+      });
+    }
+    lastPullAt = Date.now();
+    if(showStatus) setSyncStatus('ok', `${data?.length||0} itens sincronizados`);
+    return data?.length || 0;
+  } catch(e){
+    console.error('Pull error:', e);
+    if(showStatus) setSyncStatus('error', 'Erro ao baixar');
+    return 0;
+  }
+}
+
+async function pushAllLocalToRemote(){
+  if(!supabaseClient) return 0;
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('cantinho:') && k !== 'cantinho:session.user');
+  const batch = keys.map(fk => {
+    const key = fk.replace('cantinho:','');
+    try { return { key, value: JSON.parse(localStorage.getItem(fk)) }; } catch(e) { return null; }
+  }).filter(Boolean);
+  if(!batch.length) return 0;
+  setSyncStatus('syncing', `Migrando ${batch.length} itens locais…`);
+  try {
+    for(let i = 0; i < batch.length; i += 50){
+      const chunk = batch.slice(i, i+50);
+      const { error } = await supabaseClient.from('kv_store').upsert(chunk);
+      if(error) throw error;
+    }
+    setSyncStatus('ok', 'Migração concluída');
+    return batch.length;
+  } catch(e){
+    console.error('Push all error:', e);
+    setSyncStatus('error', 'Erro na migração');
+    return 0;
+  }
+}
+
+async function manualSync(){
+  if(!supabaseClient){ showToast('<strong>!</strong> Supabase não conectado', 'error'); return; }
+  await flushSyncQueue();
+  const n = await pullFromRemote(true);
+  showToast(`<strong>✓</strong> Sincronização concluída — ${n} item(s) baixados da nuvem`);
+  // Re-renderiza tudo após pull
+  if(typeof bootstrap === 'function') bootstrap();
+}
+
+// Polling: a cada 30s puxa atualizações de outros devices (silencioso)
+setInterval(() => {
+  if(supabaseClient && !document.hidden && Date.now() - lastPullAt > 25000){
+    pullFromRemote(false);
+  }
+}, 30000);
+
+// Quando volta o foco da aba, força um pull
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && supabaseClient && Date.now() - lastPullAt > 5000){
+    pullFromRemote(false);
+  }
+});
+
+// =====================================================
+// STORE (com cache local + sync para Supabase)
+// =====================================================
 const Store = {
   get(key, def){ try { return JSON.parse(localStorage.getItem('cantinho:'+key)) ?? def; } catch { return def; } },
-  set(key, val){ localStorage.setItem('cantinho:'+key, JSON.stringify(val)); }
+  set(key, val){
+    localStorage.setItem('cantinho:'+key, JSON.stringify(val));
+    if(syncEnabled && key !== 'session.user'){ // sessão fica só local
+      syncQueue.set(key, val);
+      scheduleSync();
+    }
+  }
 };
 
 // =====================================================
@@ -9926,8 +10066,43 @@ function autoCleanSaldoEntries(){
   return 0;
 }
 
-function bootstrap(){
-  // Verifica autenticação antes de renderizar tudo
+async function bootstrap(){
+  // Inicializa Supabase (se ainda não inicializado) + sincroniza com a nuvem
+  if(!supabaseClient){
+    if(initSupabase()){
+      setSyncStatus('syncing', 'Conectando à nuvem…');
+      // Conta quantos itens locais existem
+      const localKeys = Object.keys(localStorage).filter(k => k.startsWith('cantinho:') && k !== 'cantinho:session.user');
+      // Verifica quantos itens existem no remote
+      try {
+        const { count } = await supabaseClient.from('kv_store').select('*', {count:'exact', head:true});
+        if(count > 0){
+          // Remote tem dados — pull pra sincronizar
+          await pullFromRemote(true);
+          // Push de keys locais que não estão no remote (merge)
+          if(localKeys.length){
+            const remoteData = await supabaseClient.from('kv_store').select('key');
+            const remoteKeys = new Set((remoteData.data||[]).map(r => r.key));
+            const onlyLocal = localKeys.filter(lk => !remoteKeys.has(lk.replace('cantinho:','')));
+            if(onlyLocal.length){
+              const toPush = onlyLocal.map(lk => ({ key: lk.replace('cantinho:',''), value: JSON.parse(localStorage.getItem(lk)) }));
+              await supabaseClient.from('kv_store').upsert(toPush);
+            }
+          }
+          setSyncStatus('ok');
+        } else if(localKeys.length){
+          // Remote vazio + tem dados locais — primeira migração: sobe tudo
+          await pushAllLocalToRemote();
+        } else {
+          setSyncStatus('ok', 'Pronto');
+        }
+      } catch(e){
+        console.error('Initial sync error:', e);
+        setSyncStatus('error', 'Sem conexão (modo local)');
+      }
+    }
+  }
+  // Verifica autenticação DEPOIS do pull (pra ter usuários sincronizados)
   if(!checkAuth()) return;
   applyUserPermissions();
   // Limpa entradas de saldo de imports antigos antes de renderizar qualquer coisa
