@@ -1984,6 +1984,7 @@ app.cantinhodoboni.com.br {
       <div class="flex border-b border-ink-200 -mt-2 overflow-x-auto">
         <button onclick="setDPTab('fechamento')" id="dp-tab-fechamento" class="px-5 py-3 text-sm font-medium border-b-2 border-brand-600 text-brand-700 whitespace-nowrap">📊 Fechamento do mês</button>
         <button onclick="setDPTab('apontamento')" id="dp-tab-apontamento" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⏱ Apontamento</button>
+        <button onclick="setDPTab('vales')" id="dp-tab-vales" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">💸 Vales / Adiantamentos</button>
         <button onclick="setDPTab('folha')" id="dp-tab-folha" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">💰 Folha de pagamento</button>
         <button onclick="setDPTab('rescisao')" id="dp-tab-rescisao" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">📤 Rescisões</button>
         <button onclick="setDPTab('premissas')" id="dp-tab-premissas" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⚙ Premissas</button>
@@ -2084,6 +2085,38 @@ app.cantinhodoboni.com.br {
         <div class="px-5 py-3 border-t border-ink-200 text-[11px] text-ink-500">
           💡 Dica: digite o horário sem os dois pontos (ex: <strong>1600</strong> = 16:00) e a planilha completa automaticamente. Para falta digite <strong>F</strong>, atestado <strong>A</strong>, folga <strong>FL</strong>.
         </div>
+      </div>
+
+      <!-- Tab: Vales / Adiantamentos -->
+      <div id="dp-content-vales" class="hidden bg-white rounded-xl border border-ink-200 overflow-hidden">
+        <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 class="font-semibold">💸 Vales / Adiantamentos</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Lançamentos individuais que serão automaticamente descontados na folha do mês</p>
+          </div>
+          <div class="flex gap-2">
+            <select id="dp-vales-colab-filtro" onchange="renderValesTab()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5">
+              <option value="">Todos os colaboradores</option>
+            </select>
+            <button onclick="abrirNovoValeModal()" class="text-sm bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-md">+ Novo Vale</button>
+          </div>
+        </div>
+        <div id="dp-vales-resumo" class="px-5 py-3 bg-ink-50 border-b border-ink-200 text-xs"></div>
+        <table class="w-full text-sm">
+          <thead class="bg-ink-50 text-ink-600 text-xs uppercase">
+            <tr>
+              <th class="text-left px-5 py-3">Data</th>
+              <th class="text-left px-5 py-3">Colaborador</th>
+              <th class="text-right px-5 py-3">Valor</th>
+              <th class="text-left px-5 py-3">Forma</th>
+              <th class="text-left px-5 py-3">Observação</th>
+              <th class="text-left px-5 py-3">Operador</th>
+              <th class="text-center px-5 py-3">Caixa</th>
+              <th class="text-center px-5 py-3">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="dp-vales-list" class="divide-y divide-ink-100"></tbody>
+        </table>
       </div>
 
       <!-- Tab: Folha de pagamento -->
@@ -9007,7 +9040,7 @@ function calcularMesColab(colabId, mesYM){
 let _dpTab = 'fechamento';
 function setDPTab(tab){
   _dpTab = tab;
-  ['fechamento','apontamento','folha','rescisao','premissas','feriados'].forEach(t => {
+  ['fechamento','apontamento','vales','folha','rescisao','premissas','feriados'].forEach(t => {
     const $tab = document.getElementById('dp-tab-'+t);
     const $cnt = document.getElementById('dp-content-'+t);
     if($tab) $tab.className = t === tab
@@ -9051,6 +9084,7 @@ function renderDP(){
 
   if(_dpTab === 'fechamento') renderFechamentoMensal(mesYM);
   if(_dpTab === 'apontamento') renderApontamentoTab(mesYM);
+  if(_dpTab === 'vales') renderValesTab(mesYM);
   if(_dpTab === 'folha') renderFolhaTab(mesYM);
   if(_dpTab === 'rescisao') renderRescisaoTab();
   if(_dpTab === 'premissas') renderPremissasTab();
@@ -9401,6 +9435,195 @@ function exportarFechamentoCSV(){
   showToast('<strong>✓</strong> Fechamento exportado');
 }
 
+// === VALES / ADIANTAMENTOS ===
+
+function getVales(){ return Store.get('dp.vales', []); }
+function saveVales(list){ Store.set('dp.vales', list); }
+
+function getValesDoMes(colabId, mesYM){
+  return getVales().filter(v => v.colabId === colabId && (v.data||'').slice(0,7) === mesYM);
+}
+
+function renderValesTab(mesYM){
+  if(!mesYM) mesYM = document.getElementById('dp-mes')?.value;
+  const colabs = getCadastros('funcionario');
+  const $sel = document.getElementById('dp-vales-colab-filtro');
+  if($sel){
+    const cur = $sel.value;
+    $sel.innerHTML = '<option value="">Todos os colaboradores</option>' +
+      colabs.map(c => `<option value="${c.id}" ${c.id===cur?'selected':''}>${c.nome}</option>`).join('');
+  }
+  const fColab = $sel?.value || '';
+  let list = getVales().filter(v => (v.data||'').slice(0,7) === mesYM);
+  if(fColab) list = list.filter(v => v.colabId === fColab);
+  list.sort((a,b) => (b.data||'').localeCompare(a.data||''));
+
+  const total = list.reduce((s,v) => s + (v.valor||0), 0);
+  const $resumo = document.getElementById('dp-vales-resumo');
+  if($resumo){
+    const mesNome = new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    $resumo.innerHTML = `<strong>${mesNome}:</strong> ${list.length} vale(s) — Total: <strong class="text-rose-700">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>`;
+  }
+
+  const $list = document.getElementById('dp-vales-list');
+  if(!$list) return;
+  if(!list.length){
+    $list.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-ink-400 text-sm">Nenhum vale lançado neste mês. Clique em "+ Novo Vale" para adicionar.</td></tr>';
+    return;
+  }
+  $list.innerHTML = list.map(v => {
+    const c = colabs.find(x => x.id === v.colabId) || { nome:'(removido)' };
+    const dataFmt = v.data ? new Date(v.data+'T12:00').toLocaleDateString('pt-BR') : '—';
+    return `
+      <tr>
+        <td class="px-5 py-2.5 text-xs whitespace-nowrap">${dataFmt}</td>
+        <td class="px-5 py-2.5 text-xs"><strong>${c.nome}</strong></td>
+        <td class="px-5 py-2.5 text-right text-xs font-medium text-rose-700">R$ ${v.valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+        <td class="px-5 py-2.5 text-xs">${v.forma || '—'}</td>
+        <td class="px-5 py-2.5 text-xs">${v.obs || '—'}</td>
+        <td class="px-5 py-2.5 text-xs">${v.operador || '—'}</td>
+        <td class="px-5 py-2.5 text-center text-xs">${v.caixaTxId ? '<span class="text-emerald-700" title="Lançado como saída do caixa">✓ ' + v.caixaTxId + '</span>' : '—'}</td>
+        <td class="px-5 py-2.5 text-center text-xs whitespace-nowrap">
+          <button onclick="abrirNovoValeModal('${v.id}')" class="text-amber-600 hover:underline" title="Editar">✎</button>
+          <button onclick="excluirVale('${v.id}')" class="text-rose-500 hover:text-rose-700 ml-1" title="Excluir">🗑</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function abrirNovoValeModal(valeId){
+  const colabs = getCadastros('funcionario');
+  if(!colabs.length){ showToast('Cadastre colaboradores antes', 'warn'); return; }
+  const existing = valeId ? getVales().find(v => v.id === valeId) : null;
+  const today = new Date().toISOString().slice(0,10);
+  const u = (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
+  // Pré-seleciona colaborador se vier do filtro
+  const filtroColab = document.getElementById('dp-vales-colab-filtro')?.value;
+  const colabIdInicial = existing?.colabId || filtroColab || colabs[0].id;
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200">
+          <h2 class="font-semibold text-lg">${existing ? 'Editar' : '+ Novo'} Vale</h2>
+          <p class="text-xs text-ink-600 mt-0.5">Será descontado automaticamente na folha do mês</p>
+        </div>
+        <form id="vale-form" onsubmit="submitVale(event,'${valeId||''}')" class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Colaborador <span class="text-rose-500">*</span></label>
+            <select name="colabId" required class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              ${colabs.map(c => `<option value="${c.id}" ${c.id===colabIdInicial?'selected':''}>${c.nome}</option>`).join('')}
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">Data <span class="text-rose-500">*</span></label>
+              <input type="date" name="data" required value="${existing?.data||today}" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">Valor (R$) <span class="text-rose-500">*</span></label>
+              <input type="number" name="valor" required step="0.01" min="0.01" value="${existing?.valor||''}" placeholder="0,00" class="w-full text-sm font-bold border border-ink-200 rounded-md px-3 py-2 mt-1">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Forma de pagamento <span class="text-rose-500">*</span></label>
+            <select name="forma" required class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <option value="Dinheiro" ${existing?.forma==='Dinheiro'?'selected':''}>💵 Dinheiro (do caixa)</option>
+              <option value="PIX" ${existing?.forma==='PIX'?'selected':''}>📱 PIX</option>
+              <option value="Transferência" ${existing?.forma==='Transferência'?'selected':''}>🏦 Transferência</option>
+              <option value="Outro" ${existing?.forma==='Outro'?'selected':''}>Outro</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Observação</label>
+            <textarea name="obs" rows="2" placeholder="Ex: Adiantamento solicitado para emergência médica" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">${existing?.obs||''}</textarea>
+          </div>
+          ${!existing ? `
+          <label class="flex items-center gap-2 text-xs text-ink-700 bg-emerald-50 border border-emerald-200 rounded p-3 cursor-pointer">
+            <input type="checkbox" name="lancarCaixa" id="vale-lancar-caixa" checked>
+            <span>Lançar automaticamente como <strong>saída do Caixa</strong> quando forma for "Dinheiro"</span>
+          </label>` : ''}
+          <input type="hidden" name="operador" value="${u?.nome || 'Sistema'}">
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('vale-form').requestSubmit()" type="button" class="text-sm bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-md">${existing ? 'Salvar' : 'Lançar Vale'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function submitVale(e, id){
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target).entries());
+  fd.valor = parseFloat(fd.valor) || 0;
+  if(fd.valor <= 0){ showToast('Valor inválido', 'error'); return; }
+  const lancarCaixa = !!fd.lancarCaixa;
+  delete fd.lancarCaixa;
+
+  const list = getVales();
+  if(id){
+    const idx = list.findIndex(v => v.id === id);
+    if(idx >= 0) list[idx] = { ...list[idx], ...fd };
+    saveVales(list);
+    closeModal();
+    renderDP();
+    showToast('<strong>✓</strong> Vale atualizado');
+    return;
+  }
+
+  // Novo vale
+  const novoVale = {
+    id: 'VALE-' + Date.now(),
+    ...fd,
+    criadoEm: new Date().toISOString(),
+    caixaTxId: null
+  };
+
+  // Se forma = Dinheiro e checkbox marcada, lança saída no caixa
+  if(lancarCaixa && fd.forma === 'Dinheiro' && typeof getCaixaTransacoes === 'function'){
+    const colab = getCadastros('funcionario').find(c => c.id === fd.colabId);
+    const txId = 'CX-' + Date.now();
+    const tx = {
+      id: txId,
+      tipo: 'saida',
+      categoria: 'Vale Funcionário',
+      valor: fd.valor,
+      descricao: `Vale ${colab?.nome || ''}${fd.obs ? ' — ' + fd.obs : ''}`,
+      observacao: '',
+      operador: fd.operador,
+      createdAt: new Date(fd.data + 'T' + new Date().toTimeString().slice(0,8)).toISOString(),
+      valeId: novoVale.id
+    };
+    const caixaList = getCaixaTransacoes();
+    caixaList.push(tx);
+    saveCaixaTransacoes(caixaList);
+    novoVale.caixaTxId = txId;
+  }
+
+  list.unshift(novoVale);
+  saveVales(list);
+  closeModal();
+  renderDP();
+  if(typeof renderCaixa === 'function' && novoVale.caixaTxId) renderCaixa();
+  showToast(`<strong>✓</strong> Vale lançado${novoVale.caixaTxId ? ' (saída no caixa registrada)' : ''}`);
+}
+
+function excluirVale(id){
+  const v = getVales().find(x => x.id === id);
+  if(!v) return;
+  if(!confirm(`Excluir vale de R$ ${v.valor.toFixed(2)} de ${v.data}?\n\n${v.caixaTxId ? 'A saída correspondente no Caixa também será removida.' : ''}`)) return;
+  saveVales(getVales().filter(x => x.id !== id));
+  // Remove tx do caixa se vinculada
+  if(v.caixaTxId && typeof getCaixaTransacoes === 'function'){
+    saveCaixaTransacoes(getCaixaTransacoes().filter(t => t.id !== v.caixaTxId));
+    if(typeof renderCaixa === 'function') renderCaixa();
+  }
+  renderDP();
+  showToast('<strong>✓</strong> Vale excluído');
+}
+
 // === FOLHA DE PAGAMENTO ===
 
 // Tabela INSS 2026 (faixas progressivas)
@@ -9486,7 +9709,9 @@ function calcularFolhaColab(colab, mesYM){
   const dependentes = parseInt(colab.dependentes) || 0;
   const irrf = calcularIRRF(baseIRRF, dependentes);
 
-  const adiantamento = m.adiantamento || 0;
+  const adiantamentoManual = m.adiantamento || 0;
+  const totalVales = getValesDoMes(colab.id, mesYM).reduce((s,v) => s + (v.valor||0), 0);
+  const adiantamento = adiantamentoManual + totalVales;
   const liquido = baseINSS - inss - irrf - adiantamento;
 
   // FGTS 8% sobre o bruto (não sobre faltas)
@@ -9510,6 +9735,8 @@ function calcularFolhaColab(colab, mesYM){
     baseIRRF,
     irrf,
     adiantamento,
+    adiantamentoManual,
+    totalVales,
     liquido,
     fgts
   };
@@ -9549,7 +9776,7 @@ function renderFolhaTab(mesYM){
         <td class="px-3 py-2 text-right text-xs text-rose-600">${fmt(f.inss)}</td>
         <td class="px-3 py-2 text-right text-xs text-rose-600">${fmt(f.irrf)}</td>
         <td class="px-3 py-2 text-right text-xs ${f.descFaltas>0?'text-rose-600':''}">${fmt(f.descFaltas + f.descDSRfaltas)}</td>
-        <td class="px-3 py-2 text-right text-xs">${fmt(f.adiantamento)}</td>
+        <td class="px-3 py-2 text-right text-xs ${f.adiantamento>0?'text-amber-700':''}" title="${f.totalVales>0 ? 'Vales: R$ '+f.totalVales.toFixed(2)+(f.adiantamentoManual>0?' + Manual: R$ '+f.adiantamentoManual.toFixed(2):'') : ''}">${fmt(f.adiantamento)}${f.totalVales>0 ? `<span class="text-[9px] text-ink-500 block">${getValesDoMes(c.id, mesYM).length} vale(s)</span>` : ''}</td>
         <td class="px-3 py-2 text-right text-xs font-bold ${f.liquido>0?'text-emerald-700':'text-rose-700'}">${fmt(f.liquido)}</td>
         <td class="px-3 py-2 text-right text-xs text-blue-700">${fmt(f.fgts)}</td>
         <td class="px-3 py-2 text-center">
@@ -9582,7 +9809,7 @@ function exportarFolhaCSV(){
   const mesYM = document.getElementById('dp-mes').value;
   const colabs = getCadastros('funcionario');
   const sep = ';';
-  const headers = ['Nome','Cargo','Salario','HE+Adic','DSR','Comissao','Bruto','INSS','IRRF','Faltas','Adiantamento','Liquido','FGTS','Faltas (qtd)'];
+  const headers = ['Nome','Cargo','Salario','HE+Adic','DSR','Comissao','Bruto','INSS','IRRF','Faltas','Vales','Adiantamento Manual','Total Adiantamento','Liquido','FGTS','Faltas (qtd)'];
   const rows = colabs.map(c => {
     const f = calcularFolhaColab(c, mesYM);
     return [
@@ -9596,6 +9823,8 @@ function exportarFolhaCSV(){
       f.inss.toFixed(2).replace('.',','),
       f.irrf.toFixed(2).replace('.',','),
       (f.descFaltas + f.descDSRfaltas).toFixed(2).replace('.',','),
+      f.totalVales.toFixed(2).replace('.',','),
+      f.adiantamentoManual.toFixed(2).replace('.',','),
       f.adiantamento.toFixed(2).replace('.',','),
       f.liquido.toFixed(2).replace('.',','),
       f.fgts.toFixed(2).replace('.',','),
@@ -9650,7 +9879,8 @@ td.r{text-align:right;font-family:monospace}
     ${f.descDSRfaltas > 0 ? `<tr><td>008</td><td>DSR sobre faltas</td><td>—</td><td></td><td class="r">${fmt(f.descDSRfaltas)}</td></tr>`:''}
     ${f.inss > 0 ? `<tr><td>901</td><td>INSS</td><td>${(f.inss/f.baseINSS*100).toFixed(2)}% s/${fmt(f.baseINSS)}</td><td></td><td class="r">${fmt(f.inss)}</td></tr>`:''}
     ${f.irrf > 0 ? `<tr><td>902</td><td>IRRF</td><td>s/${fmt(f.baseIRRF)}</td><td></td><td class="r">${fmt(f.irrf)}</td></tr>`:''}
-    ${f.adiantamento > 0 ? `<tr><td>903</td><td>Adiantamento</td><td>—</td><td></td><td class="r">${fmt(f.adiantamento)}</td></tr>`:''}
+    ${f.totalVales > 0 ? `<tr><td>903</td><td>Vales / Adiantamentos do mês</td><td>${getValesDoMes(c.id, mesYM).length} lançamento(s)</td><td></td><td class="r">${fmt(f.totalVales)}</td></tr>`:''}
+    ${f.adiantamentoManual > 0 ? `<tr><td>904</td><td>Adiantamento adicional</td><td>—</td><td></td><td class="r">${fmt(f.adiantamentoManual)}</td></tr>`:''}
   </tbody>
   <tfoot>
     <tr class="totais"><td colspan="3">Totais</td><td class="r">${fmt(f.bruto)}</td><td class="r">${fmt(f.bruto - f.liquido)}</td></tr>
