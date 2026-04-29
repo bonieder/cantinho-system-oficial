@@ -314,6 +314,7 @@
         <button onclick="openCaixaEntradaModal()" class="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md flex items-center gap-2">⬆ Nova Entrada</button>
         <button onclick="openCaixaSaidaModal()" class="text-sm bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-md flex items-center gap-2">⬇ Nova Saída</button>
         <button onclick="openSangriaModal()" class="text-sm bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-md flex items-center gap-2">💵 Sangria</button>
+        <button onclick="notificarResumoCaixa()" class="text-sm border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-4 py-2 rounded-md flex items-center gap-2">📱 Notificar resumo</button>
         <div class="ml-auto flex gap-2">
           <button onclick="openContagemCedulasModal()" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-ink-50 flex items-center gap-2">🧾 Contar cédulas</button>
           <button onclick="openFecharCaixaModal()" class="text-sm bg-ink-800 hover:bg-ink-900 text-white px-4 py-2 rounded-md flex items-center gap-2">🔒 Fechar Caixa</button>
@@ -500,6 +501,10 @@
 
     <!-- ESTOQUE -->
     <section id="estoque" class="module p-8 space-y-6">
+
+      <div class="flex justify-end">
+        <button onclick="notificarEstoqueBaixo()" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md">📱 Notificar estoque baixo</button>
+      </div>
 
       <!-- KPIs -->
       <div id="estoque-kpis" class="grid grid-cols-4 gap-4"></div>
@@ -828,7 +833,10 @@
           </div>
           <span id="dre-info" class="text-xs text-ink-600"></span>
         </div>
-        <button onclick="exportDRE()" class="text-xs border border-ink-200 px-3 py-1.5 rounded-md hover:bg-ink-50">⬇ Exportar PDF</button>
+        <div class="flex gap-2">
+          <button onclick="notificarResumoDRE()" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md">📱 Notificar resumo</button>
+          <button onclick="exportDRE()" class="text-xs border border-ink-200 px-3 py-1.5 rounded-md hover:bg-ink-50">⬇ Exportar PDF</button>
+        </div>
       </div>
 
       <!-- KPIs principais -->
@@ -971,6 +979,7 @@
             <p class="text-xs text-brand-700 mt-0.5">Faltou alguma coisa? Solicite a compra. O administrador analisa, aprova e o estoquista dá entrada quando chega.</p>
           </div>
           <div class="flex gap-2">
+            <button onclick="notificarPendenciasCompras()" class="text-sm border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-4 py-2 rounded-md flex items-center gap-2">📱 Notificar pendências</button>
             <button onclick="openRecebimentoModal()" class="text-sm border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-700 px-4 py-2 rounded-md flex items-center gap-2">
               📥 Receber Mercadoria
             </button>
@@ -1482,9 +1491,12 @@
           <h3 class="font-semibold text-brand-900">📅 Reservas de Mesa</h3>
           <p class="text-xs text-brand-700 mt-0.5">Aniversários, eventos corporativos, despedidas — controle de ocasiões especiais</p>
         </div>
-        <button onclick="openReservaForm()" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-md flex items-center gap-2">
-          <span class="text-lg leading-none">+</span> Nova Reserva
-        </button>
+        <div class="flex gap-2">
+          <button onclick="notificarReservasHoje()" class="text-sm border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-4 py-2 rounded-md flex items-center gap-2">📱 Notificar reservas do dia</button>
+          <button onclick="openReservaForm()" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-md flex items-center gap-2">
+            <span class="text-lg leading-none">+</span> Nova Reserva
+          </button>
+        </div>
       </div>
 
       <!-- Próximas reservas -->
@@ -2064,6 +2076,7 @@ app.cantinhodoboni.com.br {
         <div class="px-5 py-3 border-t border-ink-200 bg-ink-50 flex items-center justify-between flex-wrap gap-3 text-xs">
           <div id="dp-apont-totais"></div>
           <div class="flex gap-2">
+            <button onclick="notificarApontamentoColab()" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md">📱 Notificar colaborador</button>
             <button onclick="abrirFechamentoColabModal()" class="text-xs border border-brand-300 bg-white text-brand-700 px-3 py-1.5 rounded-md">+ Comissão / Adiantamento / Obs</button>
           </div>
         </div>
@@ -7217,8 +7230,8 @@ function notificarVencimentos(){
     const dias = Math.ceil((v.getTime() - now) / 86400000);
     return `• ${p.nome} (${p.quantidade||1}x) — ${dias === 0 ? 'HOJE' : dias + ' dia(s)'}`;
   }).join('\n');
-  const msg = `*⏰ Etiquetas vencendo - Cantinho do Boni*\n\n${linhas}${proximos.length > 15 ? '\n... e mais ' + (proximos.length-15) + ' itens' : ''}\n\nConferir e descartar/utilizar antes do vencimento.`;
-  notificarEvento('etiquetas_vencimento', msg);
+  const msg = `*⏰ Etiquetas vencendo - Cantinho do Boni*\n\n${linhas}${proximos.length > 15 ? '\n... e mais ' + (proximos.length-15) + ' itens' : ''}\n\nConferir e descartar/utilizar antes do vencimento.\n\n${_waCfgSig}`;
+  openNotifyModal({ titulo:'Etiquetas vencendo', evento:'etiquetas_vencimento', mensagem: msg });
 }
 
 // =====================================================
@@ -9592,10 +9605,10 @@ function notificarHolerite(colabId, mesYM){
   const c = getCadastros('funcionario').find(x => x.id === colabId);
   if(!c) return;
   const tel = c.telefone || c.whatsapp;
-  if(!tel){ showToast('Sem telefone cadastrado', 'warn'); return; }
+  if(!tel){ showToast(`${c.nome} não tem telefone cadastrado`, 'warn'); return; }
   const f = calcularFolhaColab(c, mesYM);
   const mesNome = new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const fmt = v => 'R$ ' + (Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const msg = `*💰 Holerite - ${mesNome}*\n\n` +
     `Olá ${c.nome.split(' ')[0]}!\n\n` +
     `Sua folha de ${mesNome}:\n` +
@@ -9605,8 +9618,12 @@ function notificarHolerite(colabId, mesYM){
     `• Bruto: ${fmt(f.bruto)}\n` +
     `• Descontos: ${fmt(f.bruto - f.liquido)}\n` +
     `• *Líquido: ${fmt(f.liquido)}*\n\n` +
-    `O holerite detalhado pode ser solicitado.\n— Cantinho do Boni`;
-  abrirWhatsAppNotify(tel, msg);
+    `O holerite detalhado pode ser solicitado.\n${_waCfgSig}`;
+  openNotifyModal({
+    titulo: `Holerite - ${c.nome}`,
+    mensagem: msg,
+    contatosExtra: [{ nome: c.nome, sub: c.cargo || 'Funcionário', tel, preSelecionado: true }]
+  });
 }
 
 // === RESCISÕES ===
@@ -10259,6 +10276,245 @@ function notificarEvento(evento, mensagem){
   if(!count) showToast('Nenhum destinatário tem telefone cadastrado', 'warn');
 }
 
+// Lista todos os contatos com telefone (funcionários + usuários + clientes opcionais)
+function listarContatosWA(incluirClientes = false){
+  const todos = [];
+  const seen = new Set();
+  (typeof getCadastros === 'function' ? getCadastros('funcionario') : []).forEach(f => {
+    const tel = f.telefone || f.whatsapp;
+    if(tel && !seen.has(f.id)){
+      seen.add(f.id);
+      todos.push({ id:f.id, tipo:'func', nome:f.nome, sub:(f.cargo||f.setor||'Funcionário'), tel });
+    }
+  });
+  (typeof getUsuarios === 'function' ? getUsuarios() : []).forEach(u => {
+    const tel = u.whatsapp || u.telefone;
+    if(tel && !seen.has(u.id)){
+      seen.add(u.id);
+      todos.push({ id:u.id, tipo:'user', nome:u.nome, sub:u.perfil, tel });
+    }
+  });
+  if(incluirClientes){
+    (typeof getCadastros === 'function' ? getCadastros('cliente') : []).forEach(c => {
+      const tel = c.whatsapp || c.telefone;
+      if(tel && !seen.has(c.id)){
+        seen.add(c.id);
+        todos.push({ id:c.id, tipo:'cliente', nome:c.nome, sub:'Cliente', tel });
+      }
+    });
+  }
+  return todos;
+}
+
+// === MODAL UNIVERSAL DE NOTIFICAÇÃO ===
+// openNotifyModal({ titulo, evento?, mensagem, contatosExtra?: [{nome, tel}], incluirClientes?: bool })
+function openNotifyModal({ titulo, evento, mensagem, contatosExtra = [], incluirClientes = false }){
+  const cfg = getWAConfig();
+  const padrao = new Set(evento ? (cfg.destinatarios[evento] || []) : []);
+  const todos = listarContatosWA(incluirClientes);
+  contatosExtra.forEach((c, i) => {
+    todos.push({ id:'extra-'+i, tipo:'extra', nome:c.nome, sub:c.sub||'', tel:c.tel });
+    if(c.preSelecionado) padrao.add('extra-'+i);
+  });
+  if(!todos.length){
+    showToast('Nenhum contato com telefone cadastrado. Cadastre em Funcionários ou Usuários.', 'warn');
+    return;
+  }
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-8">
+        <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold text-lg flex items-center gap-2">📱 ${titulo || 'Notificar via WhatsApp'}</h2>
+            <p class="text-xs text-ink-600 mt-0.5">Marque os destinatários e revise a mensagem antes de enviar</p>
+          </div>
+          <button onclick="closeModal()" class="text-ink-400 hover:text-ink-800 text-2xl leading-none">×</button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-medium text-ink-600">Destinatários</label>
+              <div class="flex gap-2">
+                <button onclick="toggleAllNotify(true)" class="text-[11px] text-brand-600 hover:underline">Marcar todos</button>
+                <button onclick="toggleAllNotify(false)" class="text-[11px] text-ink-500 hover:underline">Desmarcar</button>
+              </div>
+            </div>
+            <div class="border border-ink-200 rounded-md max-h-56 overflow-y-auto p-2 space-y-1">
+              ${todos.map(t => `
+                <label class="flex items-center gap-2 text-sm hover:bg-ink-50 rounded px-2 py-1 cursor-pointer ${padrao.has(t.id)?'bg-emerald-50':''}">
+                  <input type="checkbox" data-id="${t.id}" data-tel="${t.tel}" data-nome="${(t.nome||'').replace(/"/g,'&quot;')}" ${padrao.has(t.id)?'checked':''} class="notify-cb">
+                  <span class="flex-1"><strong>${t.nome}</strong> <span class="text-[11px] text-ink-500">${t.sub}</span></span>
+                  <span class="text-[10px] text-ink-400 font-mono">${t.tel}</span>
+                </label>
+              `).join('')}
+            </div>
+            <div class="text-[11px] text-ink-500 mt-1" id="notify-count">${padrao.size} destinatário(s) selecionado(s)</div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Mensagem (use *texto* para negrito)</label>
+            <textarea id="notify-msg" rows="10" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1 font-mono">${mensagem || ''}</textarea>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900">
+            <strong>ℹ Modo manual:</strong> ao confirmar, será aberta uma aba do WhatsApp para CADA destinatário com a mensagem pronta. Se for muito destinatário, o navegador pode bloquear pop-ups — autorize no ícone da barra de endereço.
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="enviarNotify()" type="button" class="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-md">📲 Enviar via WhatsApp</button>
+        </div>
+      </div>
+    </div>
+  `;
+  // Atualiza contador ao alterar checkboxes
+  setTimeout(() => {
+    document.querySelectorAll('.notify-cb').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const n = document.querySelectorAll('.notify-cb:checked').length;
+        document.getElementById('notify-count').textContent = `${n} destinatário(s) selecionado(s)`;
+      });
+    });
+  }, 50);
+}
+
+function toggleAllNotify(checked){
+  document.querySelectorAll('.notify-cb').forEach(cb => cb.checked = checked);
+  const n = document.querySelectorAll('.notify-cb:checked').length;
+  document.getElementById('notify-count').textContent = `${n} destinatário(s) selecionado(s)`;
+}
+
+function enviarNotify(){
+  const msg = document.getElementById('notify-msg').value;
+  const sel = document.querySelectorAll('.notify-cb:checked');
+  if(!sel.length){ showToast('Marque ao menos um destinatário', 'warn'); return; }
+  if(!msg.trim()){ showToast('Mensagem vazia', 'warn'); return; }
+  if(sel.length > 5 && !confirm(`Enviar para ${sel.length} destinatário(s)? Serão abertas ${sel.length} abas do WhatsApp.`)) return;
+  let count = 0;
+  sel.forEach((cb, i) => {
+    setTimeout(() => abrirWhatsAppNotify(cb.dataset.tel, msg), i * 250); // delay para evitar bloqueio
+    count++;
+  });
+  closeModal();
+  showToast(`<strong>📲</strong> Abrindo ${count} conversa(s) do WhatsApp...`);
+}
+
+// === Notificações pré-formatadas por módulo ===
+const _waCfgSig = '— Cantinho do Boni';
+
+function notificarResumoCaixa(){
+  if(typeof getCaixaTransacoes !== 'function'){ showToast('Caixa indisponível', 'error'); return; }
+  const today = new Date().toISOString().slice(0,10);
+  const txs = getCaixaTransacoes().filter(t => t.createdAt.slice(0,10) === today);
+  const ent = txs.filter(t=>t.tipo==='entrada').reduce((s,t)=>s+t.valor, 0);
+  const sai = txs.filter(t=>t.tipo==='saida').reduce((s,t)=>s+t.valor, 0);
+  const sang = txs.filter(t=>t.tipo==='sangria').reduce((s,t)=>s+t.valor, 0);
+  const saldoIni = getCaixaSaldoInicial();
+  const saldoFinal = saldoIni + ent - sai - sang;
+  const fmt = v => 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const data = new Date().toLocaleDateString('pt-BR');
+  const msg = `*💵 Resumo do Caixa - ${data}*\n\n`
+    + `Saldo inicial: ${fmt(saldoIni)}\n`
+    + `Entradas: ${fmt(ent)} (${txs.filter(t=>t.tipo==='entrada').length})\n`
+    + `Saídas: ${fmt(sai)} (${txs.filter(t=>t.tipo==='saida').length})\n`
+    + `Sangrias: ${fmt(sang)}\n`
+    + `*Saldo final: ${fmt(saldoFinal)}*\n\n${_waCfgSig}`;
+  openNotifyModal({ titulo:'Resumo do Caixa - Hoje', evento:'caixa_fechamento', mensagem: msg });
+}
+
+function notificarResumoDRE(){
+  if(typeof getDREData !== 'function' && typeof renderDRE !== 'function'){
+    showToast('DRE indisponível', 'error'); return;
+  }
+  // Lê valores diretos dos KPIs já renderizados (mais simples e robusto)
+  const $kpis = document.getElementById('dre-kpis');
+  if(!$kpis || !$kpis.children.length){ showToast('Abra o DRE primeiro para gerar os KPIs', 'warn'); return; }
+  const kpiTexts = Array.from($kpis.children).map(el => el.innerText.replace(/\s+/g,' ').trim());
+  const periodo = document.getElementById('dre-info')?.textContent.trim() || '';
+  const msg = `*📊 DRE - Cantinho do Boni*\n${periodo ? '_' + periodo + '_\n' : ''}\n${kpiTexts.map(t => '• ' + t).join('\n')}\n\n${_waCfgSig}`;
+  openNotifyModal({ titulo:'Resumo DRE', mensagem: msg });
+}
+
+function notificarPendenciasCompras(){
+  if(typeof getCompras !== 'function'){ showToast('Compras indisponível', 'error'); return; }
+  const compras = getCompras();
+  const pendAprovacao = compras.filter(c => c.status === 'pendente' || c.status === 'aguardando_aprovacao');
+  const pendRecebimento = compras.filter(c => c.status === 'aprovado' || c.status === 'aguardando_recebimento');
+  if(!pendAprovacao.length && !pendRecebimento.length){ showToast('Nada pendente', 'info'); return; }
+  const fmt = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let msg = `*🛒 Pedidos pendentes - Cantinho do Boni*\n\n`;
+  if(pendAprovacao.length){
+    msg += `*Aguardando aprovação (${pendAprovacao.length}):*\n`;
+    msg += pendAprovacao.slice(0,10).map(c => `• ${c.id || ''} ${c.fornecedor || ''} ${c.valor ? '— ' + fmt(c.valor) : ''}`).join('\n') + '\n\n';
+  }
+  if(pendRecebimento.length){
+    msg += `*Aguardando recebimento (${pendRecebimento.length}):*\n`;
+    msg += pendRecebimento.slice(0,10).map(c => `• ${c.id || ''} ${c.fornecedor || ''} ${c.previsaoEntrega ? '(prev. ' + new Date(c.previsaoEntrega+'T12:00').toLocaleDateString('pt-BR') + ')' : ''}`).join('\n') + '\n\n';
+  }
+  msg += _waCfgSig;
+  openNotifyModal({ titulo:'Pendências de Compras', evento:'compras_aprovacao', mensagem: msg });
+}
+
+function notificarEstoqueBaixo(){
+  if(typeof getProdutos !== 'function'){ showToast('Estoque indisponível', 'error'); return; }
+  const produtos = getProdutos();
+  // Considera "baixo" produtos com estoque <= min ou <= 0
+  const baixos = produtos.filter(p => {
+    const est = (p.entradas||0) - (p.saidas||0);
+    return p.minimo !== undefined && p.minimo > 0 && est <= p.minimo;
+  });
+  if(!baixos.length){ showToast('Nenhum produto abaixo do mínimo', 'info'); return; }
+  const msg = `*📦 Estoque baixo - Cantinho do Boni*\n\n${baixos.slice(0,20).map(p => {
+    const est = (p.entradas||0) - (p.saidas||0);
+    return `• ${p.name || p.nome} — ${est}/${p.minimo} ${p.unit || p.unidade || ''}`;
+  }).join('\n')}${baixos.length > 20 ? '\n... e mais ' + (baixos.length-20) : ''}\n\n${_waCfgSig}`;
+  openNotifyModal({ titulo:'Estoque baixo', mensagem: msg });
+}
+
+function notificarReservasHoje(){
+  if(typeof getReservas !== 'function'){ showToast('Reservas indisponível', 'error'); return; }
+  const today = new Date().toISOString().slice(0,10);
+  const list = getReservas().filter(r => (r.data||'').slice(0,10) === today);
+  if(!list.length){ showToast('Sem reservas hoje', 'info'); return; }
+  const data = new Date().toLocaleDateString('pt-BR');
+  const msg = `*📅 Reservas de hoje (${data})*\n\n${list.map(r => {
+    return `• ${r.hora || ''} — ${r.nome || r.cliente || 'Cliente'} (${r.pessoas || '?'} pessoas)${r.ocasiao ? ' · ' + r.ocasiao : ''}${r.observacao ? ' · ' + r.observacao : ''}`;
+  }).join('\n')}\n\nTotal: ${list.length} reserva(s)\n\n${_waCfgSig}`;
+  // Inclui clientes nos contatos (caso queira avisar o próprio cliente)
+  const clientesComTel = list.filter(r => r.telefone || r.whatsapp).map(r => ({
+    nome: r.nome || r.cliente || 'Cliente',
+    sub: r.hora + ' · ' + (r.pessoas||'?') + 'p',
+    tel: r.telefone || r.whatsapp,
+    preSelecionado: false
+  }));
+  openNotifyModal({ titulo:'Reservas do dia', evento:'reservas_hoje', mensagem: msg, contatosExtra: clientesComTel });
+}
+
+function notificarApontamentoColab(){
+  const colabId = document.getElementById('dp-apont-colab')?.value;
+  if(!colabId){ showToast('Selecione um colaborador antes', 'warn'); return; }
+  const colab = getCadastros('funcionario').find(c => c.id === colabId);
+  if(!colab){ showToast('Colaborador não encontrado', 'error'); return; }
+  const tel = colab.telefone || colab.whatsapp;
+  if(!tel){ showToast(`${colab.nome} não tem telefone cadastrado`, 'warn'); return; }
+  const mesYM = document.getElementById('dp-mes').value;
+  const r = calcularMesColab(colabId, mesYM);
+  const mesNome = new Date(mesYM+'-01T12:00').toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const msg = `*⏱ Resumo de ponto - ${mesNome}*\n\n`
+    + `Olá ${colab.nome.split(' ')[0]}!\n\n`
+    + `Seu apontamento de ${mesNome}:\n`
+    + (r.totalHE50 > 0 ? `• H.E. 50%: ${fmtMinutes(r.totalHE50)}\n` : '')
+    + (r.totalHE100 > 0 ? `• H.E. 100%: ${fmtMinutes(r.totalHE100)}\n` : '')
+    + (r.totalNoturno > 0 ? `• Adic. noturno: ${fmtMinutes(r.totalNoturno)}\n` : '')
+    + (r.totalAtraso > 0 ? `• Atrasos: ${fmtMinutes(r.totalAtraso)}\n` : '')
+    + (r.qtdFaltas > 0 ? `• Faltas: ${r.qtdFaltas} dia(s)\n` : '')
+    + `• Assiduidade: ${r.assiduidade ? 'SIM ✅' : 'NÃO ❌'}\n\n`
+    + 'Confira e me retorne se houver alguma divergência.\n\n' + _waCfgSig;
+  openNotifyModal({
+    titulo: `Apontamento - ${colab.nome}`,
+    mensagem: msg,
+    contatosExtra: [{ nome: colab.nome, sub: colab.cargo || 'Funcionário', tel, preSelecionado: true }]
+  });
+}
+
 // =====================================================
 // VENDAS (PDV) — Importa relatório do Colibri (XLSX/CSV) com dedupe
 // =====================================================
@@ -10753,8 +11009,12 @@ function telefoneAtendente(nome){
 function notificarRanking(nome, fat, posicao){
   const tel = telefoneAtendente(nome);
   if(!tel){ showToast('Atendente sem telefone cadastrado em Funcionários', 'warn'); return; }
-  const msg = `*🏆 Ranking de Vendas - Cantinho do Boni*\n\nOlá ${nome}!\n\nVocê está em ${posicao}º lugar no período com:\n💰 *R$ ${fat.toLocaleString('pt-BR',{minimumFractionDigits:2})}* em vendas\n\nParabéns e continue assim! 🚀`;
-  abrirWhatsAppNotify(tel, msg);
+  const msg = `*🏆 Ranking de Vendas - Cantinho do Boni*\n\nOlá ${nome}!\n\nVocê está em ${posicao}º lugar no período com:\n💰 *R$ ${fat.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}* em vendas\n\nParabéns e continue assim! 🚀\n\n${_waCfgSig}`;
+  openNotifyModal({
+    titulo: `Ranking - ${nome}`,
+    mensagem: msg,
+    contatosExtra: [{ nome, sub: 'Atendente', tel, preSelecionado: true }]
+  });
 }
 
 // =====================================================
