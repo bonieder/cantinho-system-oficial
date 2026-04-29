@@ -12147,46 +12147,60 @@ function notificarRanking(nome, fat, posicao){
   const isDiaUnico = (periodo.tipo === 'hoje' || periodo.tipo === 'ontem' || periodo.tipo === 'dia');
   const primeiroNome = nome.split(' ')[0];
 
-  // Linha de saudação adapta ao tipo de período
-  let saudacao;
-  if(periodo.tipo === 'hoje'){
-    saudacao = `*Hoje* você vendeu *${valorFmt}*.`;
-  } else if(periodo.tipo === 'ontem'){
-    saudacao = `*Ontem* você vendeu *${valorFmt}*.`;
-  } else if(periodo.tipo === 'dia'){
-    saudacao = `${periodo.label.charAt(0).toUpperCase()+periodo.label.slice(1)} você vendeu *${valorFmt}*.`;
-  } else {
-    saudacao = `${periodo.label.charAt(0).toUpperCase()+periodo.label.slice(1)} você acumulou *${valorFmt}* em vendas.`;
-  }
+  // Verbo da posição: passado para dia único, presente para acumulado/hoje
+  const verbo = (periodo.tipo === 'ontem' || periodo.tipo === 'dia') ? 'ficou' : 'está';
 
-  // Tom da mensagem por posição
-  let cabecalho, corpo, fechamento;
+  // Sufixo do título (período integrado)
+  let sufixoTitulo;
+  if(periodo.tipo === 'hoje') sufixoTitulo = 'Hoje';
+  else if(periodo.tipo === 'ontem') sufixoTitulo = 'Ontem';
+  else if(periodo.tipo === 'dia') sufixoTitulo = periodo.label.charAt(0).toUpperCase() + periodo.label.slice(1);
+  else sufixoTitulo = periodo.label.charAt(0).toUpperCase() + periodo.label.slice(1);
+
+  // Linha de venda (sem repetir o período)
+  const linhaVenda = isDiaUnico
+    ? `Você vendeu *${valorFmt}*.`
+    : `Você acumulou *${valorFmt}* em vendas.`;
+
+  // Tom por posição
+  let cabecalho, elogio, fechamento;
   if(posicao === 1){
-    cabecalho = `*🥇 Você está em 1º lugar!*`;
-    corpo = `${saudacao}\n\nParabéns! Líder absoluto do ranking. 🏆`;
+    cabecalho = `*🥇 Você ${verbo} em 1º lugar! ${sufixoTitulo}*`;
+    elogio = isDiaUnico
+      ? 'Parabéns! Liderou muito. 🏆'
+      : 'Parabéns! Líder absoluto do ranking. 🏆';
     fechamento = isDiaUnico
-      ? 'Continue assim — esse ritmo é o que faz o Cantinho crescer! 🚀'
+      ? 'Continue assim — dessa forma crescemos juntos! 🚀'
       : 'Continue brilhando — sua performance é referência pro time! 🚀';
-  } else if(posicao <= 3){
-    cabecalho = `*${posicao === 2 ? '🥈' : '🥉'} ${posicao}º lugar no ranking*`;
-    corpo = `${saudacao}\n\nExcelente trabalho!`;
-    fechamento = isDiaUnico
-      ? 'Mantenha a constância — você está perto do topo. 💪'
-      : 'Continue assim — você está entre os melhores! 🚀';
+  } else if(posicao === 2){
+    cabecalho = `*🥈 Você ${verbo} em 2º lugar! ${sufixoTitulo}*`;
+    elogio = 'Excelente trabalho! Quase no topo. 💪';
+    fechamento = 'Mais uma posição e você lidera — bora pro 1º! 🚀';
+  } else if(posicao === 3){
+    cabecalho = `*🥉 Você ${verbo} em 3º lugar! ${sufixoTitulo}*`;
+    elogio = 'Pódio garantido! Mandou bem.';
+    fechamento = 'Continue nesse ritmo — você está perto do topo. 💪';
   } else if(posicao <= 5){
-    cabecalho = `*🏆 ${posicao}º lugar no ranking*`;
-    corpo = `${saudacao}\n\nÓtimo trabalho! Você está entre os top 5 atendentes.`;
-    fechamento = 'Continue focado — uma posição a mais e você sobe pro pódio! 💪';
+    cabecalho = `*🏆 Você ${verbo} em ${posicao}º lugar! ${sufixoTitulo}*`;
+    elogio = 'Ótimo trabalho! Você está entre os top 5 atendentes.';
+    fechamento = 'Mais um pouco e você sobe pro pódio! 💪';
   } else {
     // 6º em diante — tom construtivo
-    cabecalho = `*📊 Ranking de Vendas — ${posicao}º lugar*`;
-    corpo = `Olá ${primeiroNome}!\n\n${saudacao}`;
+    cabecalho = `*📊 ${posicao}º lugar no ranking · ${sufixoTitulo}*`;
+    elogio = `Olá ${primeiroNome}!`;
     fechamento = isDiaUnico
       ? 'Bora juntos pensar em algumas estratégias pra subir no ranking?\n\n• Sugerir entradas e bebidas no início do atendimento\n• Oferecer sobremesa antes de fechar a conta\n• Conhecer o cardápio pra recomendar combinações\n\nEstamos aqui pra te apoiar — fala comigo se quiser trocar uma ideia. 💬'
       : 'Vamos analisar juntos sua rota de atendimento? Algumas ideias pra crescer:\n\n• Sugestão ativa de entradas e bebidas\n• Oferecer sobremesa antes do fechamento\n• Conhecer melhor o cardápio pra recomendar\n\nConta com a equipe pra te apoiar — sua evolução é prioridade. 💪';
   }
 
-  const msg = `${cabecalho}\n\n${corpo}\n\n${fechamento}\n\n${_waCfgSig}`;
+  // Estrutura final: cabecalho \n\n linhaVenda \n\n elogio \n\n fechamento
+  // Para 6º+, elogio é só "Olá Nome!" então fica antes da venda
+  let msg;
+  if(posicao >= 6){
+    msg = `${cabecalho}\n\n${elogio}\n\n${linhaVenda}\n\n${fechamento}\n\n${_waCfgSig}`;
+  } else {
+    msg = `${cabecalho}\n\n${linhaVenda}\n\n${elogio}\n\n${fechamento}\n\n${_waCfgSig}`;
+  }
 
   openNotifyModal({
     titulo: `Ranking - ${nome}`,
