@@ -10402,22 +10402,61 @@ const _waCfgSig = '— Cantinho do Boni';
 
 function notificarResumoCaixa(){
   if(typeof getCaixaTransacoes !== 'function'){ showToast('Caixa indisponível', 'error'); return; }
-  const today = new Date().toISOString().slice(0,10);
-  const txs = getCaixaTransacoes().filter(t => t.createdAt.slice(0,10) === today);
-  const ent = txs.filter(t=>t.tipo==='entrada').reduce((s,t)=>s+t.valor, 0);
-  const sai = txs.filter(t=>t.tipo==='saida').reduce((s,t)=>s+t.valor, 0);
-  const sang = txs.filter(t=>t.tipo==='sangria').reduce((s,t)=>s+t.valor, 0);
+  // Usa o filtro atual da tela; se nada selecionado, usa hoje
+  let period;
+  try { period = getCaixaPeriod(); } catch { period = null; }
+  let txs;
+  let labelPeriodo;
+  if(period){
+    txs = getCaixaTransacoes().filter(t => {
+      const d = new Date(t.createdAt);
+      return d >= period.start && d <= period.end;
+    });
+    labelPeriodo = period.label;
+  } else {
+    const today = new Date().toISOString().slice(0,10);
+    txs = getCaixaTransacoes().filter(t => t.createdAt.slice(0,10) === today);
+    labelPeriodo = new Date().toLocaleDateString('pt-BR');
+  }
+  txs = txs.slice().sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  const entradas = txs.filter(t => t.tipo === 'entrada');
+  const saidas = txs.filter(t => t.tipo === 'saida');
+  const sangrias = txs.filter(t => t.tipo === 'sangria');
+  const totEnt = entradas.reduce((s,t)=>s+t.valor, 0);
+  const totSai = saidas.reduce((s,t)=>s+t.valor, 0);
+  const totSang = sangrias.reduce((s,t)=>s+t.valor, 0);
   const saldoIni = getCaixaSaldoInicial();
-  const saldoFinal = saldoIni + ent - sai - sang;
+  const saldoFinal = saldoIni + totEnt - totSai - totSang;
   const fmt = v => 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const data = new Date().toLocaleDateString('pt-BR');
-  const msg = `*💵 Resumo do Caixa - ${data}*\n\n`
-    + `Saldo inicial: ${fmt(saldoIni)}\n`
-    + `Entradas: ${fmt(ent)} (${txs.filter(t=>t.tipo==='entrada').length})\n`
-    + `Saídas: ${fmt(sai)} (${txs.filter(t=>t.tipo==='saida').length})\n`
-    + `Sangrias: ${fmt(sang)}\n`
-    + `*Saldo final: ${fmt(saldoFinal)}*\n\n${_waCfgSig}`;
-  openNotifyModal({ titulo:'Resumo do Caixa - Hoje', evento:'caixa_fechamento', mensagem: msg });
+
+  const linhaTx = t => {
+    const hora = new Date(t.createdAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const cat = t.categoria || '';
+    const desc = t.descricao ? ' — ' + t.descricao : '';
+    const dest = t.sangriaProprietario ? ' → ' + t.sangriaProprietario : '';
+    return `${hora} · ${cat}${desc}${dest}: ${fmt(t.valor)}`;
+  };
+
+  let msg = `*💵 Resumo do Caixa - ${labelPeriodo}*\n\n`;
+  msg += `Saldo inicial: ${fmt(saldoIni)}\n\n`;
+
+  msg += `*⬆ Entradas (${entradas.length}) — ${fmt(totEnt)}*\n`;
+  msg += entradas.length ? entradas.map(t => '• ' + linhaTx(t)).join('\n') : '_(nenhuma)_';
+  msg += '\n\n';
+
+  msg += `*⬇ Saídas (${saidas.length}) — ${fmt(totSai)}*\n`;
+  msg += saidas.length ? saidas.map(t => '• ' + linhaTx(t)).join('\n') : '_(nenhuma)_';
+  msg += '\n\n';
+
+  if(sangrias.length){
+    msg += `*💵 Sangrias (${sangrias.length}) — ${fmt(totSang)}*\n`;
+    msg += sangrias.map(t => '• ' + linhaTx(t)).join('\n') + '\n\n';
+  }
+
+  msg += `*Saldo final: ${fmt(saldoFinal)}*\n\n${_waCfgSig}`;
+
+  openNotifyModal({ titulo:`Resumo do Caixa - ${labelPeriodo}`, evento:'caixa_fechamento', mensagem: msg });
 }
 
 function notificarResumoDRE(){
