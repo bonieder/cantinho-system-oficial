@@ -7332,6 +7332,8 @@ function renderCaixa(){
   const $status = document.getElementById('caixa-status-card');
   if($status){
     const hoje = new Date().toLocaleDateString('pt-BR');
+    const _user = (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
+    const _isAdmin = _user?.perfil === 'Admin';
     $status.innerHTML = `
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -7340,12 +7342,15 @@ function renderCaixa(){
             <span class="text-[10px] bg-white border border-emerald-300 text-emerald-700 px-2 py-0.5 rounded">${hoje}</span>
           </div>
           <h3 class="text-2xl font-bold text-emerald-900 mt-1">Saldo atual: R$ ${saldoFinal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</h3>
-          <p class="text-xs text-emerald-800 mt-0.5">Saldo inicial do dia: R$ ${saldoInicial.toLocaleString('pt-BR',{minimumFractionDigits:2})}</p>
+          <p class="text-xs text-emerald-800 mt-0.5">
+            Saldo inicial do dia: R$ ${saldoInicial.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+            ${_isAdmin ? `<button onclick="editarSaldoInicial()" class="ml-2 text-[10px] underline text-emerald-700 hover:text-emerald-900">✎ Editar</button>` : ''}
+          </p>
         </div>
         <div class="text-right">
           <div class="text-xs text-ink-600">Operador</div>
-          <div class="text-sm font-semibold">Bonieder S.</div>
-          <div class="text-[10px] text-ink-500">Admin</div>
+          <div class="text-sm font-semibold">${_user?.nome || '—'}</div>
+          <div class="text-[10px] text-ink-500">${_user?.perfil || ''}</div>
         </div>
       </div>
     `;
@@ -7461,6 +7466,70 @@ function renderCaixa(){
   }
 
   if(typeof renderConciliacoesColibri === 'function') renderConciliacoesColibri();
+}
+
+function editarSaldoInicial(){
+  const u = (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
+  if(!u || u.perfil !== 'Admin'){
+    showToast('<strong>!</strong> Somente perfil Admin pode editar o saldo inicial', 'error');
+    return;
+  }
+  const atual = getCaixaSaldoInicial();
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div class="px-6 py-4 border-b border-ink-200">
+          <h2 class="font-semibold text-lg">✎ Editar saldo inicial</h2>
+          <p class="text-xs text-ink-600 mt-0.5">Apenas perfil Admin pode alterar este valor</p>
+        </div>
+        <form id="si-form" onsubmit="submitSaldoInicial(event)" class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Saldo inicial (R$)</label>
+            <input type="number" name="valor" required step="0.01" min="0" value="${atual.toFixed(2)}" autofocus class="w-full text-lg font-bold border border-ink-200 rounded-md px-3 py-2 mt-1">
+            <p class="text-[11px] text-ink-500 mt-1">Valor atual: R$ ${atual.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Motivo / observação <span class="text-rose-500">*</span></label>
+            <textarea name="motivo" required rows="2" placeholder="Ex: Acerto de sangria não registrada / abertura de caixa após feriado" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1"></textarea>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-900">
+            <strong>⚠ Atenção:</strong> Esta alteração é registrada para auditoria. Use com cuidado — o valor afeta o saldo final calculado e a próxima conferência de cédulas.
+          </div>
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('si-form').requestSubmit()" type="button" class="text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-md">Salvar saldo inicial</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function submitSaldoInicial(e){
+  e.preventDefault();
+  const u = (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
+  if(!u || u.perfil !== 'Admin'){ showToast('Sem permissão', 'error'); return; }
+  const fd = new FormData(e.target);
+  const novoValor = parseFloat(fd.get('valor'));
+  const motivo = String(fd.get('motivo') || '').trim();
+  if(isNaN(novoValor) || novoValor < 0){ showToast('Valor inválido', 'error'); return; }
+  if(!motivo){ showToast('Informe o motivo', 'error'); return; }
+  const valorAnterior = getCaixaSaldoInicial();
+  saveCaixaSaldoInicial(novoValor);
+  // Auditoria — registra no log
+  const log = Store.get('caixa.saldoInicialLog', []);
+  log.push({
+    em: new Date().toISOString(),
+    de: valorAnterior,
+    para: novoValor,
+    motivo,
+    usuario: u.nome,
+    perfil: u.perfil
+  });
+  Store.set('caixa.saldoInicialLog', log);
+  closeModal();
+  renderCaixa();
+  showToast(`<strong>✓</strong> Saldo inicial alterado de R$ ${valorAnterior.toFixed(2).replace('.',',')} para R$ ${novoValor.toFixed(2).replace('.',',')}`);
 }
 
 function reabrirCaixa(id){
