@@ -3196,6 +3196,89 @@ function parseOFX(text){
 
 // Classificação automática por regras (heurística com word boundaries)
 // IMPORTANTE: ordem importa — regras mais específicas primeiro para evitar falsos-positivos
+// ========== PARAMETROS DE CLASSIFICACAO (PARAMETROS.xlsx) ==========
+// Mapeia CNPJ ou Nome do favorecido para Grupo 1 (DRE) + Referencia de Linha (drill-down)
+const PARAMS_CNPJ = {"35.518.942/0001-40":{"g":"OUTROS","r":"INVESTIMENTO"},"56.436.185/0001-36":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"50.221.019/0001-36":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS BEBIDAS"},"24.013.543/0001-01":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"04.749.233/0001-42":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"01.597.589/0002-09":{"g":"OUTROS","r":"INVESTIMENTO"},"32.894.341/0001-44":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"15.629.070/0001-80":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"22.825.692/0001-40":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"06.314.519/0001-20":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS BEBIDAS"},"48.435.764/0001-36":{"g":"OUTROS","r":"A VERIFICAR"},"35.780.400/0001-41":{"g":"(-)Despesas Operacionais","r":"DESPESA COM COMBUSTIVEL"},"33.364.723/0001-29":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"07.546.521/0001-98":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"26.452.694/0001-91":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"27.276.733/0001-00":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"93.209.765/0001-17":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"09.501.606/0001-85":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"09.606.723/0001-03":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"58.536.054/0001-56":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"38.545.595/0001-33":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS BEBIDAS"},"54.946.308/0001-53":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"14.810.103/0001-21":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"45.708.919/0001-72":{"g":"(-)Despesas Operacionais","r":"SOFTWARE E TECONOLOGIA"},"30.257.717/0001-84":{"g":"OUTROS","r":"UTENSILIOS"},"55.623.724/0001-83":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"27.762.092/0001-01":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"30.354.551/0001-14":{"g":"(-)Despesas Operacionais","r":"SOFTWARE E TECONOLOGIA"},"31.037.942/0001-78":{"g":"(-)Despesas Operacionais","r":"SOFTWARE E TECONOLOGIA"},"55.549.129/0001-45":{"g":"OUTROS","r":"INVESTIMENTO"},"41.934.367/0001-60":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"10.573.521/0001-91":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"60.551.995/0001-00":{"g":"(-)Despesas Operacionais","r":"SOFTWARE E TECONOLOGIA"},"09.118.828/0001-13":{"g":"OUTROS","r":"OUTROS"},"12.933.514/0001-89":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"31.942.308/0001-80":{"g":"(-)Despesas Operacionais","r":"DESPESA COM COMBUSTIVEL"},"18.855.273/0001-83":{"g":"(-)Despesas Operacionais","r":"SOFTWARE E TECONOLOGIA"},"24.289.016/0001-24":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"47.759.077/0001-03":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"19.169.625/0001-00":{"g":"(-)Despesas Operacionais","r":"DESPESA COM COMBUSTIVEL"},"10.641.901/0001-16":{"g":"(-)Despesas Operacionais","r":"SOFTWARE E TECONOLOGIA"},"34.059.538/0001-93":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"19.853.093/0001-25":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"63.517.568/0001-02":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"17.394.851/0001-69":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"29.566.291/0001-61":{"g":"(-)Despesas Operacionais","r":"SOFTWARE E TECONOLOGIA"},"36.976.941/0001-02":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"29.881.940/0001-19":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"59.633.546/0001-22":{"g":"(-)Despesas Operacionais","r":"DESPESAS COM LANCHES"},"21.462.394/0001-70":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS BEBIDAS"},"42.763.990/0001-60":{"g":"OUTROS","r":"INVESTIMENTO"},"42.444.817/0001-07":{"g":"OUTROS","r":"OUTROS"},"01.612.092/0001-23":{"g":"(-)Tributos e Tarifas Bancárias","r":"TRIBUTOS"},"62.474.298/0001-29":{"g":"OUTROS","r":"INVESTIMENTO"},"40.014.964/0001-03":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"33.192.542/0001-62":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"64.854.556/0001-28":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"49.286.782/0001-66":{"g":"(-)Despesas Operacionais","r":"DESPESA COM COMBUSTIVEL"},"47.228.212/0001-94":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"44.998.400/0001-03":{"g":"(-)Despesas Operacionais","r":"MANUTENÇAO"},"32.894.341/0002-25":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"27.616.637/0001-63":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS BEBIDAS"},"41.665.428/0001-30":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"-":{"g":"(-)Tributos e Tarifas Bancárias","r":"TRIBUTOS"},"38.273.915/0001-43":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"61.584.117/0001-54":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"22.940.015/0001-72":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"06.057.223/0001-71":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"11.144.710/0001-01":{"g":"OUTROS","r":"A VERIFICAR"},"15.065.786/0001-00":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"33.235.815/0001-09":{"g":"OUTROS","r":"UTENSILIOS"},"19.356.279/0001-79":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"24.559.955/0001-41":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"}};
+const PARAMS_NOME = {"ERICK ANTONIO ALELEUIA DE MORA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JUAN PABLO NOBREGA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MARCUS VINICIUS BELTRAO PIRES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ALESSANDRO LIMA DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"DIONE ANTONIO DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"THIAGO SILVA LELES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"LUCAS GONCALVES DE ARAUJO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"THERELIS ROJAS NUNEZ":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"EMERSON FRANKLINS CARVALHO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"VICTOR MIGUEL ALCOCER BERMUDEZ":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"APOLONIO PINTO MONTEIRO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"KATRIELISSON AMARAL MACHADO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"RAI SANTOS SOUSA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"DAVI ALVES GALVAO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MAIRA ARAUJO SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"WELLISON DUARTE DE OLIVEIRA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ALINE EVELYN DE ALMEIDA SOUZA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"RODRIGO BORGES DE OLIVEIRA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"WALLISON FERREIRA FERNANDES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JOAO BATISTA DA LUZ":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"CLEDSON DE SOUZA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MARIA APARECIDA PEREIRA BARBOS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"CAMILA OLIVEIRA DE ANDRADE":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"TAIZA CRISTINA DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"KARLA KATRYNNE CARVALHO CASTRO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MARCUS VINICIUS DA SILVA RIBEI":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ELIZABETH PEREIRA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JUNIOR CESAR ALVES DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"GUILHERME RODRIGUES DE SOUZA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"GABRIEL ARAUJO MACEDO E SILVA":{"g":"(-)Despesas Comerciais","r":"MARKETING"},"SIMONE DE ALMEIDA TOLENTINO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"FABRICIO FERREIRA MOTA":{"g":"OUTROS","r":"INVESTIMENTO"},"RUDIERY DOS SANTOS EMBELINO":{"g":"OUTROS","r":"INVESTIMENTO"},"BONIEQUES CAETANO DE SOUZA":{"g":"OUTROS","r":"EMPRESTIMO"},"ENILEIA CARVALHO DOS SANTOS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"CARLOS ALBERTO LOPES DE ABREU":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"SIMONE BEATRIZ FARIAS SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"TATIANA DOS SANTOS VIANA OLIVE":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MATHEUS FELIPE SOUZA DE PAULA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JAIR DE CASTRO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"WENISKLEY RODRIGUES DE LIMA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ANTONIO SERGIO DA CONCEICAO SI":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"SAMUEL IZAIAS FERREIRA":{"g":"OUTROS","r":"OUTROS"},"BENERCION DA SILVA MAGALHAES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ELLENN CAMILLA DE OLIVEIRA SIL":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JOHNATHAN WILSON DIAS GOMES":{"g":"(-)CMV — Custo da Mercadoria Vendida","r":"INSUMOS CARNES E MERCEARIA"},"ROSIMARY COSTA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"EUGENIO HONORATO CRUVINEL":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"DIONATA FELIPE NUNES DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"LUCIMAR JOSE DE OLIVEIRA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"IZADORA LOUISE DIAS DE OLIVEIR":{"g":"(-)Despesas Operacionais","r":"DESPESA COM COMBUSTIVEL"},"FABRICIO PEREIRA DA SILVA":{"g":"(-)Despesas Operacionais","r":"SOFTWARE E TECONOLOGIA"},"MARIA JULLIA SILVA AMORIM":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ABNER MACEDO DA VEIGA":{"g":"(-)Despesas Operacionais","r":"MANUTENÇAO"},"RONIS PEREIRA DE LIMA":{"g":"OUTROS","r":"INVESTIMENTO"},"HAMILTON TOBIAS BORGES JUNIOR":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ELSON CESAR SOUZA JARDIM":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ADENILSON SILVA DA CONCEICAO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"CLENIA ELDOCIA DE SOUZA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JHENIFER MAYARA CAMILO SOARES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"OLAVIO ALVES TEIXEIRA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"BONIEDER CAETANO DE SOUZA":{"g":"(-)Despesas Operacionais","r":"DESPESA COM COMBUSTIVEL"},"FERNANDO MAX DE OLIVEIRA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MAURICIO BARBOSA DOS SANTOS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"DEIVID DE LIMA SANTOS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MARCUS VINICIUS MOREIRA ALVES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"WELISNEY ROCHA MARTINS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JOSE RAIMUNDO DOS SANTOS DE MO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ELISAN PIRES DE MORAIS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"NICOLY VIEIRA BORGES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MARLY FERREIRA DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"LURDES SENHORINHA DOS SANTOS M":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ALONSO ANTUNES DUARTE SANTIAGO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"BRUNO RIBEIRO DA PAIXAO":{"g":"OUTROS","r":"A VERIFICAR"},"LUCAS GUILHERME FEITOSA LIMA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ROBSON DA SILVA DO NASCIMENTO":{"g":"OUTROS","r":"A VERIFICAR"},"KAROLYNE DUARTE DE ALMEIDA":{"g":"OUTROS","r":"A VERIFICAR"},"AGUILAR TEODORO RODRIGUES":{"g":"OUTROS","r":"A VERIFICAR"},"ANDERSON LUIS DE FARIAS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JAILSON SANTOS DE BASTOS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"WANDERLEY VIEIRA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"THIAGO FRANCO GUIMARAES DE CAS":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MARIA SANDRA LOURENCO DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MAX DA COSTA NUNES":{"g":"OUTROS","r":"A VERIFICAR"},"WINY HAYKA MORAES DE SOUSA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"RENATA GOMES DUTRA":{"g":"OUTROS","r":"A VERIFICAR"},"AILTON GOMES DA SILVA":{"g":"OUTROS","r":"INVESTIMENTO"},"IRISMAR DE JESUS CARVALHO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"GABRIEL AUGUSTO DE CARVALHO ME":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JUNICLEY DOS SANTOS HONORATO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MARDONE FERNANDES DE SA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"TAFILA ARAUJO COSTA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"ERI JHONSON BARBOZA CANUTO":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"IGOR DA ROSA DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JUCELI LIANDRO DE SOUZA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"FABIAN NONATO DE SOUZA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"LEANDRO LIMA DE SOUSA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"LUCIO ROBERTO MARQUES BENTES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"DENILSON ALVES FERREIRA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"CAMILLA MOREIRA LEAL":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"BRUNO FARIAS JOHANNSEN":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"LEONARDO ALVES DIAS":{"g":"(-)Despesas Operacionais","r":"MANUTENÇAO"},"MATEUS FRANCELINO DE SOUZA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"JOSE MARIA DE OLIVEIRA SOARES":{"g":"OUTROS","r":"A VERIFICAR"},"SAMUEL SILVA MENDES":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MELLINE ALVES DE SOUZA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"KAYKI LOPES DA SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"},"MARIO QUEIROZ SILVA":{"g":"(-)Despesas com Pessoal","r":"SALARIO"}};
+
+// Grupo 1 (PARAMETROS.xlsx) -> categoria interna do sistema
+const PARAMS_GRUPO_TO_CAT = {
+  '(-)CMV — Custo da Mercadoria Vendida': {
+    'INSUMOS BEBIDAS': 'Insumos / Bebidas',
+    'INSUMOS CARNES E MERCEARIA': 'Insumos / Carnes',
+    '*': 'Insumos / Outros'
+  },
+  '(-)Despesas com Pessoal': { '*': 'RH / Folha' },
+  '(-)Despesas Operacionais': {
+    'DESPESA COM COMBUSTIVEL': 'Combustíveis',
+    'SOFTWARE E TECONOLOGIA': 'Software/Tecnologia',
+    'SOFTWARE E TECNOLOGIA': 'Software/Tecnologia',
+    'MANUTENÇAO': 'Manutenção',
+    'MANUTENCAO': 'Manutenção',
+    'DESPESAS COM LANCHES': 'Lanches (funcionários)',
+    '*': 'Outros'
+  },
+  '(-)Despesas Comerciais': { 'MARKETING': 'Marketing', '*': 'Marketing' },
+  '(-)Tributos e Tarifas Bancárias': { 'TRIBUTOS': 'Impostos', '*': 'Tarifas Bancárias' },
+  'OUTROS': { '*': 'Outros' },
+  'SALARIO': { '*': 'RH / Folha' }
+};
+
+// Mapa Grupo1 (cat interna) -> categoria DRE interna
+function paramsCategoria(grupo, refLinha){
+  const tabela = PARAMS_GRUPO_TO_CAT[grupo] || PARAMS_GRUPO_TO_CAT['OUTROS'];
+  return tabela[refLinha] || tabela['*'] || 'Outros';
+}
+
+// Extrai CNPJ (XX.XXX.XXX/XXXX-XX) do memo
+function extractCnpjFromMemo(memo){
+  if(!memo) return null;
+  const m = String(memo).match(/(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/);
+  return m ? m[1] : null;
+}
+
+// Normaliza nome para matching (uppercase, sem acentos, sem espaços extras)
+function normalizeNome(s){
+  if(!s) return '';
+  return String(s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+}
+
+// Tenta achar match por nome no PARAMS_NOME (fuzzy parcial)
+function findParamsByNome(memo){
+  const memoNorm = normalizeNome(memo);
+  if(!memoNorm) return null;
+  // Match exato primeiro
+  for(const [nome, info] of Object.entries(PARAMS_NOME)){
+    const nomeNorm = normalizeNome(nome);
+    if(memoNorm.includes(nomeNorm) && nomeNorm.length >= 8){
+      return { ...info, matchedBy: 'nome:' + nome };
+    }
+  }
+  return null;
+}
+
+// Função principal: tenta classificar por PARAMETROS (CNPJ > nome)
+// Retorna { category, refLinha, grupoDRE, source } ou null
+function tryClassifyByParams(memo, amount){
+  if(!memo) return null;
+  // Tributos negativos (taxas Itaú): "TARIFA", "IOF", "TRIBUTOS", "ISS"
+  // já são tratados pelo CATEGORY_RULES; PARAMS dá precedência ao CNPJ identificado
+  // CNPJ tem precedência
+  const cnpj = extractCnpjFromMemo(memo);
+  if(cnpj && PARAMS_CNPJ[cnpj]){
+    const info = PARAMS_CNPJ[cnpj];
+    const cat = paramsCategoria(info.g, info.r);
+    return { category: cat, refLinha: info.r, grupoDRE: info.g, source: 'params:cnpj:' + cnpj };
+  }
+  // Nome (fallback)
+  const byNome = findParamsByNome(memo);
+  if(byNome){
+    const cat = paramsCategoria(byNome.g, byNome.r);
+    return { category: cat, refLinha: byNome.r, grupoDRE: byNome.g, source: byNome.matchedBy };
+  }
+  return null;
+}
+
 const CATEGORY_RULES = [
   // Receitas (primeiro para evitar falso-positivo de "NET" em "MAQUINETA")
   { pattern:/\b(STONE|REDE|CIELO|GETNET|PAGSEGURO|MERCADO PAGO|MAQUINETA)\b/i, category:'Receita / Cartão' },
@@ -3241,8 +3324,22 @@ function classifyByHistory(memo, amount, txDate){
   return { category: best.category, mesReferencia: mesRef, score: bestScore, similarMemo: best.memo };
 }
 
-// Pipeline completo de auto-classificação: histórico > regras > nada
+// Pipeline completo de auto-classificação: PARAMETROS (CNPJ/nome) > histórico > regras > nada
 function autoClassifyTransaction(tx){
+  // 1) PARAMETROS.xlsx — precedência máxima (CNPJ exato > nome)
+  // Só aplica em saídas (despesas) — receitas continuam por regras
+  if(typeof tryClassifyByParams === 'function' && tx.amount < 0){
+    const params = tryClassifyByParams(tx.memo, tx.amount);
+    if(params){
+      tx.category = params.category;
+      tx.refLinha = params.refLinha;
+      tx.grupoDRE = params.grupoDRE;
+      tx.categorySource = 'params';
+      tx._paramsSource = params.source;
+      return tx;
+    }
+  }
+  // 2) Histórico (transações similares já classificadas)
   const hist = classifyByHistory(tx.memo, tx.amount, parseTxDate(tx));
   if(hist){
     tx.category = hist.category;
@@ -3251,6 +3348,7 @@ function autoClassifyTransaction(tx){
     tx._histScore = hist.score;
     return tx;
   }
+  // 3) Regras (regex)
   const ruleCategory = classifyTransaction(tx.memo, tx.amount);
   if(ruleCategory){
     tx.category = ruleCategory;
@@ -14755,38 +14853,86 @@ function toggleDreDrillDown(key){
 
   const ordenadas = [...items].sort((a,b) => Math.abs(b.amount) - Math.abs(a.amount));
   const total = ordenadas.length;
-  const visiveis = Math.min(50, total);
+
+  // Agrupa por REFERÊNCIA DE LINHA (drill-down preferencial)
+  const porRef = {};
+  ordenadas.forEach(t => {
+    const ref = t.refLinha || '— Sem classificação —';
+    if(!porRef[ref]) porRef[ref] = { ref, items: [], total: 0 };
+    porRef[ref].items.push(t);
+    porRef[ref].total += Math.abs(t.amount);
+  });
+  const refsOrdenadas = Object.values(porRef).sort((a,b) => b.total - a.total);
+  const totalGroup = refsOrdenadas.reduce((s,r) => s + r.total, 0);
 
   const expansionRow = document.createElement('tr');
   expansionRow.id = 'drill-row-' + safeKey;
   expansionRow.innerHTML = `
     <td colspan="${colSpan}" class="bg-violet-50/40 border-l-4 border-violet-400 px-5 py-3">
-      <div class="text-xs font-semibold text-violet-900 mb-2">📂 Transações de ${key.replace(/^(group|cat):/,'')} (${visiveis} de ${total})</div>
-      <table class="w-full text-xs">
-        <thead class="text-ink-600 border-b border-violet-200">
+      <div class="text-xs font-semibold text-violet-900 mb-2">📂 ${key.replace(/^(group|cat):/,'')} — ${refsOrdenadas.length} referência(s) de linha · ${total} lançamento(s)</div>
+
+      <!-- Resumo por REFERÊNCIA DE LINHA -->
+      <table class="w-full text-xs mb-3 bg-white rounded border border-violet-200">
+        <thead class="bg-violet-100 text-violet-900">
           <tr>
-            <th class="text-left py-1.5 px-2">Data</th>
-            <th class="text-left py-1.5 px-2">Descrição</th>
-            <th class="text-left py-1.5 px-2">Categoria</th>
-            <th class="text-right py-1.5 px-2">Valor</th>
+            <th class="text-left py-1.5 px-2">Referência de Linha</th>
+            <th class="text-right py-1.5 px-2">Lançamentos</th>
+            <th class="text-right py-1.5 px-2">Total</th>
+            <th class="text-right py-1.5 px-2">% do grupo</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-violet-100">
-          ${ordenadas.slice(0, visiveis).map(t => `
-            <tr>
-              <td class="py-1.5 px-2 whitespace-nowrap">${t.date.substring(0,5)}</td>
-              <td class="py-1.5 px-2">${(t.memo || '').substring(0, 80)}</td>
-              <td class="py-1.5 px-2"><span class="bg-white border border-ink-200 px-1.5 py-0.5 rounded">${t.category || '—'}</span></td>
-              <td class="py-1.5 px-2 text-right ${t.amount<0?'text-rose-600':'text-emerald-600'} font-medium">${t.amount<0?'-':'+'} R$ ${Math.abs(t.amount).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+          ${refsOrdenadas.map(r => `
+            <tr class="cursor-pointer hover:bg-violet-50" onclick="toggleRefDrillDown('${safeKey}','${r.ref.replace(/'/g,"\\\\'")}')">
+              <td class="py-1.5 px-2"><span id="ref-arrow-${safeKey}-${r.ref.replace(/[^a-zA-Z0-9]/g,'_')}" class="text-violet-600 mr-1">▶</span><strong>${r.ref}</strong></td>
+              <td class="py-1.5 px-2 text-right">${r.items.length}</td>
+              <td class="py-1.5 px-2 text-right font-medium">R$ ${r.total.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+              <td class="py-1.5 px-2 text-right text-violet-700">${totalGroup>0 ? (r.total/totalGroup*100).toFixed(1) : '0'}%</td>
             </tr>
+            <tr id="ref-rows-${safeKey}-${r.ref.replace(/[^a-zA-Z0-9]/g,'_')}" class="hidden"><td colspan="4" class="bg-violet-50 px-3 py-2">
+              <table class="w-full text-[11px]">
+                <thead class="text-ink-600 border-b border-violet-200">
+                  <tr>
+                    <th class="text-left py-1 px-2">Data</th>
+                    <th class="text-left py-1 px-2">Descrição</th>
+                    <th class="text-right py-1 px-2">Valor</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-violet-100">
+                  ${r.items.slice(0, 100).map(t => `
+                    <tr>
+                      <td class="py-1 px-2 whitespace-nowrap">${(t.date||'').substring(0,5)}</td>
+                      <td class="py-1 px-2">${(t.memo || '').substring(0, 90)}</td>
+                      <td class="py-1 px-2 text-right ${t.amount<0?'text-rose-600':'text-emerald-600'} font-medium">${t.amount<0?'-':'+'} R$ ${Math.abs(t.amount).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+                    </tr>
+                  `).join('')}
+                  ${r.items.length > 100 ? `<tr><td colspan="3" class="text-center text-ink-500 italic py-1">… e mais ${r.items.length - 100} lançamentos</td></tr>` : ''}
+                </tbody>
+              </table>
+            </td></tr>
           `).join('')}
-          ${total > visiveis ? `<tr><td colspan="4" class="text-center text-ink-500 italic py-2">… e mais ${total - visiveis} lançamentos</td></tr>` : ''}
+          <tr class="bg-violet-100 font-bold">
+            <td class="py-1.5 px-2">Total</td>
+            <td class="py-1.5 px-2 text-right">${total}</td>
+            <td class="py-1.5 px-2 text-right">R$ ${totalGroup.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+            <td class="py-1.5 px-2 text-right">100%</td>
+          </tr>
         </tbody>
       </table>
     </td>
   `;
   triggerTr.parentNode.insertBefore(expansionRow, triggerTr.nextSibling);
   if($arrow) $arrow.textContent = '▼';
+}
+
+// Toggle linha-detalhe sob uma referência (segundo nível)
+function toggleRefDrillDown(safeKey, refName){
+  const refSafe = refName.replace(/[^a-zA-Z0-9]/g,'_');
+  const $rows = document.getElementById(`ref-rows-${safeKey}-${refSafe}`);
+  const $arrow = document.getElementById(`ref-arrow-${safeKey}-${refSafe}`);
+  if(!$rows) return;
+  $rows.classList.toggle('hidden');
+  if($arrow) $arrow.textContent = $rows.classList.contains('hidden') ? '▶' : '▼';
 }
 
 // === Top Fornecedores: extrai do memo e agrupa ===
