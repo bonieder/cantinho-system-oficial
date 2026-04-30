@@ -2541,6 +2541,10 @@ app.cantinhodoboni.com.br {
               <p class="text-xs text-ink-600 mt-0.5" id="vendas-sem-info">Cada semana = segunda a domingo</p>
             </div>
             <div class="flex gap-2 flex-wrap items-center">
+              <label class="flex items-center gap-1.5 text-xs cursor-pointer bg-amber-50 border border-amber-300 rounded-md px-3 py-1.5 hover:bg-amber-100">
+                <input type="checkbox" id="vsm-excluir-bebidas" onchange="onExcluirBebidasChange()">
+                <span>🍴 Excluir cerveja/chopp/drinks</span>
+              </label>
               <div class="flex items-center bg-ink-100 rounded-md p-0.5">
                 <button onclick="setVendasSemanasModo('valor')" id="vsm-modo-valor" class="text-xs px-2.5 py-1 rounded">R$</button>
                 <button onclick="setVendasSemanasModo('pct')" id="vsm-modo-pct" class="text-xs px-2.5 py-1 rounded">%</button>
@@ -12094,6 +12098,21 @@ function _agruparVendasPorSemana(vendas, semanas){
 // Estado global das sub-abas e modo de exibição
 let _vendasSemanasSub = 'atendentes';
 let _vendasSemanasModo = 'valor'; // 'valor' | 'pct'
+let _vendasSemanasExcluirBebidas = false;
+const GRUPOS_BEBIDAS_EXCLUIR = new Set(['CERVEJAS', 'CHOPPS', 'DRINKS']);
+
+function onExcluirBebidasChange(){
+  const $cb = document.getElementById('vsm-excluir-bebidas');
+  _vendasSemanasExcluirBebidas = !!$cb?.checked;
+  renderVendasSemanas();
+}
+
+// Filtra vendas excluindo bebidas se o toggle estiver ativo
+function _vendasSemanasFiltradas(){
+  const todas = getVendas();
+  if(!_vendasSemanasExcluirBebidas) return todas;
+  return todas.filter(v => !GRUPOS_BEBIDAS_EXCLUIR.has((v.grupo||'').toUpperCase()));
+}
 
 function setVendasSemanasSub(sub){
   _vendasSemanasSub = sub;
@@ -12148,7 +12167,8 @@ function renderVendasSemanas(){
     const semanas = _calcularSemanasVendas();
     const subLabel = { atendentes:'atendentes', produtos:'produtos', grupos:'grupos por categoria' }[_vendasSemanasSub];
     const modoLabel = _vendasSemanasModo === 'pct' ? '% participação por semana' : 'valores absolutos (R$)';
-    $info.innerHTML = `Cada semana = segunda a domingo · Semana atual termina em <strong>${semanas[4].label} + 6 dias</strong> · Mostrando <strong>${subLabel}</strong> em <strong>${modoLabel}</strong>`;
+    const filtroLabel = _vendasSemanasExcluirBebidas ? ' · 🍴 <strong>excluindo</strong> CERVEJAS, CHOPPS, DRINKS' : '';
+    $info.innerHTML = `Cada semana = segunda a domingo · Semana atual termina em <strong>${semanas[4].label} + 6 dias</strong> · Mostrando <strong>${subLabel}</strong> em <strong>${modoLabel}</strong>${filtroLabel}`;
   }
   // Sincroniza visual do toggle
   setTimeout(() => {
@@ -12166,7 +12186,7 @@ function renderVendasSemanasAtendentes(){
   const $cont = document.getElementById('vendas-sem-conteudo');
   if(!$cont) return;
   const semanas = _calcularSemanasVendas();
-  const stats = _agruparVendasPorSemana(getVendas(), semanas);
+  const stats = _agruparVendasPorSemana(_vendasSemanasFiltradas(), semanas);
   const totaisSemana = [0,0,0,0,0];
   stats.forEach(arr => arr.forEach((v,i) => totaisSemana[i] += v));
   const ranked = [...stats.entries()].sort((a,b) => b[1][4] - a[1][4]);
@@ -12251,7 +12271,7 @@ function renderVendasSemanasProdutos(){
   const $cont = document.getElementById('vendas-sem-conteudo');
   if(!$cont) return;
   const semanas = _calcularSemanasVendas();
-  const todas = getVendas();
+  const todas = _vendasSemanasFiltradas();
   // Agrega por item: { fat:[5], qtd:[5], grupo }
   const stats = new Map();
   todas.forEach(v => {
@@ -12362,7 +12382,7 @@ function renderVendasSemanasGrupos(){
   if(!$cont) return;
   const semanas = _calcularSemanasVendas();
   const stats = new Map();
-  getVendas().forEach(v => {
+  _vendasSemanasFiltradas().forEach(v => {
     const d = new Date(v.data + 'T12:00');
     let idx = -1;
     for(let i = 0; i < semanas.length; i++){
@@ -12430,7 +12450,7 @@ function renderVendasSemanasGrupos(){
 
 function exportarComparativoSemanasCSV(){
   const semanas = _calcularSemanasVendas();
-  const stats = _agruparVendasPorSemana(getVendas(), semanas);
+  const stats = _agruparVendasPorSemana(_vendasSemanasFiltradas(), semanas);
   if(!stats.size){ showToast('Nada para exportar', 'warn'); return; }
   const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
   const funcs = getCadastros('funcionario');
