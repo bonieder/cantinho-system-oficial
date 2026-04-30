@@ -12189,7 +12189,10 @@ function renderVendasSemanasAtendentes(){
   const stats = _agruparVendasPorSemana(_vendasSemanasFiltradas(), semanas);
   const totaisSemana = [0,0,0,0,0];
   stats.forEach(arr => arr.forEach((v,i) => totaisSemana[i] += v));
-  const ranked = [...stats.entries()].sort((a,b) => b[1][4] - a[1][4]);
+  // Ordena pela média das 5 semanas (descendente)
+  const ranked = [...stats.entries()]
+    .map(([k,arr]) => [k, arr, arr.reduce((s,v)=>s+v,0)/5])
+    .sort((a,b) => b[2] - a[2]);
 
   if(!ranked.length){
     $cont.innerHTML = '<div class="text-center py-12 text-ink-400 text-sm">Nenhuma venda nas últimas 5 semanas. Importe o relatório do PDV primeiro.</div>';
@@ -12199,6 +12202,10 @@ function renderVendasSemanasAtendentes(){
   const isPct = _vendasSemanasModo === 'pct';
   const cellVal = (v, semIdx) => isPct ? _semFmtPct(v, totaisSemana[semIdx]) : _semFmtVal(v);
   const cellAtual = (v, semIdx) => isPct ? _semFmtPct(v, totaisSemana[semIdx]) : _semFmtVal2(v);
+  // Total geral pra calcular % na coluna média (usa total acumulado das 5 semanas)
+  const totalGeral = totaisSemana.reduce((s,v)=>s+v,0);
+  const mediaTotal = totalGeral / 5;
+  const cellMedia = v => isPct ? (mediaTotal ? ((v/mediaTotal)*100).toFixed(1)+'%' : '—') : _semFmtVal2(v);
 
   $cont.innerHTML = `
     <div class="overflow-x-auto">
@@ -12209,12 +12216,13 @@ function renderVendasSemanasAtendentes(){
             <th class="text-left px-2 py-2.5 sticky left-8 bg-ink-50">Atendente</th>
             ${semanas.slice(0,4).map((s,i) => `<th class="text-right px-2 py-2.5 whitespace-nowrap">Sem ${i+1}<br><span class="text-[9px] font-normal normal-case">${s.label}</span></th>`).join('')}
             <th class="text-right px-2 py-2.5 whitespace-nowrap bg-brand-50">Atual<br><span class="text-[9px] font-normal normal-case">${semanas[4].label}</span></th>
-            <th class="text-right px-2 py-2.5 whitespace-nowrap">vs ant.</th>
+            <th class="text-right px-2 py-2.5 whitespace-nowrap bg-amber-100" title="Média das 5 semanas — base do ranking">Média 5 sem ↓</th>
+            <th class="text-right px-2 py-2.5 whitespace-nowrap">vs média</th>
             <th class="text-right px-2 py-2.5 whitespace-nowrap">vs Sem 1</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-ink-100">
-          ${ranked.slice(0, 30).map(([atend, arr], i) => {
+          ${ranked.slice(0, 30).map(([atend, arr, media], i) => {
             const pos = i + 1;
             const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos+'º';
             return `
@@ -12226,7 +12234,8 @@ function renderVendasSemanasAtendentes(){
                 <td class="px-2 py-2 text-right ${arr[2]?'text-ink-700':'text-ink-300'}">${cellVal(arr[2], 2)}</td>
                 <td class="px-2 py-2 text-right ${arr[3]?'text-ink-700':'text-ink-300'}">${cellVal(arr[3], 3)}</td>
                 <td class="px-2 py-2 text-right font-semibold text-emerald-700 bg-brand-50/40 whitespace-nowrap">${cellAtual(arr[4], 4)}</td>
-                <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(arr[4], arr[3])}</td>
+                <td class="px-2 py-2 text-right font-bold text-amber-800 bg-amber-50 whitespace-nowrap">${cellMedia(media)}</td>
+                <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(arr[4], media)}</td>
                 <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(arr[4], arr[0])}</td>
               </tr>
             `;
@@ -12238,7 +12247,8 @@ function renderVendasSemanasAtendentes(){
             <td class="px-2 py-2.5 sticky left-8 bg-ink-100">TOTAL EQUIPE</td>
             ${totaisSemana.slice(0,4).map(t => `<td class="px-2 py-2.5 text-right">${isPct ? '100%' : _semFmtVal(t)}</td>`).join('')}
             <td class="px-2 py-2.5 text-right bg-brand-100">${isPct ? '100%' : _semFmtVal2(totaisSemana[4])}</td>
-            <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], totaisSemana[3])}</td>
+            <td class="px-2 py-2.5 text-right bg-amber-200">${isPct ? '100%' : _semFmtVal2(mediaTotal)}</td>
+            <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], mediaTotal)}</td>
             <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], totaisSemana[0])}</td>
           </tr>
         </tfoot>
@@ -12246,20 +12256,20 @@ function renderVendasSemanasAtendentes(){
     </div>
     <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
       <div class="bg-emerald-50 border border-emerald-200 rounded p-3">
-        <div class="text-[10px] uppercase text-emerald-700 font-semibold">Em alta (vs anterior)</div>
-        <div class="text-lg font-bold text-emerald-800">${ranked.filter(([,a]) => a[3] > 0 && a[4] > a[3]).length} <span class="text-xs font-normal">atendente(s)</span></div>
+        <div class="text-[10px] uppercase text-emerald-700 font-semibold">Acima da própria média</div>
+        <div class="text-lg font-bold text-emerald-800">${ranked.filter(([,a,m]) => m > 0 && a[4] > m).length} <span class="text-xs font-normal">atendente(s)</span></div>
       </div>
       <div class="bg-rose-50 border border-rose-200 rounded p-3">
-        <div class="text-[10px] uppercase text-rose-700 font-semibold">Em queda (vs anterior)</div>
-        <div class="text-lg font-bold text-rose-800">${ranked.filter(([,a]) => a[3] > 0 && a[4] < a[3]).length} <span class="text-xs font-normal">atendente(s)</span></div>
+        <div class="text-[10px] uppercase text-rose-700 font-semibold">Abaixo da própria média</div>
+        <div class="text-lg font-bold text-rose-800">${ranked.filter(([,a,m]) => m > 0 && a[4] < m).length} <span class="text-xs font-normal">atendente(s)</span></div>
       </div>
       <div class="bg-amber-50 border border-amber-200 rounded p-3">
         <div class="text-[10px] uppercase text-amber-700 font-semibold">Total semana atual</div>
         <div class="text-lg font-bold text-amber-800">${_semFmtVal2(totaisSemana[4])}</div>
       </div>
       <div class="bg-blue-50 border border-blue-200 rounded p-3">
-        <div class="text-[10px] uppercase text-blue-700 font-semibold">Média 5 semanas</div>
-        <div class="text-lg font-bold text-blue-800">${_semFmtVal2(totaisSemana.reduce((s,v)=>s+v,0)/5)}</div>
+        <div class="text-[10px] uppercase text-blue-700 font-semibold">Média da equipe (5 sem)</div>
+        <div class="text-lg font-bold text-blue-800">${_semFmtVal2(mediaTotal)}</div>
       </div>
     </div>
   `;
@@ -12296,8 +12306,10 @@ function renderVendasSemanasProdutos(){
   const totaisQtd = [0,0,0,0,0];
   stats.forEach(s => s.qtd.forEach((v,i) => totaisQtd[i] += v));
 
-  // Ordena pela semana atual (R$)
-  const ranked = [...stats.entries()].sort((a,b) => b[1].fat[4] - a[1].fat[4]);
+  // Ordena pela média das 5 semanas (R$)
+  const ranked = [...stats.entries()]
+    .map(([k,s]) => [k, s, s.fat.reduce((a,b)=>a+b,0)/5, s.qtd.reduce((a,b)=>a+b,0)/5])
+    .sort((a,b) => b[2] - a[2]);
 
   const isPct = _vendasSemanasModo === 'pct';
 
@@ -12315,6 +12327,9 @@ function renderVendasSemanasProdutos(){
 
   const cellFat = (v, idx) => isPct ? _semFmtPct(v, totaisSemana[idx]) : _semFmtVal(v);
   const cellFatAtual = (v, idx) => isPct ? _semFmtPct(v, totaisSemana[idx]) : _semFmtVal2(v);
+  const totalGeralFat = totaisSemana.reduce((s,v)=>s+v,0);
+  const mediaTotalFat = totalGeralFat / 5;
+  const cellMediaFat = v => isPct ? (mediaTotalFat ? ((v/mediaTotalFat)*100).toFixed(1)+'%' : '—') : _semFmtVal2(v);
 
   $cont.innerHTML = `
     <!-- KPIs Top Giros -->
@@ -12341,12 +12356,12 @@ function renderVendasSemanasProdutos(){
             <th class="text-left px-2 py-2.5">Grupo</th>
             ${semanas.slice(0,4).map((s,i) => `<th class="text-right px-2 py-2.5 whitespace-nowrap">Sem ${i+1}<br><span class="text-[9px] font-normal normal-case">${s.label}</span></th>`).join('')}
             <th class="text-right px-2 py-2.5 whitespace-nowrap bg-brand-50">Atual<br><span class="text-[9px] font-normal normal-case">${semanas[4].label}</span></th>
-            <th class="text-right px-2 py-2.5 whitespace-nowrap">Total qtd</th>
-            <th class="text-right px-2 py-2.5 whitespace-nowrap">vs ant.</th>
+            <th class="text-right px-2 py-2.5 whitespace-nowrap bg-amber-100" title="Média das 5 semanas — base do ranking">Média 5 sem ↓</th>
+            <th class="text-right px-2 py-2.5 whitespace-nowrap">vs média</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-ink-100">
-          ${ranked.slice(0, 50).map(([nome, s], i) => `
+          ${ranked.slice(0, 50).map(([nome, s, mediaFat, mediaQtd], i) => `
             <tr class="hover:bg-ink-50">
               <td class="px-2 py-2 text-xs text-ink-500">${i+1}º</td>
               <td class="px-2 py-2"><strong>${nome}</strong></td>
@@ -12356,8 +12371,8 @@ function renderVendasSemanasProdutos(){
               <td class="px-2 py-2 text-right ${s.fat[2]?'text-ink-700':'text-ink-300'}">${cellFat(s.fat[2], 2)}<br><span class="text-[9px] text-ink-400">${s.qtd[2]||'—'} un</span></td>
               <td class="px-2 py-2 text-right ${s.fat[3]?'text-ink-700':'text-ink-300'}">${cellFat(s.fat[3], 3)}<br><span class="text-[9px] text-ink-400">${s.qtd[3]||'—'} un</span></td>
               <td class="px-2 py-2 text-right font-semibold text-emerald-700 bg-brand-50/40 whitespace-nowrap">${cellFatAtual(s.fat[4], 4)}<br><span class="text-[9px] text-ink-500">${s.qtd[4]||'—'} un</span></td>
-              <td class="px-2 py-2 text-right text-xs">${s.qtd.reduce((a,b)=>a+b,0)} un</td>
-              <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(s.fat[4], s.fat[3])}</td>
+              <td class="px-2 py-2 text-right font-bold text-amber-800 bg-amber-50 whitespace-nowrap">${cellMediaFat(mediaFat)}<br><span class="text-[9px] text-amber-600">${mediaQtd.toFixed(1)} un</span></td>
+              <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(s.fat[4], mediaFat)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -12366,13 +12381,13 @@ function renderVendasSemanasProdutos(){
             <td colspan="3" class="px-2 py-2.5">TOTAL · ${stats.size} produto(s)</td>
             ${totaisSemana.slice(0,4).map((t,i) => `<td class="px-2 py-2.5 text-right">${isPct ? '100%' : _semFmtVal(t)}<br><span class="text-[9px] font-normal text-ink-500">${totaisQtd[i]} un</span></td>`).join('')}
             <td class="px-2 py-2.5 text-right bg-brand-100">${isPct ? '100%' : _semFmtVal2(totaisSemana[4])}<br><span class="text-[9px] font-normal text-ink-500">${totaisQtd[4]} un</span></td>
-            <td class="px-2 py-2.5 text-right">${totaisQtd.reduce((a,b)=>a+b,0)} un</td>
-            <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], totaisSemana[3])}</td>
+            <td class="px-2 py-2.5 text-right bg-amber-200">${isPct ? '100%' : _semFmtVal2(mediaTotalFat)}<br><span class="text-[9px] font-normal text-amber-700">${(totaisQtd.reduce((a,b)=>a+b,0)/5).toFixed(0)} un</span></td>
+            <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], mediaTotalFat)}</td>
           </tr>
         </tfoot>
       </table>
     </div>
-    <div class="mt-3 text-[11px] text-ink-500 text-center">Top 50 produtos · cada célula mostra R$/% da semana e quantidade vendida</div>
+    <div class="mt-3 text-[11px] text-ink-500 text-center">Top 50 produtos ordenados pela <strong>média das 5 semanas</strong> · cada célula mostra R$/% da semana e quantidade vendida</div>
   `;
 }
 
@@ -12400,11 +12415,16 @@ function renderVendasSemanasGrupos(){
 
   const totaisSemana = [0,0,0,0,0];
   stats.forEach(arr => arr.forEach((v,i) => totaisSemana[i] += v));
-  const ranked = [...stats.entries()].sort((a,b) => b[1][4] - a[1][4]);
+  const ranked = [...stats.entries()]
+    .map(([k,arr]) => [k, arr, arr.reduce((s,v)=>s+v,0)/5])
+    .sort((a,b) => b[2] - a[2]);
 
   const isPct = _vendasSemanasModo === 'pct';
   const cellVal = (v, idx) => isPct ? _semFmtPct(v, totaisSemana[idx]) : _semFmtVal(v);
   const cellAtual = (v, idx) => isPct ? _semFmtPct(v, totaisSemana[idx]) : _semFmtVal2(v);
+  const totalGeral = totaisSemana.reduce((s,v)=>s+v,0);
+  const mediaTotal = totalGeral / 5;
+  const cellMedia = v => isPct ? (mediaTotal ? ((v/mediaTotal)*100).toFixed(1)+'%' : '—') : _semFmtVal2(v);
 
   $cont.innerHTML = `
     <div class="overflow-x-auto">
@@ -12415,12 +12435,12 @@ function renderVendasSemanasGrupos(){
             <th class="text-left px-2 py-2.5">Grupo</th>
             ${semanas.slice(0,4).map((s,i) => `<th class="text-right px-2 py-2.5 whitespace-nowrap">Sem ${i+1}<br><span class="text-[9px] font-normal normal-case">${s.label}</span></th>`).join('')}
             <th class="text-right px-2 py-2.5 whitespace-nowrap bg-brand-50">Atual<br><span class="text-[9px] font-normal normal-case">${semanas[4].label}</span></th>
-            <th class="text-right px-2 py-2.5 whitespace-nowrap">vs ant.</th>
-            <th class="text-right px-2 py-2.5 whitespace-nowrap">vs Sem 1</th>
+            <th class="text-right px-2 py-2.5 whitespace-nowrap bg-amber-100" title="Média das 5 semanas — base do ranking">Média 5 sem ↓</th>
+            <th class="text-right px-2 py-2.5 whitespace-nowrap">vs média</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-ink-100">
-          ${ranked.map(([nome, arr], i) => `
+          ${ranked.map(([nome, arr, media], i) => `
             <tr class="hover:bg-ink-50">
               <td class="px-2 py-2 text-xs text-ink-500">${i+1}º</td>
               <td class="px-2 py-2"><strong>${nome}</strong></td>
@@ -12429,8 +12449,8 @@ function renderVendasSemanasGrupos(){
               <td class="px-2 py-2 text-right ${arr[2]?'text-ink-700':'text-ink-300'}">${cellVal(arr[2], 2)}</td>
               <td class="px-2 py-2 text-right ${arr[3]?'text-ink-700':'text-ink-300'}">${cellVal(arr[3], 3)}</td>
               <td class="px-2 py-2 text-right font-semibold text-emerald-700 bg-brand-50/40 whitespace-nowrap">${cellAtual(arr[4], 4)}</td>
-              <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(arr[4], arr[3])}</td>
-              <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(arr[4], arr[0])}</td>
+              <td class="px-2 py-2 text-right font-bold text-amber-800 bg-amber-50 whitespace-nowrap">${cellMedia(media)}</td>
+              <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(arr[4], media)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -12439,8 +12459,8 @@ function renderVendasSemanasGrupos(){
             <td colspan="2" class="px-2 py-2.5">TOTAL</td>
             ${totaisSemana.slice(0,4).map(t => `<td class="px-2 py-2.5 text-right">${isPct ? '100%' : _semFmtVal(t)}</td>`).join('')}
             <td class="px-2 py-2.5 text-right bg-brand-100">${isPct ? '100%' : _semFmtVal2(totaisSemana[4])}</td>
-            <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], totaisSemana[3])}</td>
-            <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], totaisSemana[0])}</td>
+            <td class="px-2 py-2.5 text-right bg-amber-200">${isPct ? '100%' : _semFmtVal2(mediaTotal)}</td>
+            <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], mediaTotal)}</td>
           </tr>
         </tfoot>
       </table>
@@ -12462,14 +12482,16 @@ function exportarComparativoSemanasCSV(){
     return f2 ? f2.nome : atendente;
   };
   const sep = ';';
-  const headers = ['Atendente Cadastrado','Atendente PDV', `Sem 1 (${semanas[0].label})`, `Sem 2 (${semanas[1].label})`, `Sem 3 (${semanas[2].label})`, `Sem 4 (${semanas[3].label})`, `Atual (${semanas[4].label})`, 'Total 5 sem'];
+  const headers = ['Atendente Cadastrado','Atendente PDV', `Sem 1 (${semanas[0].label})`, `Sem 2 (${semanas[1].label})`, `Sem 3 (${semanas[2].label})`, `Sem 4 (${semanas[3].label})`, `Atual (${semanas[4].label})`, 'Total 5 sem', 'Media 5 sem'];
   const rows = [...stats.entries()]
-    .sort((a,b) => b[1][4] - a[1][4])
-    .map(([atend, arr]) => [
+    .map(([k,arr]) => [k, arr, arr.reduce((s,v)=>s+v,0)/5])
+    .sort((a,b) => b[2] - a[2])
+    .map(([atend, arr, media]) => [
       `"${nomeAmigavel(atend).replace(/"/g,'""')}"`,
       `"${atend.replace(/"/g,'""')}"`,
       ...arr.map(v => v.toFixed(2).replace('.',',')),
-      arr.reduce((s,v)=>s+v,0).toFixed(2).replace('.',',')
+      arr.reduce((s,v)=>s+v,0).toFixed(2).replace('.',','),
+      media.toFixed(2).replace('.',',')
     ].join(sep));
   const csv = '﻿' + headers.join(sep) + '\n' + rows.join('\n');
   const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
