@@ -15383,7 +15383,7 @@ async function renderPaginaPublicaRanking(){
   }
 
   $root.innerHTML = `
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-4xl mx-auto">
       <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
         <!-- Header -->
         <div class="bg-gradient-to-br from-amber-600 to-orange-600 text-white px-6 py-6 text-center">
@@ -15391,22 +15391,30 @@ async function renderPaginaPublicaRanking(){
           <p class="text-amber-100 text-sm mt-1">Cantinho do Boni Colorado</p>
         </div>
 
-        <!-- Filtros -->
-        <div class="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-center gap-2 flex-wrap">
-          <button data-periodo="hoje" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Hoje</button>
-          <button data-periodo="ontem" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Ontem</button>
-          <button data-periodo="7" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">7 dias</button>
-          <button data-periodo="30" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">30 dias</button>
-          <button data-periodo="mes" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Este mês</button>
+        <!-- Tabs -->
+        <div class="flex border-b border-amber-200 bg-white">
+          <button id="rp-tab-ranking" onclick="setRPTab('ranking')" class="flex-1 px-4 py-3 text-sm font-medium border-b-2 border-amber-600 text-amber-700">🏆 Ranking</button>
+          <button id="rp-tab-semanas" onclick="setRPTab('semanas')" class="flex-1 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900">📊 Últimas 5 semanas</button>
         </div>
 
-        <!-- Status -->
-        <div id="ranking-publico-status" class="px-6 py-4 text-center text-sm text-ink-600">
-          ⏳ Carregando dados...
+        <!-- View: Ranking -->
+        <div id="rp-view-ranking">
+          <div class="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center justify-center gap-2 flex-wrap">
+            <button data-periodo="hoje" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Hoje</button>
+            <button data-periodo="ontem" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Ontem</button>
+            <button data-periodo="7" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">7 dias</button>
+            <button data-periodo="30" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">30 dias</button>
+            <button data-periodo="mes" class="ranking-pf-btn text-xs px-3 py-1.5 rounded-full border border-amber-300 hover:bg-amber-100">Este mês</button>
+          </div>
+          <div id="ranking-publico-status" class="px-6 py-4 text-center text-sm text-ink-600">⏳ Carregando dados...</div>
+          <div id="ranking-publico-lista" class="divide-y divide-amber-100"></div>
         </div>
 
-        <!-- Lista do ranking -->
-        <div id="ranking-publico-lista" class="divide-y divide-amber-100"></div>
+        <!-- View: Comparativo 5 semanas -->
+        <div id="rp-view-semanas" class="hidden">
+          <div id="rp-semanas-info" class="px-5 py-3 bg-amber-50 border-b border-amber-200 text-xs text-ink-700"></div>
+          <div id="rp-semanas-conteudo" class="p-4"></div>
+        </div>
 
         <!-- Footer -->
         <div class="px-6 py-3 bg-ink-50 text-center text-[10px] text-ink-500">
@@ -15456,6 +15464,21 @@ function params_get(k){
 let _rankingPublicoPeriodo = 'hoje';
 let _rankingPublicoVendas = [];
 let _rankingPublicoFuncs = [];
+let _rpTab = 'ranking';
+
+function setRPTab(tab){
+  _rpTab = tab;
+  document.getElementById('rp-tab-ranking').className = tab === 'ranking'
+    ? 'flex-1 px-4 py-3 text-sm font-medium border-b-2 border-amber-600 text-amber-700'
+    : 'flex-1 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900';
+  document.getElementById('rp-tab-semanas').className = tab === 'semanas'
+    ? 'flex-1 px-4 py-3 text-sm font-medium border-b-2 border-amber-600 text-amber-700'
+    : 'flex-1 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900';
+  document.getElementById('rp-view-ranking').classList.toggle('hidden', tab !== 'ranking');
+  document.getElementById('rp-view-semanas').classList.toggle('hidden', tab !== 'semanas');
+  if(tab === 'semanas') renderComparativo5Semanas();
+  if(tab === 'ranking') renderRankingPublicoLista();
+}
 
 async function atualizarRankingPublico(){
   const $st = document.getElementById('ranking-publico-status');
@@ -15551,6 +15574,125 @@ function renderRankingPublicoLista(){
       </div>
     `;
   }).join('');
+}
+
+// View: Comparativo das últimas 5 semanas (segunda → domingo)
+function renderComparativo5Semanas(){
+  const $info = document.getElementById('rp-semanas-info');
+  const $cont = document.getElementById('rp-semanas-conteudo');
+  if(!$cont) return;
+
+  // Define semanas: começa na segunda. Semana 4 = atual, Semana 0 = 4 semanas antes
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dow = today.getDay(); // 0 = domingo
+  const diasParaSegunda = dow === 0 ? 6 : dow - 1;
+  const segundaDestaSemana = new Date(today); segundaDestaSemana.setDate(today.getDate() - diasParaSegunda);
+
+  const semanas = [];
+  for(let i = 4; i >= 0; i--){
+    const ini = new Date(segundaDestaSemana); ini.setDate(ini.getDate() - i*7);
+    const fim = new Date(ini); fim.setDate(fim.getDate() + 7);
+    semanas.push({ ini, fim, label: `${pad(ini.getDate())}/${pad(ini.getMonth()+1)}` });
+  }
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  $info.innerHTML = `Comparativo de 5 semanas (segunda a domingo) terminando em <strong>${semanas[4].label}</strong>. Ranking ordenado pela semana atual.`;
+
+  // Agrega vendas por atendente x semana
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+  const nomeAmigavel = (atendente) => {
+    const n = norm(atendente);
+    const f = _rankingPublicoFuncs.find(c => c.codigoPDV && (norm(c.codigoPDV) === n || norm(c.codigoPDV).startsWith(n) || n.startsWith(norm(c.codigoPDV))));
+    if(f) return f.nome;
+    const f2 = _rankingPublicoFuncs.find(c => norm(c.nome).startsWith(n) || n.startsWith(norm(c.nome)));
+    return f2 ? f2.nome : atendente;
+  };
+
+  // Para cada venda, descobre em qual semana cai
+  const semanaDe = (data) => {
+    const d = new Date(data + 'T12:00');
+    for(let i = 0; i < semanas.length; i++){
+      if(d >= semanas[i].ini && d < semanas[i].fim) return i;
+    }
+    return -1;
+  };
+
+  // Map atendente → array de 5 valores
+  const stats = new Map();
+  _rankingPublicoVendas.forEach(v => {
+    const idx = semanaDe(v.data);
+    if(idx < 0) return;
+    const k = v.atendente || '—';
+    if(!stats.has(k)) stats.set(k, [0,0,0,0,0]);
+    stats.get(k)[idx] += v.valor || 0;
+  });
+
+  // Totais por semana (rodapé)
+  const totaisSemana = [0,0,0,0,0];
+  stats.forEach(arr => arr.forEach((v,i) => totaisSemana[i] += v));
+
+  // Ordena pelo valor da semana atual (índice 4) decrescente
+  const ranked = [...stats.entries()].sort((a,b) => b[1][4] - a[1][4]);
+
+  if(!ranked.length){
+    $cont.innerHTML = '<div class="text-center py-12 text-ink-400 text-sm">Nenhuma venda nas últimas 5 semanas.</div>';
+    return;
+  }
+
+  const fmt = v => v ? 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
+  const fmt2 = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Variação semana atual (4) vs semana anterior (3)
+  const varStr = (atual, anterior) => {
+    if(!anterior) return atual ? '<span class="text-emerald-700">novo</span>' : '—';
+    const d = ((atual - anterior) / anterior) * 100;
+    if(Math.abs(d) < 1) return '<span class="text-ink-500">→ 0%</span>';
+    if(d > 0) return `<span class="text-emerald-700">↗ +${d.toFixed(0)}%</span>`;
+    return `<span class="text-rose-700">↘ ${d.toFixed(0)}%</span>`;
+  };
+
+  $cont.innerHTML = `
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs md:text-sm">
+        <thead class="bg-amber-100 text-amber-900">
+          <tr>
+            <th class="text-left px-2 py-2.5 sticky left-0 bg-amber-100">Atendente</th>
+            ${semanas.slice(0,4).map((s,i) => `<th class="text-right px-2 py-2.5 whitespace-nowrap">Sem ${i+1}<br><span class="text-[9px] font-normal">${s.label}</span></th>`).join('')}
+            <th class="text-right px-2 py-2.5 whitespace-nowrap bg-amber-200">Atual<br><span class="text-[9px] font-normal">${semanas[4].label}</span></th>
+            <th class="text-right px-2 py-2.5 whitespace-nowrap">vs anterior</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-amber-100">
+          ${ranked.slice(0, 20).map(([atend, arr], i) => {
+            const pos = i + 1;
+            const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `${pos}º`;
+            return `
+              <tr class="hover:bg-amber-50/50">
+                <td class="px-2 py-2 sticky left-0 bg-white"><span class="font-bold mr-1">${medal}</span><strong>${nomeAmigavel(atend)}</strong></td>
+                <td class="px-2 py-2 text-right ${arr[0]?'text-ink-700':'text-ink-300'}">${fmt(arr[0])}</td>
+                <td class="px-2 py-2 text-right ${arr[1]?'text-ink-700':'text-ink-300'}">${fmt(arr[1])}</td>
+                <td class="px-2 py-2 text-right ${arr[2]?'text-ink-700':'text-ink-300'}">${fmt(arr[2])}</td>
+                <td class="px-2 py-2 text-right ${arr[3]?'text-ink-700':'text-ink-300'}">${fmt(arr[3])}</td>
+                <td class="px-2 py-2 text-right font-semibold text-emerald-700 bg-amber-50 whitespace-nowrap">${fmt2(arr[4])}</td>
+                <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${varStr(arr[4], arr[3])}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+        <tfoot class="bg-amber-100 font-semibold text-amber-900">
+          <tr>
+            <td class="px-2 py-2.5 sticky left-0 bg-amber-100">TOTAL</td>
+            ${totaisSemana.slice(0,4).map(t => `<td class="px-2 py-2.5 text-right">${fmt(t)}</td>`).join('')}
+            <td class="px-2 py-2.5 text-right bg-amber-200">${fmt2(totaisSemana[4])}</td>
+            <td class="px-2 py-2.5 text-right">${varStr(totaisSemana[4], totaisSemana[3])}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="mt-3 text-[11px] text-ink-500 text-center">
+      📊 Semanas: segunda a domingo · Variação % comparada à semana imediatamente anterior
+    </div>
+  `;
 }
 
 async function bootstrap(){
