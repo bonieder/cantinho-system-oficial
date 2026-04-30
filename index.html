@@ -12357,6 +12357,7 @@ function renderVendasSemanasProdutos(){
             ${semanas.slice(0,4).map((s,i) => `<th class="text-right px-2 py-2.5 whitespace-nowrap">Sem ${i+1}<br><span class="text-[9px] font-normal normal-case">${s.label}</span></th>`).join('')}
             <th class="text-right px-2 py-2.5 whitespace-nowrap bg-brand-50">Atual<br><span class="text-[9px] font-normal normal-case">${semanas[4].label}</span></th>
             <th class="text-right px-2 py-2.5 whitespace-nowrap bg-amber-100" title="Média das 5 semanas — base do ranking">Média 5 sem ↓</th>
+            <th class="text-right px-2 py-2.5 whitespace-nowrap bg-blue-100" title="Média de unidades vendidas por semana">📦 Média un/sem</th>
             <th class="text-right px-2 py-2.5 whitespace-nowrap">vs média</th>
           </tr>
         </thead>
@@ -12371,7 +12372,8 @@ function renderVendasSemanasProdutos(){
               <td class="px-2 py-2 text-right ${s.fat[2]?'text-ink-700':'text-ink-300'}">${cellFat(s.fat[2], 2)}<br><span class="text-[9px] text-ink-400">${s.qtd[2]||'—'} un</span></td>
               <td class="px-2 py-2 text-right ${s.fat[3]?'text-ink-700':'text-ink-300'}">${cellFat(s.fat[3], 3)}<br><span class="text-[9px] text-ink-400">${s.qtd[3]||'—'} un</span></td>
               <td class="px-2 py-2 text-right font-semibold text-emerald-700 bg-brand-50/40 whitespace-nowrap">${cellFatAtual(s.fat[4], 4)}<br><span class="text-[9px] text-ink-500">${s.qtd[4]||'—'} un</span></td>
-              <td class="px-2 py-2 text-right font-bold text-amber-800 bg-amber-50 whitespace-nowrap">${cellMediaFat(mediaFat)}<br><span class="text-[9px] text-amber-600">${mediaQtd.toFixed(1)} un</span></td>
+              <td class="px-2 py-2 text-right font-bold text-amber-800 bg-amber-50 whitespace-nowrap">${cellMediaFat(mediaFat)}</td>
+              <td class="px-2 py-2 text-right font-bold text-blue-800 bg-blue-50 whitespace-nowrap">${mediaQtd.toFixed(1)} <span class="text-[10px] font-normal">un</span></td>
               <td class="px-2 py-2 text-right text-xs whitespace-nowrap">${_semVarStr(s.fat[4], mediaFat)}</td>
             </tr>
           `).join('')}
@@ -12381,13 +12383,14 @@ function renderVendasSemanasProdutos(){
             <td colspan="3" class="px-2 py-2.5">TOTAL · ${stats.size} produto(s)</td>
             ${totaisSemana.slice(0,4).map((t,i) => `<td class="px-2 py-2.5 text-right">${isPct ? '100%' : _semFmtVal(t)}<br><span class="text-[9px] font-normal text-ink-500">${totaisQtd[i]} un</span></td>`).join('')}
             <td class="px-2 py-2.5 text-right bg-brand-100">${isPct ? '100%' : _semFmtVal2(totaisSemana[4])}<br><span class="text-[9px] font-normal text-ink-500">${totaisQtd[4]} un</span></td>
-            <td class="px-2 py-2.5 text-right bg-amber-200">${isPct ? '100%' : _semFmtVal2(mediaTotalFat)}<br><span class="text-[9px] font-normal text-amber-700">${(totaisQtd.reduce((a,b)=>a+b,0)/5).toFixed(0)} un</span></td>
+            <td class="px-2 py-2.5 text-right bg-amber-200">${isPct ? '100%' : _semFmtVal2(mediaTotalFat)}</td>
+            <td class="px-2 py-2.5 text-right bg-blue-200">${(totaisQtd.reduce((a,b)=>a+b,0)/5).toFixed(0)} <span class="text-[10px] font-normal">un</span></td>
             <td class="px-2 py-2.5 text-right text-xs">${_semVarStr(totaisSemana[4], mediaTotalFat)}</td>
           </tr>
         </tfoot>
       </table>
     </div>
-    <div class="mt-3 text-[11px] text-ink-500 text-center">Top 50 produtos ordenados pela <strong>média das 5 semanas</strong> · cada célula mostra R$/% da semana e quantidade vendida</div>
+    <div class="mt-3 text-[11px] text-ink-500 text-center">Top 50 produtos ordenados pela <strong>média das 5 semanas</strong> · coluna 📦 mostra giro médio em unidades por semana</div>
   `;
 }
 
