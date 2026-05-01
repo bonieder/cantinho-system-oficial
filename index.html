@@ -2137,8 +2137,10 @@ app.cantinhodoboni.com.br {
             <h3 class="font-semibold">Apontamento diário de ponto</h3>
             <p class="text-xs text-ink-600 mt-0.5" id="dp-apont-info">Selecione um colaborador</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <select id="dp-apont-colab" onchange="renderApontamentoColab()" class="text-sm border border-ink-200 rounded-md px-3 py-1.5"></select>
+            <button onclick="exportarApontamentoExcel('atual')" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-md">📥 Excel (este colab)</button>
+            <button onclick="exportarApontamentoExcel('todos')" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md">📥 Excel (todos)</button>
           </div>
         </div>
         <div id="dp-apont-card-info" class="px-5 py-3 bg-ink-50 border-b border-ink-200 text-xs"></div>
@@ -2149,12 +2151,13 @@ app.cantinhodoboni.com.br {
                 <th class="text-left px-2 py-2">Dia</th>
                 <th class="text-left px-2 py-2">Sem.</th>
                 <th class="text-center px-2 py-2" colspan="2">1ª entrada/saída</th>
-                <th class="text-center px-2 py-2" colspan="2">2ª entrada/saída</th>
+                <th class="text-center px-2 py-2 bg-amber-50" colspan="2">⏸ Intervalo (saída/volta)</th>
                 <th class="text-center px-2 py-2" colspan="2">3ª entrada/saída</th>
                 <th class="text-center px-2 py-2">Abona</th>
                 <th class="text-right px-2 py-2">Trabalhado</th>
                 <th class="text-right px-2 py-2">Atraso</th>
                 <th class="text-right px-2 py-2">H.E.</th>
+                <th class="text-right px-2 py-2" title="Dobra: minutos antes do horário padrão de entrada (default 16:00) — pagos como HE 100%">Dobra</th>
                 <th class="text-right px-2 py-2">Ad.Not.</th>
                 <th class="text-left px-2 py-2">Obs</th>
               </tr>
@@ -2312,6 +2315,11 @@ app.cantinhodoboni.com.br {
               <label class="text-xs font-medium text-ink-600">Percentual adicional noturno (%)</label>
               <input type="number" id="prem-noturno-pct" min="0" max="100" step="1" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
               <p class="text-[10px] text-ink-500 mt-1">CLT mínimo: 20%</p>
+            </div>
+            <div class="border-t pt-3">
+              <label class="text-xs font-medium text-ink-600">⏰ Hora padrão de entrada (dobra antes disso)</label>
+              <input type="time" id="prem-entrada-padrao" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+              <p class="text-[10px] text-ink-500 mt-1">Padrão do bar: 16:00. Quem entrar antes (ex: 10:00) tem os minutos antes desse horário contados como <strong>dobra</strong> (HE 100%).</p>
             </div>
           </div>
 
@@ -9231,7 +9239,8 @@ const DP_PREMISSAS_DEFAULT = {
   he1Pct: 50,
   he2Pct: 100,
   domferPct: 100,
-  cargaDiariaPadrao: 8
+  cargaDiariaPadrao: 8,
+  entradaPadrao: '16:00'  // Antes desse horário = dobra (HE 100%)
 };
 
 function getPremissasDP(){ return { ...DP_PREMISSAS_DEFAULT, ...Store.get('dp.premissas', {}) }; }
@@ -9330,6 +9339,10 @@ function detectarStatusDia(d){
 // === Cálculo do dia ===
 function calcularDia(dia, premissas, feriadosSet){
   // dia: { data, ent1, sai1, ent2, sai2, ent3, sai3, abona, obs, cargaDia }
+  // SEMÂNTICA:
+  //   par 1 (ent1/sai1) = jornada antes do intervalo
+  //   par 2 (ent2/sai2) = INTERVALO (não trabalha — só conta se par 3 não preenchido)
+  //   par 3 (ent3/sai3) = jornada depois do intervalo
   const status = detectarStatusDia(dia);
   const result = {
     status,
@@ -9338,36 +9351,62 @@ function calcularDia(dia, premissas, feriadosSet){
     minHE: 0,
     minHE50: 0,
     minHE100: 0,
+    minDobra: 0,        // minutos antes da hora padrão de entrada (HE 100%)
+    minIntervalo: 0,    // duração do intervalo (informativo)
     minNoturno: 0,
     isFeriado: false,
     isDomingo: false
   };
   const dataObj = new Date(dia.data + 'T12:00');
-  const dow = dataObj.getDay(); // 0 = dom
+  const dow = dataObj.getDay();
   result.isDomingo = dow === 0;
   result.isFeriado = feriadosSet.has(dia.data);
 
   if(status !== 'normal') return result;
 
-  const pares = [
-    [parseHorario(dia.ent1), parseHorario(dia.sai1)],
-    [parseHorario(dia.ent2), parseHorario(dia.sai2)],
-    [parseHorario(dia.ent3), parseHorario(dia.sai3)]
-  ];
+  const ent1 = parseHorario(dia.ent1);
+  const sai1 = parseHorario(dia.sai1);
+  const ent2 = parseHorario(dia.ent2);
+  const sai2 = parseHorario(dia.sai2);
+  const ent3 = parseHorario(dia.ent3);
+  const sai3 = parseHorario(dia.sai3);
+
+  // Par 3 preenchido? Se sim, par 2 vira INTERVALO
+  const temPar3 = (ent3 != null && sai3 != null);
+  let pares;
+  if(temPar3){
+    // Par 2 = intervalo (não conta como trabalho)
+    pares = [[ent1, sai1], [ent3, sai3]];
+    if(ent2 != null && sai2 != null){
+      let s2 = sai2; if(s2 < ent2) s2 += 1440;
+      result.minIntervalo = s2 - ent2;
+    }
+  } else {
+    // Sem par 3 → par 2 ainda conta como trabalho (compatibilidade)
+    pares = [[ent1, sai1], [ent2, sai2]];
+  }
+
   const minTrab = calcMinutosTrabalhados(pares);
   if(minTrab === 0) return result;
   result.minTrab = minTrab;
 
-  // Carga do dia: específica do dia ou padrão
-  const cargaMin = (dia.cargaDia || premissas.cargaDiariaPadrao || 0) * 60;
+  // Dobra: minutos trabalhados ANTES do horário padrão de entrada (default 16:00)
+  const entradaPadrao = parseHorario(premissas.entradaPadrao) ?? 960; // 960 = 16:00
+  // Calcula minutos antes da entrada padrão (apenas no par 1)
+  if(ent1 != null && ent1 < entradaPadrao){
+    const fimAntes = Math.min(sai1 ?? entradaPadrao, entradaPadrao);
+    if(fimAntes > ent1){
+      result.minDobra = fimAntes - ent1;
+    }
+  }
 
-  // Tolerância
+  // Carga do dia
+  const cargaMin = (dia.cargaDia || premissas.cargaDiariaPadrao || 0) * 60;
   const tol = premissas.toleranciaMin || 0;
   const diff = minTrab - cargaMin;
 
   if(diff > tol){
     let extra = diff;
-    // Domingo/feriado tudo é HE 100% (regra padrão)
     if(result.isDomingo || result.isFeriado){
       result.minHE100 = extra;
     } else {
@@ -9379,14 +9418,33 @@ function calcularDia(dia, premissas, feriadosSet){
     }
     result.minHE = extra;
   } else if(diff < -tol){
-    if(dia.abona === 'sim' || dia.abona === true) {
-      // abonado, não conta como atraso
+    if(dia.abona === 'sim' || dia.abona === true){
+      // abonado
     } else {
       result.minAtraso = -diff;
     }
   }
 
-  // Adicional noturno (sempre conta sobre minutos efetivos no intervalo noturno)
+  // Dobra: minutos antes da entrada padrão SEMPRE são HE 100%
+  // 1) Reclassifica HE 50% como HE 100% até o limite da dobra
+  // 2) Se a jornada não gerou HE suficiente, adiciona dobra restante como HE 100%
+  if(result.minDobra > 0){
+    const heCaptured = result.minHE50 + result.minHE100;
+    if(heCaptured > 0){
+      // Move parte de HE 50% para HE 100% (até o limite da dobra)
+      const moveDe50 = Math.min(result.minDobra, result.minHE50);
+      result.minHE50 -= moveDe50;
+      result.minHE100 += moveDe50;
+    }
+    // Dobra que não está dentro de HE existente vira HE 100% extra
+    const dobraExtra = Math.max(0, result.minDobra - heCaptured);
+    if(dobraExtra > 0){
+      result.minHE100 += dobraExtra;
+      result.minHE += dobraExtra;
+    }
+  }
+
+  // Adicional noturno
   const niIni = parseHorario(premissas.noturnoIni) ?? 1320;
   const niFim = parseHorario(premissas.noturnoFim) ?? 300;
   result.minNoturno = calcMinutosNoturnos(pares, niIni, niFim);
@@ -9605,7 +9663,7 @@ function renderApontamentoColab(){
   $cardInfo.innerHTML = `Carga horária diária: <strong>${premissas.cargaDiariaPadrao}h</strong> · Tolerância: <strong>${premissas.toleranciaMin}min</strong> · Adic. noturno: <strong>${premissas.noturnoIni}–${premissas.noturnoFim} (${premissas.noturnoPct}%)</strong>`;
 
   // Render rows
-  let totHE50 = 0, totHE100 = 0, totAtraso = 0, totNot = 0, totTrab = 0;
+  let totHE50 = 0, totHE100 = 0, totAtraso = 0, totNot = 0, totTrab = 0, totDobra = 0;
   let qtdFaltas = 0;
   const rows = [];
   for(let dia = 1; dia <= ultimoDia; dia++){
@@ -9620,6 +9678,7 @@ function renderApontamentoColab(){
     totAtraso += r.minAtraso;
     totNot += r.minNoturno;
     totTrab += r.minTrab;
+    totDobra += r.minDobra || 0;
     const isWeekend = dow === 0 || dow === 6;
     const isHoliday = feriados.has(dataStr);
     const rowClass = isHoliday ? 'bg-amber-50' : (isWeekend ? 'bg-ink-50/60' : '');
@@ -9646,6 +9705,7 @@ function renderApontamentoColab(){
         <td class="px-2 py-1 text-right font-mono ${r.minTrab>0?'':'text-ink-400'}">${r.minTrab > 0 ? fmtMinutes(r.minTrab) : '—'}</td>
         <td class="px-2 py-1 text-right font-mono ${r.minAtraso>0?'text-rose-600':'text-ink-400'}">${r.minAtraso > 0 ? fmtMinutes(r.minAtraso) : '—'}</td>
         <td class="px-2 py-1 text-right font-mono ${r.minHE>0?'text-emerald-700':'text-ink-400'}">${r.minHE > 0 ? fmtMinutes(r.minHE) : '—'}</td>
+        <td class="px-2 py-1 text-right font-mono ${r.minDobra>0?'text-orange-700 bg-orange-50':'text-ink-400'}" title="${r.minDobra>0?'Minutos antes da hora padrão de entrada':''}">${r.minDobra > 0 ? fmtMinutes(r.minDobra) : '—'}</td>
         <td class="px-2 py-1 text-right font-mono ${r.minNoturno>0?'text-violet-700':'text-ink-400'}">${r.minNoturno > 0 ? fmtMinutes(r.minNoturno) : '—'}</td>
         <td class="px-2 py-1"><input type="text" value="${(d.obs||'').replace(/"/g,'&quot;')}" oninput="onApontamentoChange('${colabId}','${dataStr}','obs',this.value)" class="text-[11px] border border-ink-200 rounded px-1 py-0.5 w-32"></td>
       </tr>
@@ -9656,6 +9716,7 @@ function renderApontamentoColab(){
   $totais.innerHTML = `
     <span class="mr-4">Trabalhado: <strong class="font-mono">${fmtMinutes(totTrab)}</strong></span>
     <span class="mr-4 ${totAtraso?'text-rose-600':''}">Atrasos: <strong class="font-mono">${fmtMinutes(totAtraso)}</strong></span>
+    ${totDobra > 0 ? `<span class="mr-4 text-orange-700">Dobra: <strong class="font-mono">${fmtMinutes(totDobra)}</strong></span>` : ''}
     <span class="mr-4 text-emerald-700">H.E. 50%: <strong class="font-mono">${fmtMinutes(totHE50)}</strong></span>
     <span class="mr-4 text-emerald-700">H.E. 100%: <strong class="font-mono">${fmtMinutes(totHE100)}</strong></span>
     <span class="mr-4 text-violet-700">Adic. Not.: <strong class="font-mono">${fmtMinutes(totNot)}</strong></span>
@@ -9679,6 +9740,177 @@ function onApontamentoChange(colabId, dataStr, field, value){
   _apontDebounce = setTimeout(() => {
     if(_dpTab === 'apontamento') renderApontamentoColab();
   }, 200);
+}
+
+// === Exportar apontamento para Excel ===
+// modo: 'atual' (só o colab selecionado) | 'todos' (todos colabs do mês, em sheets separadas)
+function exportarApontamentoExcel(modo){
+  if(typeof XLSX === 'undefined'){ showToast('Biblioteca XLSX não carregou. Recarregue a página.', 'error'); return; }
+  const mesYM = document.getElementById('dp-mes')?.value;
+  if(!mesYM){ showToast('Selecione um mês', 'error'); return; }
+  const colabs = getCadastros('funcionario');
+  if(!colabs.length){ showToast('Nenhum colaborador cadastrado', 'warn'); return; }
+
+  const premissas = getPremissasDP();
+  const feriadosSet = new Set(getFeriados().map(f => f.data));
+  const apont = getApontamentos();
+  const dowNames = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+  const [y, m] = mesYM.split('-').map(x => parseInt(x));
+  const ultimoDia = new Date(y, m, 0).getDate();
+  const mesNome = new Date(y, m-1, 1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  // Filtra colabs conforme modo
+  let lista;
+  if(modo === 'atual'){
+    const colabId = document.getElementById('dp-apont-colab')?.value;
+    if(!colabId){ showToast('Selecione um colaborador', 'warn'); return; }
+    lista = colabs.filter(c => c.id === colabId);
+  } else {
+    lista = colabs;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet única consolidada (sempre)
+  const consolidadoRows = [
+    ['Cantinho do Boni Colorado LTDA — Apontamento de Horas — ' + mesNome],
+    [],
+    ['Colaborador','CPF','Cargo','Data','Dia da semana','Status','Ent 1','Sai 1','Ini Intervalo','Fim Intervalo','Ent 3','Sai 3','Abonado','Trabalhado (h)','Atraso (h)','Dobra (h)','HE 50% (h)','HE 100% (h)','Adic. Noturno (h)','Intervalo (h)','Observação']
+  ];
+
+  // Helper: formata minutos como h:mm decimal compatível com Excel ("h:mm")
+  const fmtH = min => {
+    if(!min) return '';
+    const h = Math.floor(min / 60);
+    const mm = String(Math.round(min % 60)).padStart(2,'0');
+    return `${h}:${mm}`;
+  };
+
+  for(const colab of lista){
+    const key = `${mesYM}|${colab.id}`;
+    const dias = (apont[key]?.dias || []);
+    const diasMap = Object.fromEntries(dias.map(d => [d.data, d]));
+
+    // Sheet por colaborador (com layout amigável)
+    const sheetRows = [
+      ['Apontamento de Horas — ' + mesNome],
+      [],
+      ['Colaborador:', colab.nome, '', 'CPF:', colab.cpf || '—'],
+      ['Cargo:', colab.cargo || '—', '', 'Setor:', colab.setor || '—'],
+      ['Salário base:', colab.salario || 0, '', 'Admissão:', colab.admissao || '—'],
+      [],
+      ['Dia','Sem.','Status','Ent 1','Sai 1','Ini Interv','Fim Interv','Ent 3','Sai 3','Abonado','Trabalhado','Atraso','Dobra','HE 50%','HE 100%','Adic. Not.','Intervalo','Obs']
+    ];
+
+    let totTrab = 0, totAtraso = 0, totHE50 = 0, totHE100 = 0, totNot = 0, qtdFaltas = 0, totDobra = 0, totInterv = 0;
+
+    for(let dia = 1; dia <= ultimoDia; dia++){
+      const dataStr = `${mesYM}-${String(dia).padStart(2,'0')}`;
+      const dataObj = new Date(y, m-1, dia);
+      const dow = dataObj.getDay();
+      const d = diasMap[dataStr] || { data: dataStr };
+      const r = calcularDia(d, premissas, feriadosSet);
+      if(r.status === 'falta') qtdFaltas++;
+      totTrab += r.minTrab;
+      totAtraso += r.minAtraso;
+      totHE50 += r.minHE50;
+      totHE100 += r.minHE100;
+      totNot += r.minNoturno;
+      totDobra += r.minDobra || 0;
+      totInterv += r.minIntervalo || 0;
+
+      const statusLbl = r.status === 'normal' ? '' : r.status.toUpperCase();
+      const isFer = feriadosSet.has(dataStr);
+      const semLbl = dowNames[dow] + (isFer ? ' (FERIADO)' : '');
+
+      sheetRows.push([
+        String(dia).padStart(2,'0') + '/' + String(m).padStart(2,'0'),
+        semLbl,
+        statusLbl,
+        d.ent1 || '',
+        d.sai1 || '',
+        d.ent2 || '',
+        d.sai2 || '',
+        d.ent3 || '',
+        d.sai3 || '',
+        d.abona ? 'SIM' : '',
+        fmtH(r.minTrab),
+        fmtH(r.minAtraso),
+        fmtH(r.minDobra || 0),
+        fmtH(r.minHE50),
+        fmtH(r.minHE100),
+        fmtH(r.minNoturno),
+        fmtH(r.minIntervalo || 0),
+        d.obs || ''
+      ]);
+
+      consolidadoRows.push([
+        colab.nome,
+        colab.cpf || '',
+        colab.cargo || '',
+        dataStr,
+        semLbl,
+        statusLbl,
+        d.ent1 || '',
+        d.sai1 || '',
+        d.ent2 || '',
+        d.sai2 || '',
+        d.ent3 || '',
+        d.sai3 || '',
+        d.abona ? 'SIM' : '',
+        fmtH(r.minTrab),
+        fmtH(r.minAtraso),
+        fmtH(r.minDobra || 0),
+        fmtH(r.minHE50),
+        fmtH(r.minHE100),
+        fmtH(r.minNoturno),
+        fmtH(r.minIntervalo || 0),
+        d.obs || ''
+      ]);
+    }
+
+    // Totais por colaborador
+    sheetRows.push([]);
+    sheetRows.push(['','','','','','','','','','TOTAIS', fmtH(totTrab), fmtH(totAtraso), fmtH(totDobra), fmtH(totHE50), fmtH(totHE100), fmtH(totNot), fmtH(totInterv), '']);
+    sheetRows.push(['Faltas no mês:', qtdFaltas]);
+    sheetRows.push(['Assiduidade:', qtdFaltas === 0 ? 'SIM' : 'NÃO']);
+
+    if(modo === 'todos' || modo === 'atual'){
+      const ws = XLSX.utils.aoa_to_sheet(sheetRows);
+      ws['!cols'] = [
+        {wch:7},{wch:18},{wch:9},{wch:7},{wch:7},{wch:9},{wch:9},{wch:7},{wch:7},
+        {wch:8},{wch:11},{wch:9},{wch:9},{wch:9},{wch:10},{wch:11},{wch:11},{wch:30}
+      ];
+      const sheetName = colab.nome.replace(/[\\/?*[\]:]/g,' ').slice(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    }
+  }
+
+  // Adiciona sheet consolidada como primeira (Resumo)
+  const wsConsol = XLSX.utils.aoa_to_sheet(consolidadoRows);
+  wsConsol['!cols'] = [
+    {wch:30},{wch:14},{wch:18},{wch:11},{wch:18},{wch:9},
+    {wch:7},{wch:7},{wch:9},{wch:9},{wch:7},{wch:7},
+    {wch:8},{wch:11},{wch:9},{wch:9},{wch:9},{wch:10},{wch:11},{wch:11},{wch:30}
+  ];
+  // Inserir como primeira aba
+  XLSX.utils.book_append_sheet(wb, wsConsol, 'Consolidado');
+  // Reordena: consolidado vai pro início
+  const sheets = wb.SheetNames;
+  if(sheets.length > 1){
+    const idx = sheets.indexOf('Consolidado');
+    if(idx > 0){
+      sheets.splice(idx, 1);
+      sheets.unshift('Consolidado');
+    }
+  }
+
+  const fileName = modo === 'atual'
+    ? `apontamento-${(lista[0]?.nome||'colab').replace(/\s+/g,'-').toLowerCase()}-${mesYM}.xlsx`
+    : `apontamento-todos-${mesYM}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  showToast(`<strong>✓</strong> Excel exportado: ${fileName}`);
 }
 
 // Modal de fechamento de colaborador (comissão / adiantamento / obs)
@@ -10894,6 +11126,7 @@ function renderPremissasTab(){
   setVal('prem-he2-pct', p.he2Pct);
   setVal('prem-domfer-pct', p.domferPct);
   setVal('prem-carga-diaria', p.cargaDiariaPadrao);
+  setVal('prem-entrada-padrao', p.entradaPadrao);
 }
 
 function salvarPremissasDP(){
@@ -10910,7 +11143,8 @@ function salvarPremissasDP(){
     he1Pct: getNum('prem-he1-pct'),
     he2Pct: getNum('prem-he2-pct'),
     domferPct: getNum('prem-domfer-pct'),
-    cargaDiariaPadrao: getNum('prem-carga-diaria')
+    cargaDiariaPadrao: getNum('prem-carga-diaria'),
+    entradaPadrao: get('prem-entrada-padrao') || '16:00'
   };
   savePremissasDP(p);
   renderDP();
