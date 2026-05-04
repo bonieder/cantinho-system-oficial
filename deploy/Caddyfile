@@ -1,0 +1,57 @@
+# =====================================================
+# Cantinho System — Caddyfile (proxy reverso + HTTPS)
+# =====================================================
+# Caddy gera certificado HTTPS automaticamente via Let's Encrypt
+# Configure DOMAIN no .env e ajuste os subdomínios abaixo
+
+# API REST (PostgREST) — endpoint que o Cantinho System chama
+api.{$DOMAIN} {
+    reverse_proxy postgrest:3000
+    header {
+        # CORS pra permitir o sistema (GitHub Pages) acessar
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PATCH, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, apikey, Prefer, Range, Range-Unit"
+        Access-Control-Expose-Headers "Content-Range, Range-Unit"
+    }
+    @options method OPTIONS
+    respond @options 204
+}
+
+# Dashboard pgAdmin (acesse pra ver/editar dados visualmente)
+db.{$DOMAIN} {
+    reverse_proxy studio:80
+}
+
+# Evolution API (WhatsApp)
+wa.{$DOMAIN} {
+    reverse_proxy evolution:8080
+    header {
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, apikey"
+    }
+}
+
+# Acesso por IP direto (fallback enquanto não tem domínio)
+:80 {
+    @api path /rest/* /api/*
+    handle @api {
+        uri strip_prefix /rest
+        uri strip_prefix /api
+        reverse_proxy postgrest:3000
+    }
+    @studio path /db /db/*
+    handle @studio {
+        uri strip_prefix /db
+        reverse_proxy studio:80
+    }
+    @wa path /wa /wa/*
+    handle @wa {
+        uri strip_prefix /wa
+        reverse_proxy evolution:8080
+    }
+    handle {
+        respond "Cantinho System Server. Use api.{$DOMAIN}, db.{$DOMAIN} or wa.{$DOMAIN}" 200
+    }
+}

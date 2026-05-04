@@ -40,6 +40,43 @@ Substitui o Supabase Cloud — você passa a ter controle total dos dados, sem c
 
 ## 🚀 Instalação automática
 
+### ☁ VPS (Hostinger / Contabo / DigitalOcean) — RECOMENDADO
+
+**Vantagens:** acesso de qualquer lugar (casa, celular fora do bar), HTTPS automático, backup profissional, sem dependência de PC ligado no bar.
+
+**Pré-requisitos:**
+- VPS Ubuntu 22.04+ com pelo menos 2 GB RAM (recomendado: Hostinger KVM 2)
+- Domínio próprio OU subdomínio gratuito do [DuckDNS](https://www.duckdns.org)
+- Acesso root via SSH
+
+**Setup em 1 comando:**
+
+```bash
+# 1) Conecte no VPS via SSH
+ssh root@SEU_IP_DO_VPS
+
+# 2) Configure DNS apontando os 3 subdomínios pro IP do VPS:
+#    api.cantinhodoboni.com.br  → IP_VPS
+#    db.cantinhodoboni.com.br   → IP_VPS
+#    wa.cantinhodoboni.com.br   → IP_VPS
+
+# 3) Rode o quickstart (substitua pelo seu domínio):
+curl -fsSL https://raw.githubusercontent.com/bonieder/cantinho-system-oficial/main/deploy/vps-quickstart.sh | bash -s -- cantinhodoboni.com.br
+```
+
+Em ~5 minutos:
+- ✅ Docker instalado
+- ✅ PostgreSQL + API REST + Dashboard rodando
+- ✅ Evolution API (WhatsApp self-hosted) rodando
+- ✅ Caddy gera HTTPS automático (Let's Encrypt)
+- ✅ Backup diário configurado
+- ✅ Firewall ativo
+
+**No final aparecem as URLs públicas com HTTPS:**
+- `https://api.SEU-DOMINIO` — API REST (Cantinho System aponta pra cá)
+- `https://db.SEU-DOMINIO` — Dashboard de banco
+- `https://wa.SEU-DOMINIO` — Evolution API (WhatsApp)
+
 ### 🪟 Windows (Windows 10 1903+ ou Windows 11)
 
 1. **Baixe o pacote** clicando em "Code → Download ZIP" no [GitHub](https://github.com/bonieder/cantinho-system-oficial)
