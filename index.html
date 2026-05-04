@@ -1644,6 +1644,53 @@
         <p class="text-sm text-violet-800 mt-1">Como rodar o Cantinho System em servidor próprio com soberania total dos dados — opções do mais barato ao mais robusto</p>
       </div>
 
+      <!-- Configuração de servidor de banco de dados -->
+      <div class="bg-white rounded-xl border border-ink-200 p-5">
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-3">
+          <div>
+            <h3 class="font-semibold">🗄 Servidor de banco de dados</h3>
+            <p class="text-xs text-ink-600 mt-0.5">Define onde os dados do sistema são armazenados</p>
+          </div>
+          <div id="srv-status-badge" class="text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Cloud</div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-3 mb-4">
+          <label class="border-2 border-ink-200 hover:border-violet-400 rounded-lg p-4 cursor-pointer has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50">
+            <input type="radio" name="srv-mode" value="cloud" id="srv-mode-cloud" class="hidden" checked>
+            <div class="font-medium text-sm">☁ Supabase Cloud (atual)</div>
+            <div class="text-xs text-ink-600 mt-1">PostgreSQL gerenciado na nuvem · Backup automático · ~R$ 130/mês (Pro)</div>
+          </label>
+          <label class="border-2 border-ink-200 hover:border-violet-400 rounded-lg p-4 cursor-pointer has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50">
+            <input type="radio" name="srv-mode" value="self" id="srv-mode-self" class="hidden">
+            <div class="font-medium text-sm">🏠 Self-hosted (servidor próprio)</div>
+            <div class="text-xs text-ink-600 mt-1">PostgreSQL no seu servidor · Sem custo recorrente · Você cuida do backup</div>
+          </label>
+        </div>
+        <div id="srv-self-config" class="hidden space-y-3 border-t pt-4">
+          <div class="grid md:grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-600">URL do servidor (API REST)</label>
+              <input type="url" id="srv-url" placeholder="http://192.168.0.100:8000" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1 font-mono">
+              <p class="text-[10px] text-ink-500 mt-1">IP local do servidor + porta 8000 (rede do bar)</p>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-600">API Key (opcional)</label>
+              <input type="password" id="srv-key" placeholder="Deixe em branco se não usa autenticação" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1 font-mono">
+            </div>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="testarServidorLocal()" class="text-xs border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-md">🧪 Testar conexão</button>
+            <button onclick="salvarServidorConfig()" class="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 rounded-md">💾 Salvar e usar este servidor</button>
+            <button onclick="resetarServidorCloud()" class="text-xs border border-ink-200 hover:bg-ink-50 px-3 py-2 rounded-md">↩ Voltar para Cloud</button>
+          </div>
+          <div id="srv-test-result" class="text-xs"></div>
+        </div>
+        <div class="mt-3 bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900">
+          <strong>ℹ Como instalar o servidor self-hosted:</strong><br>
+          1. Tenha um Linux (Ubuntu) com Docker · 2. Baixe a pasta <code>deploy/</code> do <a href="https://github.com/bonieder/cantinho-system-oficial/tree/main/deploy" target="_blank" class="underline">repositório</a> · 3. Execute <code>sudo bash install-ubuntu.sh</code> · 4. Migre dados: <code>node migrate-from-cloud.mjs</code> · 5. Cole a URL acima e salve.<br>
+          📖 Guia completo no arquivo <code>deploy/README.md</code>.
+        </div>
+      </div>
+
       <!-- 3 Opções comparadas -->
       <div class="grid grid-cols-3 gap-4">
 
@@ -3023,8 +3070,88 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeModal(); }
 // =====================================================
 // SUPABASE SYNC LAYER (multi-device sincronizado)
 // =====================================================
-const SUPABASE_URL = 'https://ropzcmibzqylcukwkyzu.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_dOyD2PHNJS3NqHVB2eSBzg_Tvxxi4jZ';
+// Padrão: Supabase Cloud (nuvem). Pode ser sobrescrito por servidor self-hosted
+// configurado em "Setup → Servidor de banco de dados".
+const SUPABASE_URL_DEFAULT = 'https://ropzcmibzqylcukwkyzu.supabase.co';
+const SUPABASE_KEY_DEFAULT = 'sb_publishable_dOyD2PHNJS3NqHVB2eSBzg_Tvxxi4jZ';
+// Le configuração custom (se admin definiu servidor local)
+function _getServerConfig(){
+  try {
+    const cfg = JSON.parse(localStorage.getItem('cantinho:config.servidor') || 'null');
+    if(cfg && cfg.url) return cfg;
+  } catch{}
+  return { url: SUPABASE_URL_DEFAULT, key: SUPABASE_KEY_DEFAULT, mode: 'cloud' };
+}
+
+// === UI: Configuração de servidor (chamada quando abre o módulo Setup) ===
+function renderServidorConfig(){
+  const cfg = _getServerConfig();
+  const radioCloud = document.getElementById('srv-mode-cloud');
+  const radioSelf = document.getElementById('srv-mode-self');
+  const $config = document.getElementById('srv-self-config');
+  const $badge = document.getElementById('srv-status-badge');
+  if(!radioCloud || !radioSelf) return;
+  if(cfg.mode === 'self'){
+    radioSelf.checked = true;
+    $config?.classList.remove('hidden');
+    if($badge){ $badge.textContent = '🏠 Self-hosted'; $badge.className = 'text-xs px-3 py-1 rounded-full bg-violet-100 text-violet-700 font-semibold'; }
+  } else {
+    radioCloud.checked = true;
+    if($badge){ $badge.textContent = '☁ Cloud'; $badge.className = 'text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold'; }
+  }
+  document.getElementById('srv-url').value = cfg.mode === 'self' ? cfg.url : '';
+  document.getElementById('srv-key').value = cfg.mode === 'self' ? (cfg.key || '') : '';
+  // Bind toggle dos radios
+  radioCloud.onchange = () => $config?.classList.add('hidden');
+  radioSelf.onchange = () => $config?.classList.remove('hidden');
+}
+
+async function testarServidorLocal(){
+  const url = document.getElementById('srv-url').value.trim().replace(/\/$/, '');
+  const $r = document.getElementById('srv-test-result');
+  if(!url){ $r.innerHTML = '<span class="text-rose-700">⚠ Informe a URL</span>'; return; }
+  $r.innerHTML = '⏳ Testando...';
+  try {
+    const r = await fetch(`${url}/kv_store?limit=1`, { headers: { 'apikey': document.getElementById('srv-key').value || '' }});
+    if(r.ok){
+      const data = await r.json();
+      $r.innerHTML = `<span class="text-emerald-700">✓ Conectado · ${data.length} registro(s) acessível(is) na tabela kv_store</span>`;
+    } else {
+      $r.innerHTML = `<span class="text-rose-700">⚠ HTTP ${r.status} · ${(await r.text()).slice(0,100)}</span>`;
+    }
+  } catch(e){
+    $r.innerHTML = `<span class="text-rose-700">❌ Erro: ${e.message}</span>`;
+  }
+}
+
+function salvarServidorConfig(){
+  const u = (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
+  if(!u || u.perfil !== 'Admin'){ showToast('Apenas Admin pode mudar o servidor', 'error'); return; }
+  const mode = document.querySelector('input[name=srv-mode]:checked')?.value || 'cloud';
+  if(mode === 'cloud'){
+    localStorage.removeItem('cantinho:config.servidor');
+    showToast('<strong>✓</strong> Voltando para Supabase Cloud — recarregando...');
+    setTimeout(() => window.location.reload(), 800);
+    return;
+  }
+  const url = document.getElementById('srv-url').value.trim().replace(/\/$/, '');
+  const key = document.getElementById('srv-key').value;
+  if(!url){ showToast('Informe a URL do servidor', 'error'); return; }
+  if(!confirm(`Mudar servidor para:\n\n${url}\n\nO sistema vai recarregar e usar esse servidor. Confirma?`)) return;
+  localStorage.setItem('cantinho:config.servidor', JSON.stringify({ mode:'self', url, key }));
+  showToast('<strong>✓</strong> Servidor alterado — recarregando...');
+  setTimeout(() => window.location.reload(), 800);
+}
+
+function resetarServidorCloud(){
+  if(!confirm('Voltar para Supabase Cloud?')) return;
+  localStorage.removeItem('cantinho:config.servidor');
+  setTimeout(() => window.location.reload(), 300);
+}
+const _serverCfg = _getServerConfig();
+const SUPABASE_URL = _serverCfg.url;
+const SUPABASE_KEY = _serverCfg.key;
+const SERVER_MODE = _serverCfg.mode || 'cloud';
 let supabaseClient = null;
 let syncEnabled = false;
 const syncQueue = new Map();
@@ -16492,6 +16619,7 @@ document.querySelectorAll('.nav-item').forEach(btn => {
     if(t === 'caixa') setTimeout(renderCaixa, 50);
     if(t === 'etiquetas') setTimeout(renderEtiquetas, 50);
     if(t === 'usuarios') setTimeout(renderUsuarios, 50);
+    if(t === 'setup') setTimeout(()=>typeof renderServidorConfig==='function' && renderServidorConfig(), 50);
     if(t === 'reservas') setTimeout(renderReservas, 50);
     if(t === 'notas') setTimeout(()=>typeof renderNotas==='function' && renderNotas(), 50);
     if(t === 'dp') setTimeout(()=>typeof renderDP==='function' && renderDP(), 50);
