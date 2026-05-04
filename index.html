@@ -4784,57 +4784,192 @@ function renderBankDashboard(txs){
 // =====================================================
 
 const CHECKLIST_TEMPLATES = [
+  // ==========================================
+  // 🍳 COZINHA — ABERTURA
+  // ==========================================
   {
-    id: 'cl-cozinha',
+    id: 'cl-cozinha-abertura',
     template: 'Cozinha',
     sector: 'Cozinha',
     icon: '🍳',
-    shift: 'ambos',          // abertura | fechamento | ambos
-    deadline: '09:00',
-    deadlineFechamento: '23:30',
-    estimado: '5 min',
+    shift: 'abertura',
+    deadline: '11:00',
+    estimado: '6 min',
     items: [
-      { id:1, type:'boolean', text:'As geladeiras estão limpas e organizadas?', required:true, requirePhoto:true },
-      { id:2, type:'numeric', text:'Temperatura da câmara fria (°C)', required:true, min:0, max:4, alertOutside:true },
-      { id:3, type:'numeric', text:'Temperatura do freezer (°C)', required:true, min:-25, max:-15, alertOutside:true },
-      { id:4, type:'boolean', text:'Equipamentos higienizados (fogão, chapa, fritadeira)?', required:true, requirePhoto:true },
-      { id:5, type:'boolean', text:'Insumos perecíveis dentro da validade?', required:true, requirePhoto:true },
-      { id:6, type:'text', text:'Ocorrências ou faltas detectadas', required:false }
+      { id:1, type:'boolean', text:'Bancadas higienizadas e secas?', required:true, requirePhoto:true },
+      { id:2, type:'boolean', text:'Fogão e chapa limpos e funcionando?', required:true, requirePhoto:true },
+      { id:3, type:'boolean', text:'Coifa e exaustores sem gordura?', required:true, requirePhoto:true },
+      { id:4, type:'numeric', text:'Temperatura da câmara fria — resfriada (°C)', required:true, min:0, max:4, alertOutside:true, requirePhoto:true },
+      { id:5, type:'numeric', text:'Temperatura da câmara fria — congelados (°C)', required:true, min:-25, max:-15, alertOutside:true, requirePhoto:true },
+      { id:6, type:'numeric', text:'Temperatura do freezer (°C)', required:true, min:-25, max:-15, alertOutside:true },
+      { id:7, type:'boolean', text:'Insumos perecíveis dentro da validade (carnes, frios, queijos)?', required:true, requirePhoto:true },
+      { id:8, type:'boolean', text:'Insumos produzidos tampados, etiquetados e higienizados?', required:true, requirePhoto:true },
+      { id:9, type:'boolean', text:'Estoque de mercearia/condimentos OK?', required:true, requirePhoto:true },
+      { id:10, type:'boolean', text:'Equipe usando EPI (touca, avental, sapato fechado)?', required:true, requirePhoto:true },
+      { id:11, type:'boolean', text:'Pano de prato, esponja e produtos de limpeza no posto?', required:true },
+      { id:12, type:'boolean', text:'Pia, ralos e torneiras desentupidos?', required:true },
+      { id:13, type:'text', text:'Ocorrências, faltas ou pedidos de compra', required:false }
     ]
   },
+
+  // ==========================================
+  // 🍳 COZINHA — FECHAMENTO
+  // ==========================================
   {
-    id: 'cl-bar',
+    id: 'cl-cozinha-fechamento',
+    template: 'Cozinha',
+    sector: 'Cozinha',
+    icon: '🍳',
+    shift: 'fechamento',
+    deadline: '00:00',
+    estimado: '8 min',
+    items: [
+      { id:1, type:'boolean', text:'Fogão DESLIGADO e chave de gás fechada?', required:true, requirePhoto:true },
+      { id:2, type:'boolean', text:'Fritadeiras DESLIGADAS e óleo coado/resfriado?', required:true, requirePhoto:true },
+      { id:3, type:'boolean', text:'Chapa e churrasqueira DESLIGADAS?', required:true, requirePhoto:true },
+      { id:4, type:'boolean', text:'Forno DESLIGADO?', required:true, requirePhoto:true },
+      { id:5, type:'boolean', text:'Coifa e exaustor DESLIGADOS?', required:true },
+      { id:6, type:'boolean', text:'Insumos produzidos no dia tampados, etiquetados (data/hora) e refrigerados?', required:true, requirePhoto:true },
+      { id:7, type:'boolean', text:'Câmara fria fechada e travada (porta vedada)?', required:true, requirePhoto:true },
+      { id:8, type:'numeric', text:'Temperatura final da câmara fria (°C)', required:true, min:0, max:6, alertOutside:true },
+      { id:9, type:'boolean', text:'Bancadas, fogão e chapa higienizados?', required:true, requirePhoto:true },
+      { id:10, type:'boolean', text:'Chão limpo e seco (sem resíduos de gordura)?', required:true, requirePhoto:true },
+      { id:11, type:'boolean', text:'Lixos esvaziados e sacos novos colocados?', required:true, requirePhoto:true },
+      { id:12, type:'boolean', text:'Louça lavada, escorrida e guardada?', required:true, requirePhoto:true },
+      { id:13, type:'boolean', text:'Saneantes e produtos de limpeza guardados longe de alimentos?', required:true },
+      { id:14, type:'boolean', text:'Luzes desligadas e portas trancadas?', required:true },
+      { id:15, type:'text', text:'Itens que sobraram / quebraram / acidentes', required:false }
+    ]
+  },
+
+  // ==========================================
+  // 🍹 BAR — ABERTURA
+  // ==========================================
+  {
+    id: 'cl-bar-abertura',
     template: 'Bar',
     sector: 'Bar',
     icon: '🍹',
     shift: 'abertura',
+    deadline: '11:30',
+    estimado: '5 min',
+    items: [
+      { id:1, type:'boolean', text:'Balcão e bancada higienizados?', required:true, requirePhoto:true },
+      { id:2, type:'boolean', text:'Estoque de garrafas conferido com contagem do dia anterior?', required:true, requirePhoto:true },
+      { id:3, type:'boolean', text:'Chopeira limpa, gelada e funcionando?', required:true, requirePhoto:true },
+      { id:4, type:'numeric', text:'Pressão de CO₂ na chopeira (psi)', required:true, min:8, max:14, alertOutside:true },
+      { id:5, type:'numeric', text:'Temperatura da geladeira de bebidas (°C)', required:true, min:0, max:6, alertOutside:true, requirePhoto:true },
+      { id:6, type:'numeric', text:'Temperatura do freezer (°C)', required:true, min:-25, max:-15, alertOutside:true },
+      { id:7, type:'boolean', text:'Dosadores higienizados e abastecidos?', required:true, requirePhoto:true },
+      { id:8, type:'boolean', text:'Taças, copos e jiggers limpos e organizados?', required:true, requirePhoto:true },
+      { id:9, type:'boolean', text:'Estoque de cítricos (limão, laranja) e gelo suficiente?', required:true, requirePhoto:true },
+      { id:10, type:'boolean', text:'Insumos produzidos (xaropes, infusões) tampados e dentro da validade?', required:true, requirePhoto:true },
+      { id:11, type:'boolean', text:'Validade de bebidas conferida?', required:true },
+      { id:12, type:'text', text:'Itens em falta para reposição imediata', required:false }
+    ]
+  },
+
+  // ==========================================
+  // 🍹 BAR — FECHAMENTO
+  // ==========================================
+  {
+    id: 'cl-bar-fechamento',
+    template: 'Bar',
+    sector: 'Bar',
+    icon: '🍹',
+    shift: 'fechamento',
+    deadline: '00:30',
+    estimado: '7 min',
+    items: [
+      { id:1, type:'boolean', text:'Chopeira fechada, gás reduzido e linhas limpas?', required:true, requirePhoto:true },
+      { id:2, type:'boolean', text:'Insumos produzidos (xaropes, infusões, mix) tampados, etiquetados e refrigerados?', required:true, requirePhoto:true },
+      { id:3, type:'boolean', text:'Frutas/cítricos cortados sobraram tampados ou descartados?', required:true, requirePhoto:true },
+      { id:4, type:'boolean', text:'Dosadores higienizados (lavados em água quente)?', required:true, requirePhoto:true },
+      { id:5, type:'boolean', text:'Taças, copos e shakers lavados e secos?', required:true, requirePhoto:true },
+      { id:6, type:'boolean', text:'Geladeiras e freezers FECHADOS e funcionando?', required:true, requirePhoto:true },
+      { id:7, type:'numeric', text:'Temperatura final da geladeira de bebidas (°C)', required:true, min:0, max:8, alertOutside:true },
+      { id:8, type:'boolean', text:'Balcão e bancada higienizados?', required:true, requirePhoto:true },
+      { id:9, type:'boolean', text:'Lixo do bar esvaziado?', required:true, requirePhoto:true },
+      { id:10, type:'boolean', text:'Estoque de garrafas contado e registrado?', required:true, requirePhoto:true },
+      { id:11, type:'boolean', text:'Bar trancado/protegido (se aplicável)?', required:true },
+      { id:12, type:'text', text:'Quebras, sobras ou observações', required:false }
+    ]
+  },
+
+  // ==========================================
+  // 🪑 SALÃO — ABERTURA
+  // ==========================================
+  {
+    id: 'cl-salao-abertura',
+    template: 'Salão',
+    sector: 'Salão',
+    icon: '🪑',
+    shift: 'abertura',
     deadline: '11:00',
     estimado: '4 min',
     items: [
-      { id:1, type:'boolean', text:'Estoque de garrafas conferido com a contagem do dia anterior?', required:true, requirePhoto:true },
-      { id:2, type:'boolean', text:'Chopeira limpa, gelada e funcionando?', required:true, requirePhoto:true },
-      { id:3, type:'numeric', text:'Pressão de CO₂ na chopeira (psi)', required:true, min:8, max:14, alertOutside:true },
-      { id:4, type:'numeric', text:'Temperatura da geladeira de bebidas (°C)', required:true, min:0, max:6, alertOutside:true },
-      { id:5, type:'boolean', text:'Estoque de cítricos suficiente para o serviço?', required:true, requirePhoto:true },
-      { id:6, type:'text', text:'Itens em falta para reposição imediata', required:false }
+      { id:1, type:'boolean', text:'Chão varrido e lavado (sem manchas, sem lixo)?', required:true, requirePhoto:true },
+      { id:2, type:'boolean', text:'Mesas higienizadas e organizadas?', required:true, requirePhoto:true },
+      { id:3, type:'boolean', text:'Cadeiras alinhadas e limpas (sem manchas)?', required:true, requirePhoto:true },
+      { id:4, type:'boolean', text:'Banheiros limpos com papel e sabonete repostos?', required:true, requirePhoto:true },
+      { id:5, type:'boolean', text:'Lixeiras vazias com sacos novos?', required:true },
+      { id:6, type:'boolean', text:'Cardápios limpos, completos e disponíveis?', required:true, requirePhoto:true },
+      { id:7, type:'boolean', text:'Iluminação e tomadas funcionando?', required:true },
+      { id:8, type:'boolean', text:'Som ambiente / TV testados?', required:true },
+      { id:9, type:'boolean', text:'Plantas regadas e fachada limpa?', required:true, requirePhoto:true },
+      { id:10, type:'text', text:'Manutenções necessárias / observações', required:false }
     ]
   },
+
+  // ==========================================
+  // 🪑 SALÃO — FECHAMENTO
+  // ==========================================
   {
-    id: 'cl-limpeza-salao',
-    template: 'Limpeza Salão',
+    id: 'cl-salao-fechamento',
+    template: 'Salão',
+    sector: 'Salão',
+    icon: '🪑',
+    shift: 'fechamento',
+    deadline: '00:30',
+    estimado: '5 min',
+    items: [
+      { id:1, type:'boolean', text:'Mesas higienizadas (limpas com pano úmido + saneante)?', required:true, requirePhoto:true },
+      { id:2, type:'boolean', text:'Cadeiras viradas sobre as mesas (pra varrição)?', required:true, requirePhoto:true },
+      { id:3, type:'boolean', text:'Chão varrido e lavado?', required:true, requirePhoto:true },
+      { id:4, type:'boolean', text:'Banheiros limpos para o dia seguinte?', required:true, requirePhoto:true },
+      { id:5, type:'boolean', text:'Lixeiras esvaziadas e sacos novos colocados?', required:true, requirePhoto:true },
+      { id:6, type:'boolean', text:'Cardápios recolhidos, conferidos e organizados?', required:true },
+      { id:7, type:'boolean', text:'Som / TV / ar-condicionado DESLIGADOS?', required:true },
+      { id:8, type:'boolean', text:'Iluminação interna desligada (manter só de segurança)?', required:true },
+      { id:9, type:'boolean', text:'Portas e janelas trancadas?', required:true },
+      { id:10, type:'text', text:'Reserva pendente, ocorrências ou recados', required:false }
+    ]
+  },
+
+  // ==========================================
+  // 🧹 LIMPEZA GERAL (mantida — limpeza profunda)
+  // ==========================================
+  {
+    id: 'cl-limpeza-geral',
+    template: 'Limpeza Geral',
     sector: 'Limpeza',
     icon: '🧹',
-    shift: 'ambos',
-    deadline: '10:00',
-    deadlineFechamento: '00:00',
-    estimado: '3 min',
+    shift: 'fechamento',
+    deadline: '01:00',
+    estimado: '4 min',
     items: [
-      { id:1, type:'boolean', text:'Mesas e cadeiras higienizadas?', required:true, requirePhoto:true },
-      { id:2, type:'boolean', text:'Banheiros limpos com material reposto?', required:true, requirePhoto:true },
-      { id:3, type:'boolean', text:'Piso limpo e seco?', required:true, requirePhoto:true },
-      { id:4, type:'boolean', text:'Lixeiras esvaziadas?', required:true, requirePhoto:true }
+      { id:1, type:'boolean', text:'Pisos do salão e bar lavados?', required:true, requirePhoto:true },
+      { id:2, type:'boolean', text:'Banheiros higienizados (vasos, pia, espelho)?', required:true, requirePhoto:true },
+      { id:3, type:'boolean', text:'Lixeiras gerais esvaziadas?', required:true, requirePhoto:true },
+      { id:4, type:'boolean', text:'Material de limpeza guardado e organizado?', required:true },
+      { id:5, type:'boolean', text:'Áreas externas (calçada, fachada) limpas?', required:false, requirePhoto:true },
+      { id:6, type:'text', text:'Observações', required:false }
     ]
   },
+
+  // ==========================================
+  // 💰 CAIXA (mantido)
+  // ==========================================
   {
     id: 'cl-caixa-fechamento',
     template: 'Conferência de Caixa',
@@ -4847,7 +4982,8 @@ const CHECKLIST_TEMPLATES = [
       { id:1, type:'numeric', text:'Valor em dinheiro no caixa (R$)', required:true, min:0, max:50000 },
       { id:2, type:'boolean', text:'Sangria entregue para o gerente?', required:true, requirePhoto:true },
       { id:3, type:'boolean', text:'Maquininhas de cartão fechadas e conferidas?', required:true, requirePhoto:true },
-      { id:4, type:'text', text:'Diferenças encontradas ou observações', required:false }
+      { id:4, type:'boolean', text:'Relatório do PDV (Colibri) impresso/exportado?', required:true, requirePhoto:true },
+      { id:5, type:'text', text:'Diferenças encontradas ou observações', required:false }
     ]
   }
 ];
