@@ -116,7 +116,7 @@
     <form id="login-form" onsubmit="onLoginSubmit(event)" class="space-y-3">
       <div>
         <label class="text-sm font-medium text-ink-700">Email</label>
-        <input type="email" id="login-email" required value="boni@cantinhodoboni.com" class="w-full mt-1 text-sm border border-ink-300 rounded-lg px-3 py-3" autocomplete="username">
+        <input type="email" id="login-email" required placeholder="seu@email.com" class="w-full mt-1 text-sm border border-ink-300 rounded-lg px-3 py-3" autocomplete="username">
       </div>
       <div>
         <label class="text-sm font-medium text-ink-700">Senha</label>
@@ -125,10 +125,8 @@
       <div id="login-erro" class="hidden bg-rose-50 border border-rose-200 text-rose-800 text-sm rounded-lg px-3 py-2"></div>
       <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-lg font-medium mt-2">Entrar</button>
     </form>
-    <div class="mt-6 pt-4 border-t border-ink-200 text-xs text-ink-600 text-center">
-      <strong>Senha padrão demo:</strong> <code class="bg-ink-100 px-1.5 py-0.5 rounded">cantinho123</code>
-      <br>
-      <span class="text-ink-400">Após login, troque em "Usuários e Acesso"</span>
+    <div class="mt-6 pt-4 border-t border-ink-200 text-xs text-ink-400 text-center">
+      Esqueceu a senha? Solicite ao administrador.
     </div>
   </div>
 </div>
@@ -224,10 +222,6 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Usuários e Acesso
       </button>
-      <button data-target="setup" class="nav-item w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-ink-800">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-        Setup & Instalação
-      </button>
     </nav>
     <div class="p-4 border-t border-ink-800 text-xs">
       <div id="sidebar-user-info" class="flex items-center gap-2"></div>
@@ -237,22 +231,22 @@
 
   <!-- MAIN -->
   <main class="flex-1 overflow-y-auto">
-    <header class="bg-white border-b border-ink-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-      <div class="flex items-center gap-3">
-        <button id="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Abrir menu" class="w-10 h-10 items-center justify-center rounded-md hover:bg-ink-100 text-ink-700">
+    <header class="bg-white border-b border-ink-200 px-4 md:px-8 py-3 md:py-4 flex items-center justify-between sticky top-0 z-10 gap-2">
+      <div class="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+        <button id="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Abrir menu" class="w-10 h-10 items-center justify-center rounded-md hover:bg-ink-100 text-ink-700 flex-shrink-0">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         </button>
-        <div>
-          <h1 id="page-title" class="text-xl font-semibold">Dashboard</h1>
-          <p id="page-subtitle" class="text-sm text-ink-600">Visão geral em tempo real do estabelecimento</p>
+        <div class="min-w-0">
+          <h1 id="page-title" class="text-base md:text-xl font-semibold truncate">Dashboard</h1>
+          <p id="page-subtitle" class="text-xs md:text-sm text-ink-600 truncate hidden md:block">Visão geral em tempo real do estabelecimento</p>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <button id="sync-status" onclick="manualSync()" title="Clique para sincronizar agora" class="text-xs flex items-center gap-2 text-ink-500 bg-ink-100 px-3 py-1.5 rounded-full hover:bg-ink-200">
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <button id="sync-status" onclick="manualSync()" title="Clique para sincronizar agora" class="hidden text-xs items-center gap-2 text-ink-500 bg-ink-100 px-3 py-1.5 rounded-full hover:bg-ink-200">
           <span class="w-2 h-2 bg-ink-400 rounded-full"></span>
-          Iniciando...
+          <span class="hidden sm:inline">Iniciando...</span>
         </button>
-        <button class="text-sm border border-ink-200 rounded-md px-3 py-1.5 hover:bg-ink-50">Hoje • 27/04/2026</button>
+        <button id="header-data" class="text-xs md:text-sm border border-ink-200 rounded-md px-2 md:px-3 py-1.5 hover:bg-ink-50 whitespace-nowrap">Hoje</button>
       </div>
     </header>
 
@@ -1345,91 +1339,6 @@
         <strong>ℹ Como funciona o modo manual (wa.me):</strong> ao clicar nos botões "📱 Notificar" espalhados pelo sistema, o navegador abre o WhatsApp Web ou o app com a mensagem já digitada — você só confirma e envia. Não há automação, mas funciona em qualquer celular ou computador, sem custos.
       </div>
 
-      <!-- Orçamento WhatsApp automatizado -->
-      <div class="bg-white rounded-xl border border-ink-200 p-5">
-        <h3 class="font-semibold mb-3">💰 Orçamento — WhatsApp 100% automatizado</h3>
-        <p class="text-xs text-ink-600 mb-4">Comparativo das principais opções para automatizar 100% das notificações (sem precisar abrir o WhatsApp e enviar manualmente)</p>
-
-        <div class="grid md:grid-cols-3 gap-3">
-          <!-- Z-API -->
-          <div class="border-2 border-emerald-300 rounded-lg p-4 bg-emerald-50">
-            <div class="flex items-center justify-between mb-2">
-              <strong class="text-emerald-900">🥇 Z-API</strong>
-              <span class="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded">Recomendado</span>
-            </div>
-            <div class="text-2xl font-bold text-emerald-700">R$ 99,99<span class="text-xs font-normal">/mês</span></div>
-            <ul class="text-xs mt-3 space-y-1 text-emerald-900">
-              <li>✓ Mensagens <strong>ilimitadas</strong></li>
-              <li>✓ Setup em 10 minutos</li>
-              <li>✓ Usa seu próprio número WhatsApp comum</li>
-              <li>✓ Anexa imagens, PDFs, áudio</li>
-              <li>✓ Webhook (receber mensagens)</li>
-              <li>✓ Sem aprovação Meta</li>
-              <li>✗ Risco baixo de banimento se enviar muito spam</li>
-            </ul>
-            <p class="text-[10px] text-emerald-700 mt-2"><a href="https://www.z-api.io" target="_blank" class="underline">z-api.io</a> · 2 dias grátis pra testar</p>
-          </div>
-
-          <!-- Evolution API self-hosted -->
-          <div class="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
-            <div class="flex items-center justify-between mb-2">
-              <strong class="text-blue-900">🛠 Evolution API</strong>
-              <span class="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded">Self-hosted</span>
-            </div>
-            <div class="text-2xl font-bold text-blue-700">R$ 30–50<span class="text-xs font-normal">/mês</span></div>
-            <p class="text-[10px] text-blue-700 mb-2">Custo só do VPS (Hostinger/Contabo) ou Raspberry Pi (R$ 800 único)</p>
-            <ul class="text-xs mt-3 space-y-1 text-blue-900">
-              <li>✓ Mensagens <strong>ilimitadas</strong></li>
-              <li>✓ Software <strong>grátis</strong> (open source)</li>
-              <li>✓ Funciona com seu número comum</li>
-              <li>✓ Anexa qualquer mídia</li>
-              <li>✗ Precisa instalar e manter o servidor</li>
-              <li>✗ Setup leva 1–2 horas (técnico)</li>
-            </ul>
-            <p class="text-[10px] text-blue-700 mt-2"><a href="https://github.com/EvolutionAPI/evolution-api" target="_blank" class="underline">github.com/EvolutionAPI</a></p>
-          </div>
-
-          <!-- Meta Cloud API oficial -->
-          <div class="border-2 border-purple-300 rounded-lg p-4 bg-purple-50">
-            <div class="flex items-center justify-between mb-2">
-              <strong class="text-purple-900">🏢 Meta Cloud API</strong>
-              <span class="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded">Oficial</span>
-            </div>
-            <div class="text-2xl font-bold text-purple-700">R$ 0 + uso<span class="text-xs font-normal">/mês</span></div>
-            <p class="text-[10px] text-purple-700 mb-2">Grátis até 1.000 conversas/mês, depois ~R$ 0,40 cada</p>
-            <ul class="text-xs mt-3 space-y-1 text-purple-900">
-              <li>✓ <strong>Oficial</strong> — sem risco de banimento</li>
-              <li>✓ Suporte da Meta</li>
-              <li>✓ Selo verde de empresa</li>
-              <li>✗ Precisa de número Business <strong>dedicado</strong></li>
-              <li>✗ Aprovação de templates pela Meta (1-3 dias)</li>
-              <li>✗ Setup complexo (BSP intermediário)</li>
-            </ul>
-            <p class="text-[10px] text-purple-700 mt-2">Via Twilio, 360dialog ou Take.</p>
-          </div>
-        </div>
-
-        <div class="mt-5 p-4 border border-amber-300 bg-amber-50 rounded-lg text-xs">
-          <strong class="text-amber-900">💡 Custo de implementação no Cantinho System:</strong>
-          <p class="text-amber-800 mt-1">A integração com qualquer dessas APIs já está pronta no código (campo "API URL" e "Token" na tela acima). Basta:</p>
-          <ol class="text-amber-800 list-decimal list-inside mt-2 space-y-0.5">
-            <li>Contratar um dos serviços acima</li>
-            <li>Receber a URL e o Token deles</li>
-            <li>Cole nos campos da tela "Modo de envio → Automático" e clica "Testar conexão"</li>
-            <li>A partir daí, todas as notificações que hoje abrem aba do WhatsApp serão enviadas automaticamente em segundo plano</li>
-          </ol>
-          <p class="text-amber-800 mt-2"><strong>Volume estimado do Cantinho:</strong> ~150–300 mensagens/mês (holerites mensais + notificações de evento). Qualquer plano cobre com folga.</p>
-        </div>
-
-        <div class="mt-3 p-4 border border-rose-300 bg-rose-50 rounded-lg text-xs">
-          <strong class="text-rose-900">⚠ Cuidados gerais:</strong>
-          <ul class="text-rose-800 list-disc list-inside mt-1 space-y-0.5">
-            <li>WhatsApp pode banir o número se enviar spam ou sem opt-in dos contatos. Para clientes/funcionários do bar isso não é problema (são contatos próximos).</li>
-            <li>O modo wa.me manual (atual) é 100% seguro e não banido.</li>
-            <li>Para o seu volume, R$ 99,99/mês da Z-API é o melhor custo/benefício.</li>
-          </ul>
-        </div>
-      </div>
     </section>
 
     <!-- CADASTROS -->
@@ -2662,6 +2571,38 @@ app.cantinhodoboni.com.br {
         </div>
       </div>
 
+      <!-- Horários de funcionamento (Admin) -->
+      <div id="usuarios-horarios" class="hidden bg-white border border-ink-200 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
+          <div>
+            <h3 class="font-semibold flex items-center gap-2">🏪 Horários de Funcionamento</h3>
+            <p class="text-xs text-ink-600 mt-1">
+              Premissa usada por todo o sistema (checklists, notificações, análises).
+              Marque os dias que o bar abre e os horários de abertura/fechamento.
+            </p>
+          </div>
+        </div>
+        <div id="horarios-form" class="grid md:grid-cols-2 lg:grid-cols-4 gap-3"></div>
+        <div class="mt-4 flex justify-end">
+          <button onclick="salvarHorariosFuncionamento()" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-md">💾 Salvar horários</button>
+        </div>
+      </div>
+
+      <!-- Reset de dados operacionais (Admin) -->
+      <div id="usuarios-reset-dados" class="hidden bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-300 rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div class="flex-1">
+            <h3 class="font-semibold text-rose-900 flex items-center gap-2">🧹 Apagar dados operacionais</h3>
+            <p class="text-xs text-rose-800 mt-1">
+              Limpa TODOS os lançamentos do sistema (caixa, vendas, banco/OFX, compras, vales, rescisões, reservas, etiquetas, notas).
+              <strong>Mantém cadastros, usuários, funcionários, fornecedores e dados de folha/apontamento.</strong>
+              Use no início de operação ou pra começar do zero.
+            </p>
+          </div>
+          <button onclick="apagarDadosOperacionais()" class="text-sm border border-rose-400 bg-white hover:bg-rose-100 text-rose-700 px-4 py-2 rounded-md whitespace-nowrap">🧹 Apagar dados</button>
+        </div>
+      </div>
+
       <div class="bg-white rounded-xl border border-ink-200 overflow-hidden">
         <div class="px-5 py-4 border-b border-ink-200 flex justify-between items-center flex-wrap gap-2">
           <div>
@@ -3180,16 +3121,38 @@ let lastPullAt = 0;
 function setSyncStatus(status, msg){
   const el = document.getElementById('sync-status');
   if(!el) return;
+  // Se sync não está habilitado, esconde o badge
+  if(!syncEnabled || status === 'offline'){
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+    return;
+  }
+  el.classList.remove('hidden');
+  el.classList.add('flex');
   const map = {
     syncing: { text: msg || 'Sincronizando…', cls: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500 animate-pulse' },
     ok:      { text: msg || 'Sincronizado',    cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
-    error:   { text: msg || 'Erro de sync',     cls: 'bg-rose-50 text-rose-700', dot: 'bg-rose-500' },
-    offline: { text: msg || 'Sem nuvem (local)', cls: 'bg-ink-100 text-ink-600', dot: 'bg-ink-400' }
+    error:   { text: msg || 'Erro de sync',     cls: 'bg-rose-50 text-rose-700', dot: 'bg-rose-500' }
   };
-  const s = map[status] || map.offline;
+  const s = map[status] || map.ok;
   el.className = 'text-xs flex items-center gap-2 px-3 py-1.5 rounded-full hover:opacity-80 ' + s.cls;
-  el.innerHTML = `<span class="w-2 h-2 rounded-full ${s.dot}"></span>${s.text}`;
+  el.innerHTML = `<span class="w-2 h-2 rounded-full ${s.dot}"></span><span class="hidden sm:inline">${s.text}</span>`;
 }
+
+// Atualiza a data do header em tempo real
+function atualizarDataHeader(){
+  const $d = document.getElementById('header-data');
+  if($d){
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2,'0');
+    const mes = String(hoje.getMonth()+1).padStart(2,'0');
+    const ano = hoje.getFullYear();
+    $d.textContent = `Hoje • ${dia}/${mes}/${ano}`;
+  }
+}
+// Atualiza ao carregar e a cada 5 minutos
+setInterval(atualizarDataHeader, 5 * 60 * 1000);
+document.addEventListener('DOMContentLoaded', atualizarDataHeader);
 
 function initSupabase(){
   if(!window.supabase){
@@ -5009,7 +4972,13 @@ const CHECKLIST_TEMPLATES = [
 
 function getAllTemplates(){
   const custom = Store.get('checklists.templates', []);
-  return [...CHECKLIST_TEMPLATES, ...custom];
+  // Dedup por id (custom sobrescreve built-in se mesmo id)
+  // Remove templates antigos órfãos: 'cl-cozinha', 'cl-bar', 'cl-limpeza-salao' (substituídos pelos novos)
+  const idsAntigos = new Set(['cl-cozinha','cl-bar','cl-limpeza-salao']);
+  const todos = [...CHECKLIST_TEMPLATES, ...custom.filter(c => !idsAntigos.has(c.id))];
+  const seen = new Map();
+  todos.forEach(t => seen.set(t.id, t));
+  return [...seen.values()];
 }
 
 // Cada template gera 1 ou 2 instâncias por dia (abertura/fechamento/ambos)
@@ -11570,7 +11539,11 @@ const WA_EVENTOS = [
   { id:'etiquetas_vencimento', label:'⏰ Etiquetas vencendo', desc:'Aviso quando alimento está perto do vencimento' },
   { id:'compras_aprovacao', label:'🛒 Compras pendentes', desc:'Aprovações pendentes de pedido de compra' },
   { id:'checklist_pendente', label:'☑ Checklist pendente', desc:'Avisar colaboradores de checklist do dia não preenchido' },
-  { id:'reservas_hoje', label:'📅 Reservas do dia', desc:'Resumo das reservas do dia' }
+  { id:'checklist_abertura', label:'☀ Checklist de Abertura', desc:'Lembrar colaboradores no horário de abertura do bar' },
+  { id:'checklist_fechamento', label:'🌙 Checklist de Fechamento', desc:'Lembrar colaboradores no horário de fechamento do bar' },
+  { id:'reservas_hoje', label:'📅 Reservas do dia', desc:'Resumo das reservas do dia' },
+  { id:'holerite_mensal', label:'💰 Holerite mensal', desc:'Envio mensal do holerite a cada colaborador' },
+  { id:'estoque_baixo', label:'📦 Estoque baixo', desc:'Alerta de produtos abaixo do mínimo' }
 ];
 
 function renderWhatsAppConfig(){
@@ -11605,12 +11578,16 @@ function renderWhatsAppConfig(){
     `).join('');
     return `
       <div class="border border-ink-200 rounded-lg p-3">
-        <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
           <div>
             <strong class="text-sm">${ev.label}</strong>
             <div class="text-[11px] text-ink-500">${ev.desc}</div>
           </div>
-          <span class="text-xs text-ink-500">${sel.size} selecionado(s)</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-ink-500">${sel.size} selecionado(s)</span>
+            <button onclick="enviarTesteEventoWA('${ev.id}')" class="text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded" title="Enviar agora pra todos os marcados">📤 Enviar agora</button>
+            <button onclick="adicionarUsuarioEvento('${ev.id}')" class="text-[11px] border border-brand-300 bg-white text-brand-700 hover:bg-brand-50 px-2 py-1 rounded" title="Adicionar usuário/contato externo">+ Adicionar</button>
+          </div>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-2">${opts}</div>
       </div>
@@ -11650,6 +11627,88 @@ async function testarAPIWhatsApp(){
   } catch(e){
     showToast('<strong>!</strong> Erro: ' + e.message, 'error');
   }
+}
+
+// Envia mensagem agora pra todos os destinatários do evento
+function enviarTesteEventoWA(eventoId){
+  // Salva config primeiro pra capturar selecionados não persistidos
+  const cfg = getWAConfig();
+  const ids = [];
+  document.querySelectorAll(`.wa-dest-cb[data-evento="${eventoId}"]:checked`).forEach(cb => ids.push(cb.dataset.id));
+  if(!ids.length){
+    showToast('Marque ao menos 1 destinatário antes de enviar', 'warn');
+    return;
+  }
+  const evento = WA_EVENTOS.find(e => e.id === eventoId);
+  const msg = `*${evento?.label || 'Notificação'}*\n\n${evento?.desc || ''}\n\nMensagem disparada manualmente do Cantinho System.\n\n${cfg.assinatura || '— Cantinho do Boni'}`;
+  if(!confirm(`Enviar agora pra ${ids.length} destinatário(s) marcado(s) no evento "${evento?.label}"?`)) return;
+  const funcs = (typeof getCadastros === 'function' ? getCadastros('funcionario') : []);
+  const usuarios = (typeof getUsuarios === 'function' ? getUsuarios() : []);
+  const contatosExtras = cfg.destinatariosExtras?.[eventoId] || [];
+  let count = 0;
+  ids.forEach((id, i) => {
+    let tel = null;
+    const f = funcs.find(x => x.id === id) || usuarios.find(x => x.id === id);
+    if(f){ tel = f.telefone || f.whatsapp; }
+    else {
+      const ex = contatosExtras.find(c => c.id === id);
+      if(ex) tel = ex.tel;
+    }
+    if(tel){
+      setTimeout(() => abrirWhatsAppNotify(tel, msg), i * 300);
+      count++;
+    }
+  });
+  showToast(`<strong>📤</strong> Disparando para ${count} destinatário(s)...`);
+}
+
+// Adiciona contato externo (não-funcionário) a um evento específico
+function adicionarUsuarioEvento(eventoId){
+  const evento = WA_EVENTOS.find(e => e.id === eventoId);
+  $modalRoot.innerHTML = `
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onclick="if(event.target===this) closeModal()">
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div class="px-6 py-4 border-b border-ink-200">
+          <h2 class="font-semibold">+ Adicionar destinatário</h2>
+          <p class="text-xs text-ink-600 mt-0.5">Evento: <strong>${evento?.label}</strong></p>
+        </div>
+        <form id="add-dest-form" onsubmit="submitAdicionarUsuarioEvento(event,'${eventoId}')" class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-600">Nome <span class="text-rose-500">*</span></label>
+            <input type="text" name="nome" required placeholder="Ex: Contador da empresa" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-600">Telefone WhatsApp <span class="text-rose-500">*</span></label>
+            <input type="tel" name="tel" required placeholder="62 99999-1234" class="w-full text-sm border border-ink-200 rounded-md px-3 py-2 mt-1">
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900">
+            ℹ Use isso pra adicionar contatos externos (contador, fornecedor, parceiros) que não estão cadastrados como funcionários.
+          </div>
+        </form>
+        <div class="px-6 py-4 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+          <button onclick="closeModal()" type="button" class="text-sm border border-ink-200 px-4 py-2 rounded-md hover:bg-white">Cancelar</button>
+          <button onclick="document.getElementById('add-dest-form').requestSubmit()" type="button" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-md">Adicionar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function submitAdicionarUsuarioEvento(e, eventoId){
+  e.preventDefault();
+  const fd = Object.fromEntries(new FormData(e.target).entries());
+  if(!fd.nome || !fd.tel){ showToast('Preencha tudo', 'error'); return; }
+  const cfg = getWAConfig();
+  cfg.destinatariosExtras = cfg.destinatariosExtras || {};
+  cfg.destinatariosExtras[eventoId] = cfg.destinatariosExtras[eventoId] || [];
+  cfg.destinatariosExtras[eventoId].push({ id: 'EXT-' + Date.now(), nome: fd.nome, tel: fd.tel });
+  // Auto-marca como destinatário
+  cfg.destinatarios = cfg.destinatarios || {};
+  cfg.destinatarios[eventoId] = cfg.destinatarios[eventoId] || [];
+  cfg.destinatarios[eventoId].push(cfg.destinatariosExtras[eventoId].slice(-1)[0].id);
+  saveWAConfig(cfg);
+  closeModal();
+  renderWhatsAppConfig();
+  showToast(`<strong>✓</strong> ${fd.nome} adicionado ao evento "${WA_EVENTOS.find(e=>e.id===eventoId)?.label}"`);
 }
 
 function enviarTesteWhatsApp(){
@@ -13747,11 +13806,10 @@ function renderDashboard(){
         <div class="bg-gradient-to-br from-brand-50 to-amber-50 border border-brand-200 rounded-xl p-5 flex items-center justify-between flex-wrap gap-3">
           <div class="flex-1">
             <h3 class="font-semibold text-brand-900">👋 Bem-vindo ao Cantinho System</h3>
-            <p class="text-xs text-brand-700 mt-1">Sistema vazio — comece importando um extrato OFX, registrando uma operação no caixa, ou carregue dados de demonstração para explorar.</p>
+            <p class="text-xs text-brand-700 mt-1">Sistema vazio — comece importando um extrato OFX ou registrando uma operação no caixa.</p>
           </div>
           <div class="flex gap-2">
             <button onclick="document.querySelector('[data-target=banco]').click()" class="text-xs border border-brand-300 bg-white text-brand-700 px-3 py-2 rounded-md">📥 Importar Extrato</button>
-            <button onclick="loadDemoData()" class="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 rounded-md">🎬 Carregar dados de demo</button>
           </div>
         </div>
       `;
@@ -14075,6 +14133,114 @@ function getAdminLivre(){ return Store.get('config.adminLivre', false) === true;
 function setAdminLivre(v){ Store.set('config.adminLivre', !!v); }
 // Quando true, Admin pode editar/excluir qualquer registro histórico em qualquer módulo
 function adminPodeEditarTudo(){ return isAdmin() && getAdminLivre(); }
+
+// === Horários de funcionamento (premissa para checklist, análises, notificações) ===
+const DIAS_SEMANA_LBL = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const HORARIOS_DEFAULT = {
+  domingo:    { aberto: false, abre: '11:00', fecha: '23:00' },
+  segunda:    { aberto: false, abre: '16:00', fecha: '00:00' },
+  terca:      { aberto: true,  abre: '16:00', fecha: '00:00' },
+  quarta:     { aberto: true,  abre: '16:00', fecha: '00:00' },
+  quinta:     { aberto: true,  abre: '16:00', fecha: '00:00' },
+  sexta:      { aberto: true,  abre: '16:00', fecha: '01:00' },
+  sabado:     { aberto: true,  abre: '11:00', fecha: '01:00' }
+};
+const DIAS_KEYS = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
+function getHorariosFuncionamento(){
+  const stored = Store.get('config.horariosFuncionamento', null);
+  if(stored) return { ...HORARIOS_DEFAULT, ...stored };
+  return HORARIOS_DEFAULT;
+}
+function saveHorariosFuncionamento(h){ Store.set('config.horariosFuncionamento', h); }
+
+function renderHorariosFuncionamento(){
+  const $form = document.getElementById('horarios-form');
+  if(!$form) return;
+  const h = getHorariosFuncionamento();
+  $form.innerHTML = DIAS_KEYS.map((k, i) => `
+    <div class="border border-ink-200 rounded-lg p-3">
+      <label class="flex items-center gap-2 mb-2 cursor-pointer">
+        <input type="checkbox" data-dia="${k}" data-campo="aberto" ${h[k].aberto?'checked':''} class="hf-cb">
+        <strong class="text-sm">${DIAS_SEMANA_LBL[i]}</strong>
+      </label>
+      <div class="space-y-1.5 text-xs ${!h[k].aberto?'opacity-40':''}">
+        <div>
+          <label class="text-ink-600 block mb-0.5">Abre</label>
+          <input type="time" data-dia="${k}" data-campo="abre" value="${h[k].abre}" class="w-full text-sm border border-ink-200 rounded-md px-2 py-1.5 hf-input" ${!h[k].aberto?'disabled':''}>
+        </div>
+        <div>
+          <label class="text-ink-600 block mb-0.5">Fecha</label>
+          <input type="time" data-dia="${k}" data-campo="fecha" value="${h[k].fecha}" class="w-full text-sm border border-ink-200 rounded-md px-2 py-1.5 hf-input" ${!h[k].aberto?'disabled':''}>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  // Habilita/desabilita inputs ao mudar checkbox
+  document.querySelectorAll('.hf-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const dia = cb.dataset.dia;
+      document.querySelectorAll(`.hf-input[data-dia="${dia}"]`).forEach(inp => {
+        inp.disabled = !cb.checked;
+        inp.parentElement.parentElement.style.opacity = cb.checked ? '1' : '0.4';
+      });
+    });
+  });
+}
+
+function salvarHorariosFuncionamento(){
+  if(!isAdmin()){ showToast('Apenas Admin pode salvar', 'error'); return; }
+  const h = {};
+  DIAS_KEYS.forEach(k => h[k] = { aberto: false, abre: '16:00', fecha: '00:00' });
+  document.querySelectorAll('.hf-cb').forEach(cb => h[cb.dataset.dia].aberto = cb.checked);
+  document.querySelectorAll('.hf-input').forEach(inp => {
+    h[inp.dataset.dia][inp.dataset.campo] = inp.value;
+  });
+  saveHorariosFuncionamento(h);
+  showToast('<strong>✓</strong> Horários de funcionamento salvos');
+}
+
+// Apaga TODOS os lançamentos operacionais (caixa, vendas, banco, compras, etc)
+// PRESERVA: cadastros, usuários, funcionários, fornecedores, folha/apontamento, premissas, configurações
+function apagarDadosOperacionais(){
+  if(!isAdmin()){ showToast('Apenas Admin pode executar', 'error'); return; }
+  // Lista de chaves a APAGAR (operacionais — dados gerados pela operação diária)
+  const chavesApagar = [
+    'caixa.transacoes', 'caixa.fechamentos', 'caixa.saldoInicial', 'caixa.saldoInicialLog', 'caixa.conciliacoesColibri',
+    'bank.transactions', 'bank.saldo', 'bank.lastSync', 'bank.mode',
+    'compras.solicitacoes',
+    'vendas.lancamentos',
+    'etiquetas.historico',
+    'notas.fiscais',
+    'reservas.lista',
+    'freelancers.pagamentos',
+    'dp.vales', 'dp.rescisoes',
+    'checklists.instances', 'checklists.respostas',
+    'movimentos.lista',
+    'inventarios.historico',
+    'estoque.movimentacoes', // movimentações sim, mas estoque.produtos é mantido
+    'whatsapp.historico'
+  ];
+  const total = chavesApagar.filter(k => Store.get(k, null) !== null).length;
+  if(!confirm(`⚠ ATENÇÃO\n\nVai apagar ${total} categoria(s) de dados operacionais.\n\nMantém:\n• Cadastros (funcionários, fornecedores, clientes, prestadores)\n• Usuários e permissões\n• Folha de pagamento e apontamentos\n• Estoque (produtos cadastrados)\n• Premissas e configurações\n\nApaga:\n• Caixa, OFX/banco, compras, vendas, etiquetas\n• Notas fiscais, reservas, vales, rescisões\n• Checklists, movimentos, inventários\n\nEsta ação é IRREVERSÍVEL. Confirma?`)) return;
+  if(!confirm('Última confirmação: tem CERTEZA que quer apagar tudo? Tipo a senha de admin no próximo prompt.')) return;
+  const senhaAdmin = prompt('Digite "APAGAR TUDO" pra confirmar:');
+  if(senhaAdmin !== 'APAGAR TUDO'){ showToast('Cancelado', 'info'); return; }
+  let apagadas = 0;
+  chavesApagar.forEach(k => {
+    if(Store.get(k, null) !== null){
+      try {
+        localStorage.removeItem('cantinho:' + k);
+        apagadas++;
+        if(syncEnabled){
+          syncQueue.set(k, null); // marca pra deletar no servidor
+          scheduleSync();
+        }
+      } catch(e){}
+    }
+  });
+  showToast(`<strong>✓</strong> ${apagadas} categoria(s) apagada(s). Recarregando...`);
+  setTimeout(() => window.location.reload(), 1500);
+}
 
 function toggleAdminLivre(v){
   if(!isAdmin()){ showToast('Apenas Admin pode alterar', 'error'); return; }
@@ -14552,8 +14718,9 @@ function nextUsuarioId(){
 
 function renderUsuarios(){
   const list = getUsuarios();
-  // Mostra/esconde card Admin Livre + sincroniza toggle
+  // Mostra/esconde cards de Admin (Admin Livre + Reset Dados)
   const $cardAL = document.getElementById('usuarios-admin-livre');
+  const $cardReset = document.getElementById('usuarios-reset-dados');
   if($cardAL){
     if(isAdmin()){
       $cardAL.classList.remove('hidden');
@@ -14563,6 +14730,20 @@ function renderUsuarios(){
       if($st) $st.textContent = getAdminLivre() ? 'Ativado ⚠' : 'Desativado';
     } else {
       $cardAL.classList.add('hidden');
+    }
+  }
+  if($cardReset){
+    if(isAdmin()) $cardReset.classList.remove('hidden');
+    else $cardReset.classList.add('hidden');
+  }
+  // Horários de funcionamento (admin)
+  const $cardHorarios = document.getElementById('usuarios-horarios');
+  if($cardHorarios){
+    if(isAdmin()){
+      $cardHorarios.classList.remove('hidden');
+      renderHorariosFuncionamento();
+    } else {
+      $cardHorarios.classList.add('hidden');
     }
   }
   const $kpis = document.getElementById('usuarios-kpis');
@@ -15582,15 +15763,7 @@ function submitEmpresa(e){
 }
 
 function getFreelancers(){
-  const list = Store.get('freelancers.cadastros', null);
-  if(list) return list;
-  // Seed com 2 exemplos
-  const seed = [
-    { id:'F-001', nome:'Rafael Mendes', cpf:'123.456.789-00', rg:'12.345.678-9', telefone:'+55 62 91234-5678', email:'rafael@email.com', endereco:'Rua A, 100 — Goiânia/GO', funcao:'Garçom Eventos', valorPadrao:180, observacoes:'Atende eventos aos finais de semana', createdAt:new Date(Date.now()-30*86400000).toISOString() },
-    { id:'F-002', nome:'Juliana Santos', cpf:'987.654.321-00', rg:'98.765.432-1', telefone:'+55 62 99876-5432', email:'juliana@email.com', endereco:'Av. B, 250 — Goiânia/GO', funcao:'DJ', valorPadrao:600, observacoes:'Toca às sextas e sábados', createdAt:new Date(Date.now()-60*86400000).toISOString() }
-  ];
-  Store.set('freelancers.cadastros', seed);
-  return seed;
+  return Store.get('freelancers.cadastros', []);
 }
 function saveFreelancers(list){ Store.set('freelancers.cadastros', list); }
 
