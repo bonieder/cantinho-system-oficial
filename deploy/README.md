@@ -38,7 +38,22 @@ Substitui o Supabase Cloud — você passa a ter controle total dos dados, sem c
 
 ---
 
-## 🚀 Instalação automática (Ubuntu/Debian)
+## 🚀 Instalação automática
+
+### 🪟 Windows (Windows 10 1903+ ou Windows 11)
+
+1. **Baixe o pacote** clicando em "Code → Download ZIP" no [GitHub](https://github.com/bonieder/cantinho-system-oficial)
+2. **Extraia** o ZIP e abra a pasta `deploy/`
+3. **Clique direito** em `install-windows.ps1` → **"Executar com PowerShell"**
+4. Se o Windows pedir permissão de Administrador, clique **Sim**
+5. **Aguarde** ~10-15 minutos (depende da internet)
+6. Se pedir pra reiniciar, reinicie e rode o script de novo
+
+> **O instalador faz tudo:** baixa Docker Desktop, instala WSL2, gera senhas, sobe contêineres, libera firewall, configura inicialização automática.
+
+**Precisa rodar como Administrador.** Se der erro de permissão, clique direito no PowerShell → "Executar como administrador" → execute `cd C:\caminho\deploy` → `.\install-windows.ps1`.
+
+### 🐧 Linux Ubuntu/Debian
 
 ```bash
 # 1) Baixe os arquivos no servidor
