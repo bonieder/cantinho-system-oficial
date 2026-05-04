@@ -2481,6 +2481,7 @@ app.cantinhodoboni.com.br {
         <button onclick="setVendasTab('grupos')" id="vendas-tab-grupos" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">🗂 Grupos</button>
         <button onclick="setVendasTab('temporal')" id="vendas-tab-temporal" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">📈 Temporal</button>
         <button onclick="setVendasTab('semanas')" id="vendas-tab-semanas" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">📊 Últimas 5 semanas</button>
+        <button onclick="setVendasTab('comparativos')" id="vendas-tab-comparativos" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900 whitespace-nowrap">⚖ Comparativos</button>
       </div>
 
       <!-- Tab: Visão geral -->
@@ -2584,6 +2585,24 @@ app.cantinhodoboni.com.br {
         <div class="bg-white rounded-xl border border-ink-200 p-4">
           <h3 class="font-semibold text-sm mb-3">Comparativo semana atual vs anterior</h3>
           <div id="vendas-comp-semanal" class="text-xs"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Comparativos -->
+      <div id="vendas-content-comparativos" class="hidden space-y-4">
+        <div class="bg-white rounded-xl border border-ink-200 overflow-hidden">
+          <div class="px-5 py-4 border-b border-ink-200 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h3 class="font-semibold">⚖ Análise comparativa</h3>
+              <p class="text-xs text-ink-600 mt-0.5">Compara mesmo período anterior · ajuda a ver evolução real (ignorando sazonalidade do dia da semana)</p>
+            </div>
+          </div>
+          <div class="flex border-b border-ink-200 bg-ink-50">
+            <button onclick="setVendasComparativosSub('mensal')" id="vcs-tab-mensal" class="px-4 py-2.5 text-xs font-medium border-b-2 border-brand-600 text-brand-700">📅 Mensal · Mês atual vs anterior</button>
+            <button onclick="setVendasComparativosSub('semana-mes')" id="vcs-tab-semana-mes" class="px-4 py-2.5 text-xs font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900">📆 Semana do mês</button>
+            <button onclick="setVendasComparativosSub('dia-semana')" id="vcs-tab-dia-semana" class="px-4 py-2.5 text-xs font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900">🗓 Dia da semana</button>
+          </div>
+          <div id="vendas-comp-conteudo" class="p-4"></div>
         </div>
       </div>
 
@@ -12267,7 +12286,7 @@ function getVendasFiltradas(){
 let _vendasTab = 'overview';
 function setVendasTab(t){
   _vendasTab = t;
-  ['overview','atendentes','produtos','grupos','temporal','semanas'].forEach(x => {
+  ['overview','atendentes','produtos','grupos','temporal','semanas','comparativos'].forEach(x => {
     const $tab = document.getElementById('vendas-tab-'+x);
     const $cnt = document.getElementById('vendas-content-'+x);
     if($tab) $tab.className = x === t
@@ -12345,6 +12364,7 @@ function renderVendas(){
   if(_vendasTab === 'grupos') renderVendasGrupos(filtered, totalFat);
   if(_vendasTab === 'temporal') renderVendasTemporal(filtered);
   if(_vendasTab === 'semanas') renderVendasSemanas();
+  if(_vendasTab === 'comparativos') renderVendasComparativos();
 }
 
 function _agg(list, keyFn, valFn){
@@ -12596,7 +12616,27 @@ function _agruparVendasPorSemana(vendas, semanas){
 let _vendasSemanasSub = 'atendentes';
 let _vendasSemanasModo = 'valor'; // 'valor' | 'pct'
 let _vendasSemanasExcluirBebidas = false;
+let _vendasProdutosTipo = 'todos'; // 'todos' | 'bebidas' | 'alimentos'
 const GRUPOS_BEBIDAS_EXCLUIR = new Set(['CERVEJAS', 'CHOPPS', 'DRINKS']);
+// Para o filtro de tipo de produto: lista expandida de bebidas
+const GRUPOS_BEBIDAS_AMPLO = new Set([
+  'AGUAS','CACHACAS','CAIPRINHAS','CERVEJAS','CHOPPS','DRINKS','ENERGETICOS',
+  'GIN','LICORES E CONHAQUES','REFRIGERANTES','SODA ITALIANA','SUCOS NATURAIS',
+  'VODKAS','WHISKIES'
+]);
+function _ehBebida(grupo){
+  return GRUPOS_BEBIDAS_AMPLO.has((grupo||'').toUpperCase());
+}
+function setVendasProdutosTipo(tipo){
+  _vendasProdutosTipo = tipo;
+  ['todos','bebidas','alimentos'].forEach(t => {
+    const $btn = document.getElementById('vpt-' + t);
+    if($btn) $btn.className = t === tipo
+      ? 'text-xs px-3 py-1.5 rounded-full bg-brand-600 text-white border border-brand-700'
+      : 'text-xs px-3 py-1.5 rounded-full bg-white text-ink-700 border border-ink-200 hover:bg-ink-50';
+  });
+  renderVendasSemanas();
+}
 
 function onExcluirBebidasChange(){
   const $cb = document.getElementById('vsm-excluir-bebidas');
@@ -12656,6 +12696,411 @@ function _semNomeAmigavel(atendente){
   if(f) return f.nome;
   const f2 = funcs.find(c => norm(c.nome).startsWith(n) || n.startsWith(norm(c.nome)));
   return f2 ? f2.nome : atendente;
+}
+
+// ============================================================
+// COMPARATIVOS — análise vs mesmo período anterior
+// ============================================================
+
+let _vendasCompSub = 'mensal';
+
+function setVendasComparativosSub(sub){
+  _vendasCompSub = sub;
+  ['mensal','semana-mes','dia-semana'].forEach(s => {
+    const $btn = document.getElementById('vcs-tab-'+s);
+    if($btn) $btn.className = s === sub
+      ? 'px-4 py-2.5 text-xs font-medium border-b-2 border-brand-600 text-brand-700'
+      : 'px-4 py-2.5 text-xs font-medium border-b-2 border-transparent text-ink-600 hover:text-ink-900';
+  });
+  renderVendasComparativos();
+}
+
+function renderVendasComparativos(){
+  if(_vendasCompSub === 'mensal') renderCompMensal();
+  if(_vendasCompSub === 'semana-mes') renderCompSemanaDoMes();
+  if(_vendasCompSub === 'dia-semana') renderCompDiaDaSemana();
+}
+
+// Helpers internos
+const _diasSemNomes = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+function _fmtBR(v){ return 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function _fmtBRshort(v){ return 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function _varFmt(atual, anterior, opts){
+  opts = opts || {};
+  if(!anterior) return atual ? '<span class="text-emerald-700">novo</span>' : '<span class="text-ink-400">—</span>';
+  const d = ((atual - anterior) / anterior) * 100;
+  if(Math.abs(d) < 0.1) return '<span class="text-ink-500">→ 0%</span>';
+  if(d > 0) return `<span class="text-emerald-700">↗ +${d.toFixed(1)}%</span>`;
+  return `<span class="text-rose-700">↘ ${d.toFixed(1)}%</span>`;
+}
+
+// Soma vendas no intervalo [ini, fim) — fim exclusivo
+function _somaVendasIntervalo(ini, fim){
+  let total = 0, qtd = 0, ats = new Set();
+  const mapDia = new Map(); // 'YYYY-MM-DD' -> total
+  getVendas().forEach(v => {
+    if(!v.data) return;
+    const d = new Date(v.data + 'T12:00');
+    if(d < ini || d >= fim) return;
+    total += (v.valor||0);
+    qtd += (v.qtde||0);
+    if(v.atendente) ats.add(v.atendente);
+    mapDia.set(v.data, (mapDia.get(v.data)||0) + (v.valor||0));
+  });
+  return { total, qtd, atendentes: ats.size, mapDia };
+}
+
+// === Sub-aba: MENSAL ===
+function renderCompMensal(){
+  const $cont = document.getElementById('vendas-comp-conteudo');
+  if(!$cont) return;
+  const hoje = new Date();
+  // Mês atual: dia 1 deste mês até hoje (exclusive amanhã)
+  const iniAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const fimAtual = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()+1);
+  // Mês anterior: dia 1 anterior até dia equivalente (mesmo dia que hoje, no mês anterior)
+  const iniAnt = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1);
+  const fimAnt = new Date(hoje.getFullYear(), hoje.getMonth()-1, hoje.getDate()+1);
+
+  const atual = _somaVendasIntervalo(iniAtual, fimAtual);
+  const anterior = _somaVendasIntervalo(iniAnt, fimAnt);
+
+  // Diff em valores
+  const diffR$ = atual.total - anterior.total;
+  const diffPct = anterior.total ? ((diffR$/anterior.total)*100) : 0;
+
+  // Top atendentes que cresceram/caíram
+  const _statsAtend = (ini, fim) => {
+    const m = new Map();
+    getVendas().forEach(v => {
+      if(!v.atendente) return;
+      const d = new Date(v.data+'T12:00');
+      if(d < ini || d >= fim) return;
+      m.set(v.atendente, (m.get(v.atendente)||0) + (v.valor||0));
+    });
+    return m;
+  };
+  const sa = _statsAtend(iniAtual, fimAtual);
+  const sb = _statsAtend(iniAnt, fimAnt);
+  const todosAt = new Set([...sa.keys(), ...sb.keys()]);
+  const variacoes = [];
+  todosAt.forEach(at => {
+    const va = sa.get(at) || 0;
+    const vb = sb.get(at) || 0;
+    variacoes.push({ at, atual:va, anterior:vb, diffR$: va - vb, diffPct: vb ? ((va-vb)/vb)*100 : (va > 0 ? Infinity : 0) });
+  });
+  const topCresc = [...variacoes].filter(v => v.diffR$ > 0 && v.anterior > 0).sort((a,b)=>b.diffPct-a.diffPct).slice(0,5);
+  const topQueda = [...variacoes].filter(v => v.diffR$ < 0 && v.anterior > 0).sort((a,b)=>a.diffPct-b.diffPct).slice(0,5);
+
+  // Comparativo dia-a-dia até hoje
+  const diasNoMesAtual = hoje.getDate();
+  const labels = [], dadosAtual = [], dadosAnt = [];
+  for(let d = 1; d <= diasNoMesAtual; d++){
+    const dataAtual = `${iniAtual.getFullYear()}-${String(iniAtual.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dataAnt = `${iniAnt.getFullYear()}-${String(iniAnt.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    labels.push(d);
+    dadosAtual.push(atual.mapDia.get(dataAtual) || 0);
+    dadosAnt.push(anterior.mapDia.get(dataAnt) || 0);
+  }
+
+  const nomeMesAtual = iniAtual.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const nomeMesAnt = iniAnt.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  $cont.innerHTML = `
+    <div class="grid md:grid-cols-2 gap-3 mb-4">
+      <div class="border-2 border-brand-300 rounded-lg p-4 bg-brand-50">
+        <div class="text-[10px] uppercase text-brand-700 font-semibold">📅 Mês atual</div>
+        <div class="text-sm font-medium text-brand-900 mt-0.5">${nomeMesAtual} · até dia ${diasNoMesAtual}</div>
+        <div class="text-2xl font-bold mt-2 text-brand-700">${_fmtBR(atual.total)}</div>
+        <div class="text-xs text-ink-600 mt-1">${atual.qtd.toLocaleString('pt-BR')} itens · ${atual.atendentes} atendentes ativos</div>
+      </div>
+      <div class="border-2 border-ink-300 rounded-lg p-4 bg-ink-50">
+        <div class="text-[10px] uppercase text-ink-700 font-semibold">📆 Mês anterior (mesmo intervalo)</div>
+        <div class="text-sm font-medium text-ink-900 mt-0.5">${nomeMesAnt} · 1 ao ${diasNoMesAtual}</div>
+        <div class="text-2xl font-bold mt-2 text-ink-700">${_fmtBR(anterior.total)}</div>
+        <div class="text-xs text-ink-600 mt-1">${anterior.qtd.toLocaleString('pt-BR')} itens · ${anterior.atendentes} atendentes ativos</div>
+      </div>
+    </div>
+
+    <div class="${diffR$ >= 0 ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300'} border-2 rounded-lg p-4 mb-4">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div class="text-[10px] uppercase ${diffR$ >= 0 ? 'text-emerald-700' : 'text-rose-700'} font-semibold">Variação no mesmo intervalo</div>
+          <div class="text-3xl font-bold mt-1 ${diffR$ >= 0 ? 'text-emerald-700' : 'text-rose-700'}">
+            ${diffR$ >= 0 ? '↗' : '↘'} ${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(1)}%
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[10px] uppercase text-ink-600 font-semibold">Em valores</div>
+          <div class="text-xl font-bold ${diffR$ >= 0 ? 'text-emerald-700' : 'text-rose-700'} mt-1">${diffR$ >= 0 ? '+' : ''}${_fmtBR(diffR$)}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico dia a dia -->
+    <div class="bg-white border border-ink-200 rounded-lg p-4 mb-4">
+      <h4 class="text-sm font-semibold mb-3">Evolução dia a dia</h4>
+      <canvas id="comp-mensal-chart" height="120"></canvas>
+    </div>
+
+    <!-- Top crescimentos e quedas -->
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+        <div class="text-xs font-semibold text-emerald-900 mb-2">📈 Top 5 — Atendentes que MAIS cresceram</div>
+        ${topCresc.length === 0 ? '<div class="text-xs text-ink-400">Nenhum atendente com crescimento</div>' :
+          topCresc.map((v, i) => `
+            <div class="flex items-center justify-between text-xs py-1.5 border-t border-emerald-200">
+              <span><strong>${i+1}º</strong> ${_semNomeAmigavel(v.at)}</span>
+              <span class="text-emerald-700 font-semibold">↗ +${v.diffPct.toFixed(0)}% (${_fmtBRshort(v.diffR$)})</span>
+            </div>`).join('')}
+      </div>
+      <div class="bg-rose-50 border border-rose-200 rounded-lg p-3">
+        <div class="text-xs font-semibold text-rose-900 mb-2">📉 Top 5 — Atendentes que MAIS caíram</div>
+        ${topQueda.length === 0 ? '<div class="text-xs text-ink-400">Nenhum atendente em queda</div>' :
+          topQueda.map((v, i) => `
+            <div class="flex items-center justify-between text-xs py-1.5 border-t border-rose-200">
+              <span><strong>${i+1}º</strong> ${_semNomeAmigavel(v.at)}</span>
+              <span class="text-rose-700 font-semibold">↘ ${v.diffPct.toFixed(0)}% (${_fmtBR(v.diffR$).replace('R$ ','-R$ ')})</span>
+            </div>`).join('')}
+      </div>
+    </div>
+  `;
+
+  // Renderiza gráfico
+  if(window.Chart){
+    const $cv = document.getElementById('comp-mensal-chart');
+    if($cv){
+      try { _vendasCharts.compMensal?.destroy(); } catch{}
+      _vendasCharts.compMensal = new Chart($cv, {
+        type:'line',
+        data:{
+          labels: labels.map(d => `Dia ${d}`),
+          datasets: [
+            { label: nomeMesAtual, data: dadosAtual, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.1)', fill:true, tension:.3 },
+            { label: nomeMesAnt, data: dadosAnt, borderColor:'#9ca3af', backgroundColor:'rgba(156,163,175,.1)', borderDash:[5,5], fill:false, tension:.3 }
+          ]
+        },
+        options:{ responsive:true, plugins:{legend:{position:'top'}}, scales:{y:{ticks:{callback:v=>'R$ '+v.toLocaleString('pt-BR')}}} }
+      });
+    }
+  }
+}
+
+// === Sub-aba: SEMANA DO MÊS ===
+function renderCompSemanaDoMes(){
+  const $cont = document.getElementById('vendas-comp-conteudo');
+  if(!$cont) return;
+  const hoje = new Date();
+
+  // Pega últimos 3 meses fechados pra ter base de comparação
+  const meses = []; // [{ano, mes, label, semanas: [5 totais]}]
+  for(let i = 2; i >= 0; i--){
+    const m = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const proxMes = new Date(m.getFullYear(), m.getMonth()+1, 1);
+    const totaisSemana = [0,0,0,0,0]; // até 5 semanas no mês
+    getVendas().forEach(v => {
+      if(!v.data) return;
+      const d = new Date(v.data+'T12:00');
+      if(d < m || d >= proxMes) return;
+      const dia = d.getDate();
+      const semIdx = Math.min(4, Math.floor((dia-1)/7));
+      totaisSemana[semIdx] += (v.valor||0);
+    });
+    meses.push({
+      ano: m.getFullYear(),
+      mes: m.getMonth()+1,
+      label: m.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}),
+      semanas: totaisSemana
+    });
+  }
+
+  const fmtCell = v => v ? _fmtBRshort(v) : '<span class="text-ink-300">—</span>';
+
+  // Comparativo semana 1, 2, 3, 4, 5: cresceu ou caiu vs mês anterior?
+  const semanasLabels = ['Sem 1 (1-7)','Sem 2 (8-14)','Sem 3 (15-21)','Sem 4 (22-28)','Sem 5 (29-31)'];
+
+  $cont.innerHTML = `
+    <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-xs text-blue-900">
+      <strong>ℹ Como ler:</strong> compara a mesma semana do mês entre os últimos 3 meses. Útil pra ver se a Semana 1 está crescendo de mês a mês independente da sazonalidade.
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs md:text-sm">
+        <thead class="bg-ink-50 text-ink-600 uppercase">
+          <tr>
+            <th class="text-left px-3 py-2.5">Semana do mês</th>
+            ${meses.map((m, i) => `<th class="text-right px-3 py-2.5 ${i===2?'bg-brand-50':''}">${m.label}${i===2?' (atual)':''}</th>`).join('')}
+            <th class="text-right px-3 py-2.5">vs ${meses[1]?.label}</th>
+            <th class="text-right px-3 py-2.5">vs ${meses[0]?.label}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-ink-100">
+          ${semanasLabels.map((label, i) => {
+            const v0 = meses[0]?.semanas[i] || 0;
+            const v1 = meses[1]?.semanas[i] || 0;
+            const v2 = meses[2]?.semanas[i] || 0;
+            return `
+              <tr>
+                <td class="px-3 py-2"><strong>${label}</strong></td>
+                <td class="px-3 py-2 text-right">${fmtCell(v0)}</td>
+                <td class="px-3 py-2 text-right">${fmtCell(v1)}</td>
+                <td class="px-3 py-2 text-right font-semibold text-brand-700 bg-brand-50/40">${fmtCell(v2)}</td>
+                <td class="px-3 py-2 text-right text-xs">${_varFmt(v2, v1)}</td>
+                <td class="px-3 py-2 text-right text-xs">${_varFmt(v2, v0)}</td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot class="bg-ink-100 font-semibold border-t-2 border-ink-200">
+          <tr>
+            <td class="px-3 py-2.5">TOTAL DO MÊS</td>
+            ${meses.map((m, i) => `<td class="px-3 py-2.5 text-right ${i===2?'bg-brand-100':''}">${fmtCell(m.semanas.reduce((s,v)=>s+v,0))}</td>`).join('')}
+            <td class="px-3 py-2.5 text-right text-xs">${_varFmt(meses[2]?.semanas.reduce((s,v)=>s+v,0), meses[1]?.semanas.reduce((s,v)=>s+v,0))}</td>
+            <td class="px-3 py-2.5 text-right text-xs">${_varFmt(meses[2]?.semanas.reduce((s,v)=>s+v,0), meses[0]?.semanas.reduce((s,v)=>s+v,0))}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="mt-4 bg-white border border-ink-200 rounded-lg p-4">
+      <h4 class="text-sm font-semibold mb-3">Comparativo visual</h4>
+      <canvas id="comp-semana-mes-chart" height="120"></canvas>
+    </div>
+  `;
+
+  if(window.Chart){
+    const $cv = document.getElementById('comp-semana-mes-chart');
+    if($cv){
+      try { _vendasCharts.compSemanaMes?.destroy(); } catch{}
+      _vendasCharts.compSemanaMes = new Chart($cv, {
+        type:'bar',
+        data:{
+          labels: semanasLabels,
+          datasets: meses.map((m, i) => ({
+            label: m.label + (i===2?' (atual)':''),
+            data: m.semanas,
+            backgroundColor: i===2 ? '#2563eb' : (i===1 ? '#64748b' : '#cbd5e1')
+          }))
+        },
+        options:{ responsive:true, plugins:{legend:{position:'top'}}, scales:{y:{ticks:{callback:v=>'R$ '+v.toLocaleString('pt-BR')}}} }
+      });
+    }
+  }
+}
+
+// === Sub-aba: DIA DA SEMANA ===
+function renderCompDiaDaSemana(){
+  const $cont = document.getElementById('vendas-comp-conteudo');
+  if(!$cont) return;
+  const hoje = new Date();
+  // Períodos: últimos 30 dias vs 30 anteriores
+  const fimAtual = new Date(hoje); fimAtual.setHours(0,0,0,0); fimAtual.setDate(fimAtual.getDate()+1);
+  const iniAtual = new Date(fimAtual); iniAtual.setDate(iniAtual.getDate() - 30);
+  const fimAnt = new Date(iniAtual);
+  const iniAnt = new Date(fimAnt); iniAnt.setDate(iniAnt.getDate() - 30);
+
+  const stats = (ini, fim) => {
+    const totaisDow = [0,0,0,0,0,0,0]; // dom..sab
+    const qtdDias = [0,0,0,0,0,0,0];
+    const diasUnicos = new Set();
+    getVendas().forEach(v => {
+      if(!v.data) return;
+      const d = new Date(v.data+'T12:00');
+      if(d < ini || d >= fim) return;
+      const dow = d.getDay();
+      totaisDow[dow] += (v.valor||0);
+      const chave = dow + '|' + v.data;
+      if(!diasUnicos.has(chave)){
+        diasUnicos.add(chave);
+        qtdDias[dow]++;
+      }
+    });
+    // Médias por dia da semana (total / quantos dias daquele dow no período)
+    const medias = totaisDow.map((t, i) => qtdDias[i] ? t/qtdDias[i] : 0);
+    return { totaisDow, qtdDias, medias };
+  };
+
+  const a = stats(iniAtual, fimAtual);
+  const b = stats(iniAnt, fimAnt);
+
+  const fmtData = d => d.toLocaleDateString('pt-BR');
+  const labelAtual = `${fmtData(iniAtual)} a ${fmtData(new Date(fimAtual.getTime()-86400000))}`;
+  const labelAnt = `${fmtData(iniAnt)} a ${fmtData(new Date(fimAnt.getTime()-86400000))}`;
+
+  $cont.innerHTML = `
+    <div class="grid md:grid-cols-2 gap-3 mb-4 text-xs">
+      <div class="bg-brand-50 border border-brand-200 rounded p-2">
+        <div class="text-[10px] uppercase text-brand-700 font-semibold">Período atual</div>
+        <div class="font-medium">${labelAtual}</div>
+      </div>
+      <div class="bg-ink-50 border border-ink-200 rounded p-2">
+        <div class="text-[10px] uppercase text-ink-700 font-semibold">Período anterior</div>
+        <div class="font-medium">${labelAnt}</div>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs md:text-sm">
+        <thead class="bg-ink-50 text-ink-600 uppercase">
+          <tr>
+            <th class="text-left px-3 py-2.5">Dia da semana</th>
+            <th class="text-right px-3 py-2.5">Total atual</th>
+            <th class="text-right px-3 py-2.5">Média/dia atual</th>
+            <th class="text-right px-3 py-2.5">Total anterior</th>
+            <th class="text-right px-3 py-2.5">Média/dia anterior</th>
+            <th class="text-right px-3 py-2.5">Variação total</th>
+            <th class="text-right px-3 py-2.5">Variação média</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-ink-100">
+          ${[0,1,2,3,4,5,6].map(dow => `
+            <tr>
+              <td class="px-3 py-2"><strong>${_diasSemNomes[dow]}</strong> <span class="text-[10px] text-ink-500">(${a.qtdDias[dow]} dias)</span></td>
+              <td class="px-3 py-2 text-right ${a.totaisDow[dow]?'text-ink-700':'text-ink-300'}">${a.totaisDow[dow] ? _fmtBR(a.totaisDow[dow]) : '—'}</td>
+              <td class="px-3 py-2 text-right text-brand-700 font-medium">${a.medias[dow] ? _fmtBR(a.medias[dow]) : '—'}</td>
+              <td class="px-3 py-2 text-right ${b.totaisDow[dow]?'text-ink-700':'text-ink-300'}">${b.totaisDow[dow] ? _fmtBR(b.totaisDow[dow]) : '—'}</td>
+              <td class="px-3 py-2 text-right text-ink-600">${b.medias[dow] ? _fmtBR(b.medias[dow]) : '—'}</td>
+              <td class="px-3 py-2 text-right text-xs">${_varFmt(a.totaisDow[dow], b.totaisDow[dow])}</td>
+              <td class="px-3 py-2 text-right text-xs">${_varFmt(a.medias[dow], b.medias[dow])}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot class="bg-ink-100 font-semibold border-t-2 border-ink-200">
+          <tr>
+            <td class="px-3 py-2.5">TOTAL</td>
+            <td class="px-3 py-2.5 text-right">${_fmtBR(a.totaisDow.reduce((s,v)=>s+v,0))}</td>
+            <td></td>
+            <td class="px-3 py-2.5 text-right">${_fmtBR(b.totaisDow.reduce((s,v)=>s+v,0))}</td>
+            <td></td>
+            <td class="px-3 py-2.5 text-right text-xs">${_varFmt(a.totaisDow.reduce((s,v)=>s+v,0), b.totaisDow.reduce((s,v)=>s+v,0))}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="mt-4 bg-white border border-ink-200 rounded-lg p-4">
+      <h4 class="text-sm font-semibold mb-3">Média por dia da semana</h4>
+      <canvas id="comp-dia-semana-chart" height="100"></canvas>
+    </div>
+  `;
+
+  if(window.Chart){
+    const $cv = document.getElementById('comp-dia-semana-chart');
+    if($cv){
+      try { _vendasCharts.compDiaSem?.destroy(); } catch{}
+      _vendasCharts.compDiaSem = new Chart($cv, {
+        type:'bar',
+        data:{
+          labels: _diasSemNomes,
+          datasets: [
+            { label:'Atual (média/dia)', data: a.medias, backgroundColor:'#2563eb' },
+            { label:'Anterior (média/dia)', data: b.medias, backgroundColor:'#cbd5e1' }
+          ]
+        },
+        options:{ responsive:true, plugins:{legend:{position:'top'}}, scales:{y:{ticks:{callback:v=>'R$ '+v.toLocaleString('pt-BR')}}} }
+      });
+    }
+  }
 }
 
 function renderVendasSemanas(){
@@ -12778,7 +13223,13 @@ function renderVendasSemanasProdutos(){
   const $cont = document.getElementById('vendas-sem-conteudo');
   if(!$cont) return;
   const semanas = _calcularSemanasVendas();
-  const todas = _vendasSemanasFiltradas();
+  let todas = _vendasSemanasFiltradas();
+  // Aplica filtro de tipo de produto (todos / bebidas / alimentos)
+  if(_vendasProdutosTipo === 'bebidas'){
+    todas = todas.filter(v => _ehBebida(v.grupo));
+  } else if(_vendasProdutosTipo === 'alimentos'){
+    todas = todas.filter(v => !_ehBebida(v.grupo));
+  }
   // Agrega por item: { fat:[5], qtd:[5], grupo }
   const stats = new Map();
   todas.forEach(v => {
@@ -12794,7 +13245,14 @@ function renderVendasSemanasProdutos(){
     stats.get(k).qtd[idx] += v.qtde || 0;
   });
   if(!stats.size){
-    $cont.innerHTML = '<div class="text-center py-12 text-ink-400 text-sm">Nenhuma venda nas últimas 5 semanas.</div>';
+    $cont.innerHTML = `
+      <div class="mb-4 flex items-center gap-2 flex-wrap">
+        <span class="text-xs font-medium text-ink-600 mr-1">Filtro:</span>
+        <button id="vpt-todos" onclick="setVendasProdutosTipo('todos')" class="text-xs px-3 py-1.5 rounded-full ${_vendasProdutosTipo==='todos'?'bg-brand-600 text-white border border-brand-700':'bg-white text-ink-700 border border-ink-200 hover:bg-ink-50'}">🍽 Todos</button>
+        <button id="vpt-bebidas" onclick="setVendasProdutosTipo('bebidas')" class="text-xs px-3 py-1.5 rounded-full ${_vendasProdutosTipo==='bebidas'?'bg-brand-600 text-white border border-brand-700':'bg-white text-ink-700 border border-ink-200 hover:bg-ink-50'}">🍻 Somente bebidas</button>
+        <button id="vpt-alimentos" onclick="setVendasProdutosTipo('alimentos')" class="text-xs px-3 py-1.5 rounded-full ${_vendasProdutosTipo==='alimentos'?'bg-brand-600 text-white border border-brand-700':'bg-white text-ink-700 border border-ink-200 hover:bg-ink-50'}">🍴 Somente alimentos</button>
+      </div>
+      <div class="text-center py-12 text-ink-400 text-sm">Nenhum produto no filtro selecionado.</div>`;
     return;
   }
 
@@ -12829,6 +13287,15 @@ function renderVendasSemanasProdutos(){
   const cellMediaFat = v => isPct ? (mediaTotalFat ? ((v/mediaTotalFat)*100).toFixed(1)+'%' : '—') : _semFmtVal2(v);
 
   $cont.innerHTML = `
+    <!-- Filtro de tipo de produto -->
+    <div class="mb-4 flex items-center gap-2 flex-wrap">
+      <span class="text-xs font-medium text-ink-600 mr-1">Filtro:</span>
+      <button id="vpt-todos" onclick="setVendasProdutosTipo('todos')" class="text-xs px-3 py-1.5 rounded-full ${_vendasProdutosTipo==='todos'?'bg-brand-600 text-white border border-brand-700':'bg-white text-ink-700 border border-ink-200 hover:bg-ink-50'}">🍽 Todos</button>
+      <button id="vpt-bebidas" onclick="setVendasProdutosTipo('bebidas')" class="text-xs px-3 py-1.5 rounded-full ${_vendasProdutosTipo==='bebidas'?'bg-brand-600 text-white border border-brand-700':'bg-white text-ink-700 border border-ink-200 hover:bg-ink-50'}">🍻 Somente bebidas</button>
+      <button id="vpt-alimentos" onclick="setVendasProdutosTipo('alimentos')" class="text-xs px-3 py-1.5 rounded-full ${_vendasProdutosTipo==='alimentos'?'bg-brand-600 text-white border border-brand-700':'bg-white text-ink-700 border border-ink-200 hover:bg-ink-50'}">🍴 Somente alimentos</button>
+      <span class="text-[11px] text-ink-500 ml-2">${stats.size} produto(s) no filtro</span>
+    </div>
+
     <!-- KPIs Top Giros -->
     <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
       <div class="text-xs font-semibold text-blue-900 mb-2">⭐ Top 5 produtos mais vendidos na semana atual (por unidade)</div>
