@@ -3117,6 +3117,14 @@ let syncEnabled = false;
 const syncQueue = new Map();
 let syncTimer = null;
 let lastPullAt = 0;
+let _initialSyncPromise = null;
+let _initialSyncResolved = false;
+let _bootstrapDone = false;
+// Verdadeiro APENAS após confirmar (via API) que a tabela kv_store está vazia.
+// Usado para gatekeeping de seeds (usuários demo, produtos, etc.) — sem essa
+// confirmação, semear localmente sobrescreveria os dados reais na nuvem assim
+// que a conexão restaurar.
+let _remoteCloudVerifiedEmpty = false;
 
 function setSyncStatus(status, msg){
   const el = document.getElementById('sync-status');
@@ -3197,14 +3205,28 @@ async function pullFromRemote(showStatus){
   try {
     const { data, error } = await supabaseClient.from('kv_store').select('key,value');
     if(error) throw error;
+    let changed = 0;
     if(data){
-      data.forEach(row => {
-        try { localStorage.setItem('cantinho:'+row.key, JSON.stringify(row.value)); } catch(e){}
-      });
+      for(const row of data){
+        // Não sobrescreve keys com escritas pendentes — flushSyncQueue vai enviar a versão local
+        if(syncQueue.has(row.key)) continue;
+        try {
+          const fullKey = 'cantinho:'+row.key;
+          const newJson = JSON.stringify(row.value);
+          const oldRaw = localStorage.getItem(fullKey);
+          let oldJson = oldRaw;
+          if(oldRaw && oldRaw.startsWith(COMPRESSED_PREFIX) && typeof LZString !== 'undefined'){
+            try { oldJson = LZString.decompressFromUTF16(oldRaw.substring(COMPRESSED_PREFIX.length)); } catch{}
+          }
+          if(oldJson === newJson) continue;
+          _internalSet(row.key, row.value);
+          changed++;
+        } catch(e){ console.warn('[pull] row falhou:', row.key, e); }
+      }
     }
     lastPullAt = Date.now();
-    if(showStatus) setSyncStatus('ok', `${data?.length||0} itens sincronizados`);
-    return data?.length || 0;
+    if(showStatus) setSyncStatus('ok', changed > 0 ? `${changed} atualizado(s)` : 'Sincronizado');
+    return changed;
   } catch(e){
     console.error('Pull error:', e);
     if(showStatus) setSyncStatus('error', 'Erro ao baixar');
@@ -3240,22 +3262,88 @@ async function manualSync(){
   if(!supabaseClient){ showToast('<strong>!</strong> Supabase não conectado', 'error'); return; }
   await flushSyncQueue();
   const n = await pullFromRemote(true);
-  showToast(`<strong>✓</strong> Sincronização concluída — ${n} item(s) baixados da nuvem`);
+  showToast(`<strong>✓</strong> Sincronização concluída — ${n} item(s) atualizado(s) da nuvem`);
   // Re-renderiza tudo após pull
   if(typeof bootstrap === 'function') bootstrap();
 }
 
-// Polling: a cada 30s puxa atualizações de outros devices (silencioso)
+// Sync inicial — singleton: roda 1x por sessão. bootstrap() aguarda esta promise antes
+// de renderizar/checar auth, pra garantir que iPad/PC/celular mostrem os mesmos dados
+// e que o seed automático de usuários demo não sobrescreva os dados reais da nuvem.
+async function _runInitialSync(){
+  try {
+    if(!initSupabase()) return 0;
+    setSyncStatus('syncing', 'Conectando à nuvem…');
+    const localKeys = Object.keys(localStorage).filter(k => k.startsWith('cantinho:') && k !== 'cantinho:session.user');
+    let changed = 0;
+    try {
+      const { count } = await supabaseClient.from('kv_store').select('*', {count:'exact', head:true});
+      if(count > 0){
+        changed = await pullFromRemote(true);
+        if(localKeys.length){
+          const remoteData = await supabaseClient.from('kv_store').select('key');
+          const remoteKeys = new Set((remoteData.data||[]).map(r => r.key));
+          const onlyLocal = localKeys.filter(lk => !remoteKeys.has(lk.replace('cantinho:','')));
+          if(onlyLocal.length){
+            const toPush = onlyLocal.map(lk => {
+              try { return { key: lk.replace('cantinho:',''), value: JSON.parse(localStorage.getItem(lk)) }; }
+              catch(e){ return null; }
+            }).filter(Boolean);
+            if(toPush.length) await supabaseClient.from('kv_store').upsert(toPush);
+          }
+        }
+        setSyncStatus('ok');
+      } else {
+        // Nuvem confirmada vazia — agora é seguro semear dados demo localmente
+        _remoteCloudVerifiedEmpty = true;
+        if(localKeys.length){
+          await pushAllLocalToRemote();
+        } else {
+          setSyncStatus('ok', 'Pronto');
+        }
+      }
+    } catch(e){
+      console.error('Initial sync error:', e);
+      setSyncStatus('error', 'Sem conexão (modo local)');
+    }
+    return changed;
+  } finally {
+    _initialSyncResolved = true;
+  }
+}
+
+function _isModalOpen(){
+  const $root = document.getElementById('modal-root');
+  return !!($root && $root.childElementCount > 0);
+}
+
+// Retorna true se é seguro semear defaults localmente. Falso quando o sync está
+// ativo mas a nuvem não foi confirmada vazia (offline/timeout) — semear nesse
+// caso sobrescreveria os dados reais ao restaurar a conexão.
+function canSeedDefaults(){
+  return !syncEnabled || _remoteCloudVerifiedEmpty;
+}
+
+async function _silentPullAndMaybeRender(){
+  if(!supabaseClient || _isModalOpen()) return;
+  const changed = await pullFromRemote(false);
+  if(changed > 0 && _bootstrapDone && typeof renderAll === 'function'){
+    if(typeof checkAuth === 'function' && !checkAuth()) return;
+    renderAll();
+  }
+}
+
+// Polling: a cada 30s puxa atualizações de outros devices (silencioso, re-renderiza se mudou)
 setInterval(() => {
   if(supabaseClient && !document.hidden && Date.now() - lastPullAt > 25000){
-    pullFromRemote(false);
+    _silentPullAndMaybeRender();
   }
 }, 30000);
 
-// Quando volta o foco da aba, força um pull
+// Quando volta o foco da aba, força um pull e re-renderiza se houve mudanças
 document.addEventListener('visibilitychange', () => {
   if(!document.hidden && supabaseClient && Date.now() - lastPullAt > 5000){
-    pullFromRemote(false);
+    _silentPullAndMaybeRender();
   }
 });
 
@@ -6467,6 +6555,7 @@ const ESTOQUE_LOCAIS_DEFAULT = [
 function getLocais(){
   let list = Store.get('estoque.locais', null);
   if(list === null){
+    if(!canSeedDefaults()) return [];
     list = [...ESTOQUE_LOCAIS_DEFAULT];
     Store.set('estoque.locais', list);
   }
@@ -6485,6 +6574,7 @@ const MOV_TYPES = {
 function getProdutos(){
   let list = Store.get('estoque.produtos', null);
   if(list === null){
+    if(!canSeedDefaults()) return [];
     // Usa o seed completo do Cantinho do Boni (~470 produtos) se disponível
     if(window.SEED_PRODUTOS && window.SEED_PRODUTOS.length){
       list = window.SEED_PRODUTOS.map(p => ({...p}));
@@ -14696,6 +14786,10 @@ const PERMS_DEFAULT = {
 function getUsuarios(){
   let list = Store.get('usuarios.lista', null);
   if(list === null){
+    if(!canSeedDefaults()){
+      console.warn('[getUsuarios] sync indisponível — não semeando usuários demo');
+      return [];
+    }
     list = [
       { id:'USR-001', nome:'Bonieder Souza',   cpf:'',  email:'boni@cantinhodoboni.com',  setor:'Gestão',  perfil:'Admin',      whatsapp:'+55 62 99999-1234', status:'ativo', modulos: PERMS_DEFAULT.Admin,      createdAt:new Date().toISOString() },
       { id:'USR-002', nome:'Carla Mendes',     cpf:'',  email:'carla@cantinhodoboni.com', setor:'Gestão',  perfil:'Gerente',    whatsapp:'+55 62 98888-5678', status:'ativo', modulos: PERMS_DEFAULT.Gerente,    createdAt:new Date().toISOString() },
@@ -15145,7 +15239,11 @@ function getCadastros(tipo){
   const def = CADASTRO_DEFS[tipo];
   if(!def) return [];
   let list = Store.get(def.storeKey, null);
-  if(list === null){ list = def.seed.slice(); Store.set(def.storeKey, list); }
+  if(list === null){
+    if(!canSeedDefaults()) return [];
+    list = def.seed.slice();
+    Store.set(def.storeKey, list);
+  }
   return list;
 }
 function saveCadastros(tipo, list){ Store.set(CADASTRO_DEFS[tipo].storeKey, list); }
@@ -17307,58 +17405,7 @@ function renderComparativo5Semanas(){
   `;
 }
 
-async function bootstrap(){
-  // Página pública de visualização (sem login)
-  const params = new URLSearchParams(window.location.search);
-  if(params.get('view') === 'ranking'){
-    return renderPaginaPublicaRanking();
-  }
-
-  // Inicializa Supabase (se ainda não inicializado) + sincroniza com a nuvem
-  if(!supabaseClient){
-    if(initSupabase()){
-      setSyncStatus('syncing', 'Conectando à nuvem…');
-      // Conta quantos itens locais existem
-      const localKeys = Object.keys(localStorage).filter(k => k.startsWith('cantinho:') && k !== 'cantinho:session.user');
-      // Verifica quantos itens existem no remote
-      try {
-        const { count } = await supabaseClient.from('kv_store').select('*', {count:'exact', head:true});
-        if(count > 0){
-          // Remote tem dados — pull pra sincronizar
-          await pullFromRemote(true);
-          // Push de keys locais que não estão no remote (merge)
-          if(localKeys.length){
-            const remoteData = await supabaseClient.from('kv_store').select('key');
-            const remoteKeys = new Set((remoteData.data||[]).map(r => r.key));
-            const onlyLocal = localKeys.filter(lk => !remoteKeys.has(lk.replace('cantinho:','')));
-            if(onlyLocal.length){
-              const toPush = onlyLocal.map(lk => ({ key: lk.replace('cantinho:',''), value: JSON.parse(localStorage.getItem(lk)) }));
-              await supabaseClient.from('kv_store').upsert(toPush);
-            }
-          }
-          setSyncStatus('ok');
-        } else if(localKeys.length){
-          // Remote vazio + tem dados locais — primeira migração: sobe tudo
-          await pushAllLocalToRemote();
-        } else {
-          setSyncStatus('ok', 'Pronto');
-        }
-      } catch(e){
-        console.error('Initial sync error:', e);
-        setSyncStatus('error', 'Sem conexão (modo local)');
-      }
-    }
-  }
-  // Verifica autenticação DEPOIS do pull (pra ter usuários sincronizados)
-  if(!checkAuth()) return;
-  applyUserPermissions();
-  // Limpa entradas de saldo de imports antigos antes de renderizar qualquer coisa
-  const removidos = autoCleanSaldoEntries();
-  if(removidos > 0){
-    setTimeout(() => showToast(`<strong>i</strong> ${removidos} entradas de saldo antigas foram automaticamente removidas do extrato`, 'info'), 800);
-  }
-  // Aplica regras automáticas em transações antigas sem categoria (silencioso no boot)
-  setTimeout(() => reclassifyUncategorized(true), 200);
+function renderAll(){
   renderMeusChecklists();
   refreshBankView();
   renderDRE();
@@ -17376,6 +17423,64 @@ async function bootstrap(){
   if(typeof renderVendas === 'function') renderVendas();
   // Dashboard depende dos outros módulos — roda por último
   if(typeof renderDashboard === 'function') renderDashboard();
+}
+
+function showInitOverlay(msg){
+  let $o = document.getElementById('init-loading-overlay');
+  if($o){
+    const $m = document.getElementById('init-loading-msg');
+    if($m) $m.textContent = msg || 'Carregando…';
+    $o.classList.remove('hidden');
+    return;
+  }
+  $o = document.createElement('div');
+  $o.id = 'init-loading-overlay';
+  $o.style.cssText = 'position:fixed;inset:0;z-index:300;background:#0f172a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:system-ui,sans-serif;';
+  $o.innerHTML = `
+    <div style="width:64px;height:64px;background:#16a34a;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:bold;">B</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25"/><path fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"/></svg>
+      <span id="init-loading-msg" style="font-size:14px;">${msg||'Carregando…'}</span>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+  `;
+  document.body.appendChild($o);
+}
+
+function hideInitOverlay(){
+  const $o = document.getElementById('init-loading-overlay');
+  if($o) $o.remove();
+}
+
+async function bootstrap(){
+  // Página pública de visualização (sem login)
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('view') === 'ranking'){
+    return renderPaginaPublicaRanking();
+  }
+
+  // CRÍTICO: aguarda sync inicial com a nuvem ANTES de renderizar / checar auth.
+  // Sem isso, getUsuarios() pode rodar antes do pull e semear usuários demo no
+  // localStorage, sobrescrevendo os reais na nuvem na próxima flush.
+  if(!_initialSyncResolved) showInitOverlay('Sincronizando dados…');
+  if(!_initialSyncPromise) _initialSyncPromise = _runInitialSync();
+  await _initialSyncPromise;
+  hideInitOverlay();
+
+  if(!checkAuth()) return;
+  applyUserPermissions();
+
+  // Cleanups one-shot só na primeira renderização da sessão
+  if(!_bootstrapDone){
+    _bootstrapDone = true;
+    const removidos = autoCleanSaldoEntries();
+    if(removidos > 0){
+      setTimeout(() => showToast(`<strong>i</strong> ${removidos} entradas de saldo antigas foram automaticamente removidas do extrato`, 'info'), 800);
+    }
+    setTimeout(() => reclassifyUncategorized(true), 200);
+  }
+
+  renderAll();
 }
 document.addEventListener('DOMContentLoaded', bootstrap);
 // roda imediatamente também (para o caso de já estar carregado)
