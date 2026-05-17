@@ -8778,7 +8778,7 @@ function renderContagemHTML(isFechamento){
             </div>
           </div>
 
-          <div id="contagem-totalizador" class="border-2 border-emerald-500 rounded-lg p-4 bg-emerald-50">
+          <div id="contagem-totalizador" class="border-2 border-emerald-500 rounded-lg p-4 bg-emerald-50" data-esperado="${saldoEsperado}">
             <div class="flex justify-between items-center">
               <span class="text-sm font-medium">Total contado:</span>
               <span class="text-2xl font-bold text-emerald-700" id="contagem-total">R$ 0,00</span>
@@ -8824,13 +8824,12 @@ function atualizarTotalContagem(){
   const $diff = document.getElementById('contagem-diff');
   const $tot = document.getElementById('contagem-totalizador');
   if($diff && $tot){
-    // Pega saldo esperado do data-attribute do totalizador (precisamos guardar)
-    const period = { start: new Date(new Date().setHours(0,0,0,0)), end: new Date() };
-    const txs = getCaixaTransacoes().filter(t => new Date(t.createdAt) >= period.start);
-    const entradas = txs.filter(t => t.tipo === 'entrada').reduce((s,t)=>s+t.valor, 0);
-    const saidas = txs.filter(t => t.tipo === 'saida').reduce((s,t)=>s+t.valor, 0);
-    const sangrias = txs.filter(t => t.tipo === 'sangria').reduce((s,t)=>s+t.valor, 0);
-    const esperado = getCaixaSaldoInicial() + entradas - saidas - sangrias;
+    // Usa o esperado congelado no momento que o modal abriu (data-esperado).
+    // Recalcular aqui causava divergência quando transações eram criadas/sincronizadas
+    // entre a abertura do modal e a contagem das cédulas — o header e o label mostravam
+    // o valor antigo enquanto a diferença mostrava cálculo sobre o novo, gerando
+    // diferenças absurdas (ex: R$ -2.067,92 quando o real era R$ -14,92).
+    const esperado = parseFloat($tot.dataset.esperado) || 0;
     const diff = total - esperado;
     $diff.textContent = (diff > 0 ? '+' : '') + 'R$ ' + diff.toLocaleString('pt-BR',{minimumFractionDigits:2});
     if(Math.abs(diff) < 0.01){
